@@ -1,1 +1,2 @@
-# TFG_PQC
+# TFG-PQC
+## Diego San Román Posada
