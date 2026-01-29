@@ -7,8 +7,8 @@ Evaluar la capacidad de los servidores actuales para negociar intercambios de cl
 
 ## 📂 Estructura del Proyecto
 * `sonda_base.py`: Realiza un análisis de línea base extrayendo suites de cifrado clásicas y datos del certificado.
-* `sonda_detect_pqc.py`: Sonda avanzada que utiliza el motor de **Open Quantum Safe** para forzar handshakes PQC.
-* `Dockerfile`: Automatiza la creación del entorno de laboratorio con las librerías criptográficas necesarias.
+* `sonda_pqc_final.py`: Sonda avanzada que utiliza el motor de **Open Quantum Safe** para forzar handshakes PQC mediante llamadas directas al binario de OpenSSL.
+* `Dockerfile`: Automatiza la creación del entorno de laboratorio con las librerías criptográficas necesarias (OQS Provider).
 * `resultados/`: Carpeta donde se almacenan los informes técnicos en formato JSON.
 
 ## 🛠 Requisitos Previos
@@ -20,7 +20,7 @@ Para garantizar la reproducibilidad de los resultados sin alterar las librerías
 
 ### 1. Construir la imagen del laboratorio
 Desde la carpeta raíz del proyecto, ejecuta:
-```bash
+```
 docker build -t laboratorio_pqc .
 ```
 
@@ -41,18 +41,19 @@ cd /home/tfg
 python3 sonda_base.py
 
 # Para la detección de algoritmos cuánticos (Google, Cloudflare, etc.)
-python3 sonda_detect_pqc.py
+python3 sonda_pqc_final.py
 ```
 
 ### 📊 Interpretación de Resultados
 
 La sonda PQC evalúa diferentes grupos de negociación. Estos son los estados posibles:
-Resultado	Significado
-ACEPTADO ✅	El servidor soporta el grupo híbrido (ej. p256_kyber768). Conexión segura ante ataques cuánticos.
-RECHAZADO ❌	Incompatibilidad de protocolo o de versión del estándar (Draft Mismatch).
+
+    ACEPTADO ✅: El servidor soporta el grupo híbrido (ej. p256_kyber768). Conexión segura ante ataques cuánticos.
+
+    RECHAZADO ❌: Incompatibilidad de protocolo o de versión del estándar (Draft Mismatch).
 
 ### 🧪 Detalles Técnicos
 
-La herramienta utiliza el proveedor de OQS vinculado dinámicamente. Durante las pruebas, se ha confirmado la capacidad de negociar tráfico híbrido con éxito contra infraestructuras de producción de Google y Cloudflare.
+La herramienta utiliza el proveedor de OQS vinculado dinámicamente. Durante las pruebas, se ha confirmado la capacidad de negociar tráfico híbrido con éxito contra infraestructuras de producción de Google y Cloudflare. El uso de subprocess permite evitar las limitaciones de las librerías SSL nativas de Python.
 
-#### Autor: Diego San Román - UC3M
+#### Autor: Diego San Román Posada - UC3M 
