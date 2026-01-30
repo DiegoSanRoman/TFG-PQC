@@ -1,18 +1,27 @@
 """
-1. sonda_base.py
-En esta primera versión de la sonda, nos conectamos a servidores HTTPS
+sonda_base.py
+En esta primera versión de la sonda, nos conectamos a servidores HTTPS de diferentes hostnames
 y extraemos información básica del protocolo TLS y del certificado.
 No verificamos la validez del certificado para poder conectarnos a servidores
-con certificados autofirmados o caducados.
+con certificados autofirmados o caducados (lo hice asi porque el certificado de la uc3m no me dejaba continuar).
 """
 
-import socket
-import ssl
-import json
-from cryptography import x509
-from datetime import datetime
+# Importaciones necesarias
+import socket                       # Para conexiones TCP
+import ssl                          # Para capa SSL/TLS 
+import json                         # Para guardar resultados en JSON
+import time                         # Para medir tiempo de conexión
+from cryptography import x509       # Para manejar certificados X.509
+from datetime import datetime       # Para timestamps
+
 
 def escanear_servidor(hostname):
+    '''
+    Conectarse a un servidor HTTPS y extraer información del protocolo TLS y del certificado.
+    :param hostname: El nombre del host o dominio del servidor HTTPS a escanear
+    '''
+
+    # Estructura base del resultado
     resultado = {
         "hostname": hostname,
         "timestamp": datetime.now().isoformat(),
@@ -20,6 +29,7 @@ def escanear_servidor(hostname):
         "datos": None,
         "error": None
     }
+    
     
     # --- CONFIGURACIÓN DEL ENTORNO SSL ---
     # Cargamos la configuración por defecto de SSL del sistema
@@ -31,7 +41,12 @@ def escanear_servidor(hostname):
     # Desactivamos la verificación del certificado (permite certs caducados, autofirmados o no fiables)
     context.verify_mode = ssl.CERT_NONE
     
+    # Ejecutamos el comando y capturamos la salida
     try:
+        # --- MEDICIÓN DE TIEMPO ---
+        # Registramos el momento inicial antes de establecer la conexión
+        tiempo_inicio = time.time()
+        
         # --- ESTABLECIMIENTO DE LA CONEXIÓN ---
         # Creamos una conexión TCP estándar (socket) al puerto 443 con un máximo de 5 segundos de espera
         with socket.create_connection((hostname, 443), timeout=5) as sock:
@@ -48,12 +63,17 @@ def escanear_servidor(hostname):
                 
                 # Usamos la librería cryptography para convertir esos bytes "en bruto" en un objeto manejable
                 cert = x509.load_der_x509_certificate(cert_der)
+                
+                # Registramos el momento final después de completar la conexión y obtener el certificado
+                tiempo_fin = time.time()
+                tiempo_conexion = tiempo_fin - tiempo_inicio
 
                 # --- EXTRACCIÓN Y ORGANIZACIÓN DE DATOS ---
                 resultado["estado"] = "exito"
                 resultado["datos"] = {
+                    "tiempo_conexion_segundos": round(tiempo_conexion, 3),
                     "protocolo": {
-                        "version": ssock.version(),          # Ej: TLSv1.3
+                        "version": ssock.version(),         # Ej: TLSv1.3
                         "suite_cifrado": detalles[0],       # Ej: ECDHE-RSA-AES256-GCM-SHA384
                         "bits_clave": detalles[2]           # Ej: 256
                     },
@@ -95,4 +115,4 @@ if __name__ == "__main__":
     with open("resultados/resultados_sonda_base.json", "w", encoding="utf-8") as f:
         json.dump(lista_resultados, f, indent=4, ensure_ascii=False)
     
-    print(f"\n[!] Listo. Se han guardado los datos de {len(hostnames)} servidores.")
+    print(f"\n[!] Listo. Se han guardado los datos de {len(hostnames)} servidores en resultados/resultados_sonda_base.json.")

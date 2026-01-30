@@ -1,9 +1,10 @@
 [
     {
         "hostname": "cosec.inf.uc3m.es",
-        "timestamp": "2026-01-29T19:53:40.114618",
+        "timestamp": "2026-01-30T10:33:56.806366",
         "estado": "exito",
         "datos": {
+            "tiempo_conexion_segundos": 0.03,
             "protocolo": {
                 "version": "TLSv1.3",
                 "suite_cifrado": "TLS_AES_256_GCM_SHA384",
@@ -21,9 +22,10 @@
     },
     {
         "hostname": "www.uc3m.es",
-        "timestamp": "2026-01-29T19:53:40.228257",
+        "timestamp": "2026-01-30T10:33:56.852865",
         "estado": "exito",
         "datos": {
+            "tiempo_conexion_segundos": 0.068,
             "protocolo": {
                 "version": "TLSv1.2",
                 "suite_cifrado": "ECDHE-RSA-AES128-GCM-SHA256",
@@ -41,9 +43,10 @@
     },
     {
         "hostname": "www.google.com",
-        "timestamp": "2026-01-29T19:53:40.352684",
+        "timestamp": "2026-01-30T10:33:56.990069",
         "estado": "exito",
         "datos": {
+            "tiempo_conexion_segundos": 0.039,
             "protocolo": {
                 "version": "TLSv1.3",
                 "suite_cifrado": "TLS_AES_256_GCM_SHA384",
@@ -61,9 +64,10 @@
     },
     {
         "hostname": "www.facebook.com",
-        "timestamp": "2026-01-29T19:53:40.443907",
+        "timestamp": "2026-01-30T10:33:57.086794",
         "estado": "exito",
         "datos": {
+            "tiempo_conexion_segundos": 0.023,
             "protocolo": {
                 "version": "TLSv1.3",
                 "suite_cifrado": "TLS_CHACHA20_POLY1305_SHA256",
