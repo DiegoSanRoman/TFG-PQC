@@ -3,7 +3,7 @@ FROM openquantumsafe/openssl3
 
 # Instalamos Python y las dependencias necesarias
 RUN apk update && apk add python3 py3-pip
-RUN pip3 install cryptography --break-system-packages
+RUN pip3 install cryptography dnspython --break-system-packages
 
 # Creamos la carpeta de trabajo
 WORKDIR /home/tfg
