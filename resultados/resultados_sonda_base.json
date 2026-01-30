@@ -1,12 +1,12 @@
 [
     {
         "hostname": "cosec.inf.uc3m.es",
-        "timestamp": "2026-01-30T19:54:38.963920",
+        "timestamp": "2026-01-30T19:59:14.849424",
         "estado": "exito",
         "datos": {
             "conexion": {
-                "tiempo_conexion_segundos": 0.023,
-                "latencia_dns_ms": 8.78
+                "tiempo_conexion_segundos": 0.033,
+                "latencia_dns_ms": 10.73
             },
             "protocolo": {
                 "version": "TLSv1.3",
@@ -51,12 +51,12 @@
     },
     {
         "hostname": "www.uc3m.es",
-        "timestamp": "2026-01-30T19:54:39.058243",
+        "timestamp": "2026-01-30T19:59:14.950798",
         "estado": "exito",
         "datos": {
             "conexion": {
-                "tiempo_conexion_segundos": 0.062,
-                "latencia_dns_ms": 5.96
+                "tiempo_conexion_segundos": 0.059,
+                "latencia_dns_ms": 10.28
             },
             "protocolo": {
                 "version": "TLSv1.2",
@@ -101,12 +101,12 @@
     },
     {
         "hostname": "www.google.com",
-        "timestamp": "2026-01-30T19:54:39.182586",
+        "timestamp": "2026-01-30T19:59:15.073256",
         "estado": "exito",
         "datos": {
             "conexion": {
-                "tiempo_conexion_segundos": 0.075,
-                "latencia_dns_ms": 5.56
+                "tiempo_conexion_segundos": 0.038,
+                "latencia_dns_ms": 4.74
             },
             "protocolo": {
                 "version": "TLSv1.3",
@@ -150,12 +150,12 @@
     },
     {
         "hostname": "www.facebook.com",
-        "timestamp": "2026-01-30T19:54:39.317006",
+        "timestamp": "2026-01-30T19:59:15.173594",
         "estado": "exito",
         "datos": {
             "conexion": {
-                "tiempo_conexion_segundos": 0.02,
-                "latencia_dns_ms": 5.7
+                "tiempo_conexion_segundos": 0.029,
+                "latencia_dns_ms": 5.91
             },
             "protocolo": {
                 "version": "TLSv1.3",
@@ -209,12 +209,12 @@
     },
     {
         "hostname": "cloudflare.com",
-        "timestamp": "2026-01-30T19:54:39.387611",
+        "timestamp": "2026-01-30T19:59:15.257380",
         "estado": "exito",
         "datos": {
             "conexion": {
-                "tiempo_conexion_segundos": 0.031,
-                "latencia_dns_ms": 6.7
+                "tiempo_conexion_segundos": 0.034,
+                "latencia_dns_ms": 4.78
             },
             "protocolo": {
                 "version": "TLSv1.3",
@@ -262,12 +262,12 @@
     },
     {
         "hostname": "expired.badssl.com",
-        "timestamp": "2026-01-30T19:54:39.482615",
+        "timestamp": "2026-01-30T19:59:15.349459",
         "estado": "exito",
         "datos": {
             "conexion": {
-                "tiempo_conexion_segundos": 0.648,
-                "latencia_dns_ms": 30.73
+                "tiempo_conexion_segundos": 0.422,
+                "latencia_dns_ms": 12.08
             },
             "protocolo": {
                 "version": "TLSv1.2",
@@ -312,12 +312,12 @@
     },
     {
         "hostname": "self-signed.badssl.com",
-        "timestamp": "2026-01-30T19:54:40.227539",
+        "timestamp": "2026-01-30T19:59:15.838341",
         "estado": "exito",
         "datos": {
             "conexion": {
-                "tiempo_conexion_segundos": 0.4,
-                "latencia_dns_ms": 40.34
+                "tiempo_conexion_segundos": 0.344,
+                "latencia_dns_ms": 5.39
             },
             "protocolo": {
                 "version": "TLSv1.2",
