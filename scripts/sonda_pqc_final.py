@@ -13,19 +13,25 @@ import os                           # Para operaciones del sistema
 import time                         # Para medir tiempo de conexión
 from datetime import datetime       # Para timestamps
 
+# ============================================
+# FUNCION PRINCIPAL
+# ============================================
+
 def sonda_pqc(hostname, group=None):
     '''
-    Conectarse a un servidor HTTPS usando OpenSSL y probar compatibilidad con TLS 1
+    Función que intenta conectarse a un servidor HTTPS usando OpenSSL con soporte para cifrados post-cuánticos (híbridos y puros).
     :param hostname: El nombre del host o dominio del servidor HTTPS a escanear
     :param group: El grupo de cifrado a usar (None para automático)
+    :return: Diccionario con el resultado de la conexión
     '''
+
     # Ruta al binario de OpenSSL personalizado con soporte PQC
     openssl_bin = "/opt/openssl/bin/openssl"
     
     # Comando con flags de compatibilidad máxima
     cmd = [openssl_bin, "s_client", "-connect", f"{hostname}:443", "-servername", hostname, "-tls1_3", "-ign_eof"]
     
-    # Si se especifica un grupo, lo añadimos al comando
+    # Si se especifica un grupo, lo añadimos al comando. Si no, se usará el modo automático por defecto.
     if group:
         cmd += ["-groups", group]
     
@@ -60,6 +66,11 @@ def sonda_pqc(hostname, group=None):
     except Exception as e:
         return {"status": "ERROR", "res": str(e), "tiempo_conexion_segundos": None}
 
+
+# ============================================
+# EJECUCIÓN PRINCIPAL
+# ============================================
+
 if __name__ == "__main__":
     # Prueba con varios servidores y grupos
     targets = ["cosec.inf.uc3m.es", "www.uc3m.es", "www.google.com", "cloudflare.com", "www.facebook.com"]
@@ -77,7 +88,7 @@ if __name__ == "__main__":
     
     # Iteramos sobre cada target y cada grupo, almacenando los resultados
     for host in targets:
-        print(f"Analizando host: {host}")
+        print(f"-> Analizando host: {host}")
         resultado_host = {
             "hostname": host,
             "timestamp": datetime.now().isoformat(),
