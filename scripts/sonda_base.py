@@ -7,19 +7,19 @@ con certificados autofirmados o caducados (lo hice asi porque el certificado de 
 """
 
 # Importaciones necesarias
-import socket                                               # Para conexiones TCP
-import ssl                                                  # Para capa SSL/TLS 
-import json                                                 # Para guardar resultados en JSON
-import time                                                 # Para medir tiempo de conexión
-import hashlib                                              # Para calcular hashes de certificados
-import dns.resolver                                         # Para medir latencia DNS
-from cryptography import x509                               # Para manejar certificados X.509
-from cryptography.hazmat.primitives import serialization    # Para manejar claves públicas
-from datetime import datetime, timezone                     # Para timestamps y zona horaria
-from datetime import timedelta                              # Para cálculos de tiempo
-import os                                                   # Para variables de entorno
-import csv                                                  # Para leer archivos CSV
-from concurrent.futures import ThreadPoolExecutor, as_completed  # Para concurrencia
+import socket                                                   # Para conexiones TCP
+import ssl                                                      # Para capa SSL/TLS 
+import json                                                     # Para guardar resultados en JSON
+import time                                                     # Para medir tiempo de conexión
+import hashlib                                                  # Para calcular hashes de certificados
+import dns.resolver                                             # Para medir latencia DNS
+from cryptography import x509                                   # Para manejar certificados X.509
+from cryptography.hazmat.primitives import serialization        # Para manejar claves públicas
+from datetime import datetime, timezone                         # Para timestamps y zona horaria
+from datetime import timedelta                                  # Para cálculos de tiempo
+import os                                                       # Para variables de entorno
+import csv                                                      # Para leer archivos CSV
+from concurrent.futures import ThreadPoolExecutor, as_completed # Para concurrencia
 
 
 # ============================================
