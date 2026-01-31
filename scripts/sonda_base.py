@@ -17,6 +17,7 @@ from cryptography import x509                               # Para manejar certi
 from cryptography.hazmat.primitives import serialization    # Para manejar claves públicas
 from datetime import datetime, timezone                     # Para timestamps y zona horaria
 from datetime import timedelta                              # Para cálculos de tiempo
+import os                                                   # Para variables de entorno
 
 
 # ============================================
@@ -133,6 +134,17 @@ def tiene_pfs(cipher_name):
     return 'ECDHE' in cipher_name or 'DHE' in cipher_name
 
 
+def en_contenedor():
+    try:
+        if os.path.exists("/.dockerenv"):
+            return True
+        with open("/proc/1/cgroup", "r", encoding="utf-8") as f:
+            contenido = f.read()
+            return "docker" in contenido or "containerd" in contenido
+    except Exception:
+        return False
+
+
 # ============================================
 # FUNCION PRINCIPAL DE LA SONDA
 # ============================================
@@ -150,133 +162,156 @@ def escanear_servidor(hostname):
         "timestamp": datetime.now().isoformat(),
         "estado": "error",
         "datos": None,
-        "error": None
+        "error": None,
+        "entorno": {
+            "openssl_version": ssl.OPENSSL_VERSION,
+            "fallback_tls12": False
+        }
     }
     
     try:
         # --- MEDICIÓN DE LATENCIA DNS ---
         latencia_dns = obtener_latencia_dns(hostname)
-        
-        # --- CONFIGURACIÓN DEL ENTORNO SSL ---
-        # Cargamos la configuración por defecto de SSL del sistema
-        context = ssl.create_default_context()
-        
-        # Desactivamos la validación del nombre del host (permite conectar aunque el cert sea para otro dominio)
-        context.check_hostname = False
-        
-        # Desactivamos la verificación del certificado (permite certs caducados, autofirmados o no fiables)
-        context.verify_mode = ssl.CERT_NONE
-        
-        # --- MEDICIÓN DE TIEMPO ---
-        # Registramos el momento inicial antes de establecer la conexión
-        tiempo_inicio = time.time()
-        
-        # --- ESTABLECIMIENTO DE LA CONEXIÓN ---
-        # Creamos una conexión TCP estándar (socket) al puerto 443 con un máximo de 5 segundos de espera
-        with socket.create_connection((hostname, 443), timeout=5) as sock:
-            
-            # "Envolvemos" el socket TCP con la capa de seguridad SSL/TLS usando nuestro contexto configurado
-            with context.wrap_socket(sock, server_hostname=hostname) as ssock:
-                
-                # Extraemos una tupla con (nombre_cifrado, version_protocolo, bits_usados)
-                detalles = ssock.cipher()
-                
-                # Obtenemos el certificado del servidor en formato binario (DER)
-                cert_der = ssock.getpeercert(binary_form=True)
-                
-                # Usamos la librería cryptography para convertir esos bytes "en bruto" en un objeto manejable
-                cert = x509.load_der_x509_certificate(cert_der)
-                
-                # Registramos el momento final después de completar la conexión y obtener el certificado
-                tiempo_fin = time.time()
-                tiempo_conexion = tiempo_fin - tiempo_inicio
 
-                # --- EXTRACCIÓN Y ORGANIZACIÓN DE DATOS ---
-                
-                # Información de la clave pública
-                info_clave = obtener_informacion_clave(cert)
-                
-                # Nombres alternativos (SAN)
-                san_list = extraer_san(cert)
-                
-                # Fechas de validez
-                valido_desde = cert.not_valid_before_utc
-                valido_hasta = cert.not_valid_after_utc
-                ahora = datetime.now(timezone.utc)
-                
-                # Cálculo de días válido
-                if ahora < valido_desde:
-                    dias_valido = (valido_hasta - valido_desde).days
-                    estado_validez = "no_valido_aun"
-                elif ahora > valido_hasta:
-                    dias_valido = 0
-                    estado_validez = "caducado"
-                else:
-                    dias_valido = (valido_hasta - ahora).days
-                    estado_validez = "valido"
-                
-                # Hash del certificado
-                hash_sha256 = hashlib.sha256(cert_der).hexdigest()
-                hash_sha1 = hashlib.sha1(cert_der).hexdigest()
-                
-                # Suite de cifrado analizada
-                cipher_name = detalles[0]
-                tiene_pfs_socket = tiene_pfs(cipher_name)
-                es_debil = es_cipher_debil(cipher_name)
-                
-                # Información de seguridad
-                tamaño_clave = info_clave.get("tamaño_bits")
-                clave_debil = tamaño_clave is not None and tamaño_clave < 2048 if info_clave.get("algoritmo") == "RSA" else False
-                
-                resultado["estado"] = "exito"
-                resultado["datos"] = {
-                    "conexion": {
-                        "tiempo_conexion_segundos": round(tiempo_conexion, 3),
-                        "latencia_dns_ms": latencia_dns
-                    },
-                    "protocolo": {
-                        "version": ssock.version(),         
-                        "suite_cifrado": cipher_name,       
-                        "bits_clave": detalles[2],          
-                        "perfect_forward_secrecy": tiene_pfs_socket,
-                        "suite_debil": es_debil
-                    },
-                    "certificado": {
-                        # Información básica
-                        "sujeto": cert.subject.rfc4514_string(),
-                        "emisor": cert.issuer.rfc4514_string(),
-                        "numero_serie": cert.serial_number,
-                        "algoritmo_firma": cert.signature_algorithm_oid._name,
-                        
-                        # Fechas de validez
-                        "valido_desde": valido_desde.isoformat(),
-                        "valido_hasta": valido_hasta.isoformat(),
-                        "dias_valido": dias_valido,
-                        "estado_validez": estado_validez,
-                        
-                        # Nombres alternativos
-                        "subject_alternative_names": san_list,
-                        
-                        # Información de clave pública
-                        "clave_publica": {
-                            "algoritmo": info_clave.get("algoritmo"),
-                            "tamaño_bits": tamaño_clave,
-                            "clave_debil": clave_debil
+        def crear_contexto_ssl(modo_compatible=False):
+            # Cargamos la configuración por defecto de SSL del sistema
+            ctx = ssl.create_default_context()
+
+            # Desactivamos la validación del nombre del host (permite conectar aunque el cert sea para otro dominio)
+            ctx.check_hostname = False
+
+            # Desactivamos la verificación del certificado (permite certs caducados, autofirmados o no fiables)
+            ctx.verify_mode = ssl.CERT_NONE
+
+            # En entornos OQS (OpenSSL modificado) a veces falla TLS 1.3 con servidores clásicos
+            if modo_compatible:
+                ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+                ctx.maximum_version = ssl.TLSVersion.TLSv1_2
+                try:
+                    ctx.set_ciphers("DEFAULT:@SECLEVEL=1")
+                except Exception:
+                    pass
+
+            return ctx
+
+        def conectar_y_extraer(ctx):
+            # --- MEDICIÓN DE TIEMPO ---
+            tiempo_inicio = time.time()
+
+            # --- ESTABLECIMIENTO DE LA CONEXIÓN ---
+            with socket.create_connection((hostname, 443), timeout=5) as sock:
+                with ctx.wrap_socket(sock, server_hostname=hostname) as ssock:
+                    # Extraemos una tupla con (nombre_cifrado, version_protocolo, bits_usados)
+                    detalles = ssock.cipher()
+
+                    # Obtenemos el certificado del servidor en formato binario (DER)
+                    cert_der = ssock.getpeercert(binary_form=True)
+
+                    # Usamos la librería cryptography para convertir esos bytes "en bruto" en un objeto manejable
+                    cert = x509.load_der_x509_certificate(cert_der)
+
+                    # Registramos el momento final después de completar la conexión y obtener el certificado
+                    tiempo_fin = time.time()
+                    tiempo_conexion = tiempo_fin - tiempo_inicio
+
+                    # --- EXTRACCIÓN Y ORGANIZACIÓN DE DATOS ---
+
+                    # Información de la clave pública
+                    info_clave = obtener_informacion_clave(cert)
+
+                    # Nombres alternativos (SAN)
+                    san_list = extraer_san(cert)
+
+                    # Fechas de validez
+                    valido_desde = cert.not_valid_before_utc
+                    valido_hasta = cert.not_valid_after_utc
+                    ahora = datetime.now(timezone.utc)
+
+                    # Cálculo de días válido
+                    if ahora < valido_desde:
+                        dias_valido = (valido_hasta - valido_desde).days
+                        estado_validez = "no_valido_aun"
+                    elif ahora > valido_hasta:
+                        dias_valido = 0
+                        estado_validez = "caducado"
+                    else:
+                        dias_valido = (valido_hasta - ahora).days
+                        estado_validez = "valido"
+
+                    # Hash del certificado
+                    hash_sha256 = hashlib.sha256(cert_der).hexdigest()
+                    hash_sha1 = hashlib.sha1(cert_der).hexdigest()
+
+                    # Suite de cifrado analizada
+                    cipher_name = detalles[0]
+                    tiene_pfs_socket = tiene_pfs(cipher_name)
+                    es_debil = es_cipher_debil(cipher_name)
+
+                    # Información de seguridad
+                    tamaño_clave = info_clave.get("tamaño_bits")
+                    clave_debil = tamaño_clave is not None and tamaño_clave < 2048 if info_clave.get("algoritmo") == "RSA" else False
+
+                    resultado["estado"] = "exito"
+                    resultado["datos"] = {
+                        "conexion": {
+                            "tiempo_conexion_segundos": round(tiempo_conexion, 3),
+                            "latencia_dns_ms": latencia_dns
                         },
-                        
-                        # Hashes
-                        "hash": {
-                            "sha256": hash_sha256,
-                            "sha1": hash_sha1
+                        "protocolo": {
+                            "version": ssock.version(),         
+                            "suite_cifrado": cipher_name,       
+                            "bits_clave": detalles[2],          
+                            "perfect_forward_secrecy": tiene_pfs_socket,
+                            "suite_debil": es_debil
                         },
-                        
-                        # Cadena de certificados
-                        "cadena_certificados": obtener_cadena_certificados(ssock, hostname),
-                        
-                        # Información adicional
-                        "es_autofirmado": cert.issuer == cert.subject
+                        "certificado": {
+                            # Información básica
+                            "sujeto": cert.subject.rfc4514_string(),
+                            "emisor": cert.issuer.rfc4514_string(),
+                            "numero_serie": cert.serial_number,
+                            "algoritmo_firma": cert.signature_algorithm_oid._name,
+
+                            # Fechas de validez
+                            "valido_desde": valido_desde.isoformat(),
+                            "valido_hasta": valido_hasta.isoformat(),
+                            "dias_valido": dias_valido,
+                            "estado_validez": estado_validez,
+
+                            # Nombres alternativos
+                            "subject_alternative_names": san_list,
+
+                            # Información de clave pública
+                            "clave_publica": {
+                                "algoritmo": info_clave.get("algoritmo"),
+                                "tamaño_bits": tamaño_clave,
+                                "clave_debil": clave_debil
+                            },
+
+                            # Hashes
+                            "hash": {
+                                "sha256": hash_sha256,
+                                "sha1": hash_sha1
+                            },
+
+                            # Cadena de certificados
+                            "cadena_certificados": obtener_cadena_certificados(ssock, hostname),
+
+                            # Información adicional
+                            "es_autofirmado": cert.issuer == cert.subject
+                        }
                     }
-                }
+
+        try:
+            contexto = crear_contexto_ssl(modo_compatible=False)
+            conectar_y_extraer(contexto)
+        except ssl.SSLError as e:
+            # Solo reintentamos en modo compatible si el OpenSSL es OQS
+            if "oqs" in ssl.OPENSSL_VERSION.lower():
+                resultado["entorno"]["fallback_tls12"] = True
+                contexto = crear_contexto_ssl(modo_compatible=True)
+                conectar_y_extraer(contexto)
+            else:
+                raise e
 
     except Exception as e:
         # Si algo falla, guardamos el mensaje de error
@@ -291,6 +326,18 @@ def escanear_servidor(hostname):
 # ============================================
 
 if __name__ == "__main__":
+
+    # Evita ejecutar con OpenSSL OQS (contenedor) por defecto.
+    # Para forzar ejecución en OQS, exporta: ALLOW_OQS=1
+    if en_contenedor() and os.getenv("ALLOW_CONTAINER") != "1":
+        print("[!] Contenedor detectado. Ejecuta esta sonda fuera de Docker para usar el OpenSSL del sistema.")
+        print("    Si quieres forzar en contenedor, usa: ALLOW_CONTAINER=1")
+        raise SystemExit(1)
+
+    if "oqs" in ssl.OPENSSL_VERSION.lower() and os.getenv("ALLOW_OQS") != "1":
+        print("[!] OpenSSL OQS detectado. Ejecuta esta sonda fuera del contenedor para usar el OpenSSL del sistema.")
+        print("    Si quieres forzar en OQS, usa: ALLOW_OQS=1")
+        raise SystemExit(1)
     
     # Lista de hostnames a escanear (se puede modificar)
     hostnames = [

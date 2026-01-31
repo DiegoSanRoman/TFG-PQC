@@ -1,51 +1,297 @@
 [
     {
         "hostname": "cosec.inf.uc3m.es",
-        "timestamp": "2026-01-31T12:47:48.102857",
-        "estado": "error",
-        "datos": null,
-        "error": "[SSL: SSLV3_ALERT_HANDSHAKE_FAILURE] ssl/tls alert handshake failure (_ssl.c:1010)"
-    },
-    {
-        "hostname": "www.uc3m.es",
-        "timestamp": "2026-01-31T12:47:48.133465",
-        "estado": "error",
-        "datos": null,
-        "error": "[SSL: SSLV3_ALERT_HANDSHAKE_FAILURE] ssl/tls alert handshake failure (_ssl.c:1010)"
-    },
-    {
-        "hostname": "www.google.com",
-        "timestamp": "2026-01-31T12:47:48.175625",
-        "estado": "error",
-        "datos": null,
-        "error": "[SSL: SSLV3_ALERT_HANDSHAKE_FAILURE] ssl/tls alert handshake failure (_ssl.c:1010)"
-    },
-    {
-        "hostname": "www.facebook.com",
-        "timestamp": "2026-01-31T12:47:48.195387",
-        "estado": "error",
-        "datos": null,
-        "error": "[SSL: SSLV3_ALERT_HANDSHAKE_FAILURE] ssl/tls alert handshake failure (_ssl.c:1010)"
-    },
-    {
-        "hostname": "cloudflare.com",
-        "timestamp": "2026-01-31T12:47:48.214842",
-        "estado": "error",
-        "datos": null,
-        "error": "[SSL: SSLV3_ALERT_HANDSHAKE_FAILURE] ssl/tls alert handshake failure (_ssl.c:1010)"
-    },
-    {
-        "hostname": "expired.badssl.com",
-        "timestamp": "2026-01-31T12:47:48.238341",
+        "timestamp": "2026-01-31T14:25:46.909800",
         "estado": "exito",
         "datos": {
             "conexion": {
-                "tiempo_conexion_segundos": 0.479,
-                "latencia_dns_ms": 25.72
+                "tiempo_conexion_segundos": 0.031,
+                "latencia_dns_ms": 2.81
+            },
+            "protocolo": {
+                "version": "TLSv1.3",
+                "suite_cifrado": "TLS_AES_256_GCM_SHA384",
+                "bits_clave": 256,
+                "perfect_forward_secrecy": false,
+                "suite_debil": false
+            },
+            "certificado": {
+                "sujeto": "CN=*.inf.uc3m.es",
+                "emisor": "CN=GEANT TLS RSA 1,O=Hellenic Academic and Research Institutions CA,C=GR",
+                "numero_serie": 105882658550575810750068151150519923775,
+                "algoritmo_firma": "sha256WithRSAEncryption",
+                "valido_desde": "2025-10-14T10:26:05+00:00",
+                "valido_hasta": "2026-10-14T10:26:05+00:00",
+                "dias_valido": 255,
+                "estado_validez": "valido",
+                "subject_alternative_names": [
+                    "*.inf.uc3m.es",
+                    "inf.uc3m.es"
+                ],
+                "clave_publica": {
+                    "algoritmo": "RSA",
+                    "tamaño_bits": 2048,
+                    "clave_debil": false
+                },
+                "hash": {
+                    "sha256": "fa94d293efc611a0ae47e64ec5755852fef7b68ce30ebdcf605c15c54e9f072b",
+                    "sha1": "92f5eecb464028d152539b590becbe62ce3a0541"
+                },
+                "cadena_certificados": [
+                    {
+                        "sujeto": "CN=*.inf.uc3m.es",
+                        "emisor": "CN=GEANT TLS RSA 1,O=Hellenic Academic and Research Institutions CA,C=GR",
+                        "posicion": 0
+                    }
+                ],
+                "es_autofirmado": false
+            }
+        },
+        "error": null,
+        "entorno": {
+            "openssl_version": "OpenSSL 3.0.13 30 Jan 2024",
+            "fallback_tls12": false
+        }
+    },
+    {
+        "hostname": "www.uc3m.es",
+        "timestamp": "2026-01-31T14:25:46.966063",
+        "estado": "exito",
+        "datos": {
+            "conexion": {
+                "tiempo_conexion_segundos": 0.038,
+                "latencia_dns_ms": 4.72
+            },
+            "protocolo": {
+                "version": "TLSv1.3",
+                "suite_cifrado": "TLS_AES_256_GCM_SHA384",
+                "bits_clave": 256,
+                "perfect_forward_secrecy": false,
+                "suite_debil": false
+            },
+            "certificado": {
+                "sujeto": "CN=uc3m.es",
+                "emisor": "CN=GEANT TLS RSA 1,O=Hellenic Academic and Research Institutions CA,C=GR",
+                "numero_serie": 86449062784361817298976158859495697236,
+                "algoritmo_firma": "sha256WithRSAEncryption",
+                "valido_desde": "2025-11-05T12:18:40+00:00",
+                "valido_hasta": "2026-11-05T12:18:40+00:00",
+                "dias_valido": 277,
+                "estado_validez": "valido",
+                "subject_alternative_names": [
+                    "uc3m.es",
+                    "www.uc3m.es"
+                ],
+                "clave_publica": {
+                    "algoritmo": "RSA",
+                    "tamaño_bits": 2048,
+                    "clave_debil": false
+                },
+                "hash": {
+                    "sha256": "0aaf630953ed4c12dfb5a300244ffb305c0ea27c331d814a57879e55e67fef84",
+                    "sha1": "71f11fdb7f462dca05a224e2898e7b62bc3b54d6"
+                },
+                "cadena_certificados": [
+                    {
+                        "sujeto": "CN=uc3m.es",
+                        "emisor": "CN=GEANT TLS RSA 1,O=Hellenic Academic and Research Institutions CA,C=GR",
+                        "posicion": 0
+                    }
+                ],
+                "es_autofirmado": false
+            }
+        },
+        "error": null,
+        "entorno": {
+            "openssl_version": "OpenSSL 3.0.13 30 Jan 2024",
+            "fallback_tls12": false
+        }
+    },
+    {
+        "hostname": "www.google.com",
+        "timestamp": "2026-01-31T14:25:47.024054",
+        "estado": "exito",
+        "datos": {
+            "conexion": {
+                "tiempo_conexion_segundos": 0.034,
+                "latencia_dns_ms": 1.12
+            },
+            "protocolo": {
+                "version": "TLSv1.3",
+                "suite_cifrado": "TLS_AES_256_GCM_SHA384",
+                "bits_clave": 256,
+                "perfect_forward_secrecy": false,
+                "suite_debil": false
+            },
+            "certificado": {
+                "sujeto": "CN=www.google.com",
+                "emisor": "CN=WR2,O=Google Trust Services,C=US",
+                "numero_serie": 105933243285219524885369295279339598006,
+                "algoritmo_firma": "sha256WithRSAEncryption",
+                "valido_desde": "2026-01-12T08:38:41+00:00",
+                "valido_hasta": "2026-04-06T08:38:40+00:00",
+                "dias_valido": 64,
+                "estado_validez": "valido",
+                "subject_alternative_names": [
+                    "www.google.com"
+                ],
+                "clave_publica": {
+                    "algoritmo": "ECDSA",
+                    "tamaño_bits": 256,
+                    "clave_debil": false
+                },
+                "hash": {
+                    "sha256": "15c4728a299d894fb08f6f8745a55c44c9945e826dddcf368c927320b53c8a83",
+                    "sha1": "36c1997cde5d41a3c4039c3484bc7a5136081d43"
+                },
+                "cadena_certificados": [
+                    {
+                        "sujeto": "CN=www.google.com",
+                        "emisor": "CN=WR2,O=Google Trust Services,C=US",
+                        "posicion": 0
+                    }
+                ],
+                "es_autofirmado": false
+            }
+        },
+        "error": null,
+        "entorno": {
+            "openssl_version": "OpenSSL 3.0.13 30 Jan 2024",
+            "fallback_tls12": false
+        }
+    },
+    {
+        "hostname": "www.facebook.com",
+        "timestamp": "2026-01-31T14:25:47.073886",
+        "estado": "exito",
+        "datos": {
+            "conexion": {
+                "tiempo_conexion_segundos": 0.059,
+                "latencia_dns_ms": 6.08
+            },
+            "protocolo": {
+                "version": "TLSv1.3",
+                "suite_cifrado": "TLS_CHACHA20_POLY1305_SHA256",
+                "bits_clave": 256,
+                "perfect_forward_secrecy": false,
+                "suite_debil": false
+            },
+            "certificado": {
+                "sujeto": "CN=*.facebook.com,O=Meta Platforms\\, Inc.,L=Menlo Park,ST=California,C=US",
+                "emisor": "CN=DigiCert Global G2 TLS RSA SHA256 2020 CA1,O=DigiCert Inc,C=US",
+                "numero_serie": 11873999088741207118488749346391787125,
+                "algoritmo_firma": "sha256WithRSAEncryption",
+                "valido_desde": "2025-11-09T00:00:00+00:00",
+                "valido_hasta": "2026-02-07T23:59:59+00:00",
+                "dias_valido": 7,
+                "estado_validez": "valido",
+                "subject_alternative_names": [
+                    "*.facebook.com",
+                    "*.facebook.net",
+                    "*.fbcdn.net",
+                    "*.fbsbx.com",
+                    "*.m.facebook.com",
+                    "*.messenger.com",
+                    "*.xx.fbcdn.net",
+                    "*.xy.fbcdn.net",
+                    "*.xz.fbcdn.net",
+                    "facebook.com",
+                    "messenger.com"
+                ],
+                "clave_publica": {
+                    "algoritmo": "ECDSA",
+                    "tamaño_bits": 256,
+                    "clave_debil": false
+                },
+                "hash": {
+                    "sha256": "e1b45651224d2bbf37c7ad49db2dcc04c68071ba08546b9b4b07f74bb6fcff67",
+                    "sha1": "d20fc1e4b00cfd09e915a0a9d1081d91009b733c"
+                },
+                "cadena_certificados": [
+                    {
+                        "sujeto": "CN=*.facebook.com,O=Meta Platforms\\, Inc.,L=Menlo Park,ST=California,C=US",
+                        "emisor": "CN=DigiCert Global G2 TLS RSA SHA256 2020 CA1,O=DigiCert Inc,C=US",
+                        "posicion": 0
+                    }
+                ],
+                "es_autofirmado": false
+            }
+        },
+        "error": null,
+        "entorno": {
+            "openssl_version": "OpenSSL 3.0.13 30 Jan 2024",
+            "fallback_tls12": false
+        }
+    },
+    {
+        "hostname": "cloudflare.com",
+        "timestamp": "2026-01-31T14:25:47.186424",
+        "estado": "exito",
+        "datos": {
+            "conexion": {
+                "tiempo_conexion_segundos": 0.014,
+                "latencia_dns_ms": 1.73
+            },
+            "protocolo": {
+                "version": "TLSv1.3",
+                "suite_cifrado": "TLS_AES_256_GCM_SHA384",
+                "bits_clave": 256,
+                "perfect_forward_secrecy": false,
+                "suite_debil": false
+            },
+            "certificado": {
+                "sujeto": "CN=cloudflare.com",
+                "emisor": "CN=WE1,O=Google Trust Services,C=US",
+                "numero_serie": 271000364038152563139234154512533583034,
+                "algoritmo_firma": "ecdsa-with-SHA256",
+                "valido_desde": "2026-01-12T20:43:33+00:00",
+                "valido_hasta": "2026-04-12T21:43:23+00:00",
+                "dias_valido": 71,
+                "estado_validez": "valido",
+                "subject_alternative_names": [
+                    "cloudflare.com",
+                    "ns.cloudflare.com",
+                    "*.ns.cloudflare.com",
+                    "*.secondary.cloudflare.com",
+                    "secondary.cloudflare.com"
+                ],
+                "clave_publica": {
+                    "algoritmo": "ECDSA",
+                    "tamaño_bits": 256,
+                    "clave_debil": false
+                },
+                "hash": {
+                    "sha256": "5714cfdc03e79ecf973046a721ca32cd80d68e5e844a026a74902761025d38bc",
+                    "sha1": "f57f20e50c57e045e4c2c591dfa075292e77717e"
+                },
+                "cadena_certificados": [
+                    {
+                        "sujeto": "CN=cloudflare.com",
+                        "emisor": "CN=WE1,O=Google Trust Services,C=US",
+                        "posicion": 0
+                    }
+                ],
+                "es_autofirmado": false
+            }
+        },
+        "error": null,
+        "entorno": {
+            "openssl_version": "OpenSSL 3.0.13 30 Jan 2024",
+            "fallback_tls12": false
+        }
+    },
+    {
+        "hostname": "expired.badssl.com",
+        "timestamp": "2026-01-31T14:25:47.253048",
+        "estado": "exito",
+        "datos": {
+            "conexion": {
+                "tiempo_conexion_segundos": 0.313,
+                "latencia_dns_ms": 1.72
             },
             "protocolo": {
                 "version": "TLSv1.2",
-                "suite_cifrado": "DHE-RSA-AES128-GCM-SHA256",
+                "suite_cifrado": "ECDHE-RSA-AES128-GCM-SHA256",
                 "bits_clave": 128,
                 "perfect_forward_secrecy": true,
                 "suite_debil": false
@@ -82,20 +328,24 @@
                 "es_autofirmado": false
             }
         },
-        "error": null
+        "error": null,
+        "entorno": {
+            "openssl_version": "OpenSSL 3.0.13 30 Jan 2024",
+            "fallback_tls12": false
+        }
     },
     {
         "hostname": "self-signed.badssl.com",
-        "timestamp": "2026-01-31T12:47:48.746854",
+        "timestamp": "2026-01-31T14:25:47.606893",
         "estado": "exito",
         "datos": {
             "conexion": {
-                "tiempo_conexion_segundos": 0.475,
-                "latencia_dns_ms": 26.41
+                "tiempo_conexion_segundos": 0.484,
+                "latencia_dns_ms": 2.13
             },
             "protocolo": {
                 "version": "TLSv1.2",
-                "suite_cifrado": "DHE-RSA-AES128-GCM-SHA256",
+                "suite_cifrado": "ECDHE-RSA-AES128-GCM-SHA256",
                 "bits_clave": 128,
                 "perfect_forward_secrecy": true,
                 "suite_debil": false
@@ -132,6 +382,10 @@
                 "es_autofirmado": true
             }
         },
-        "error": null
+        "error": null,
+        "entorno": {
+            "openssl_version": "OpenSSL 3.0.13 30 Jan 2024",
+            "fallback_tls12": false
+        }
     }
 ]
