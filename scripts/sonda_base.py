@@ -19,6 +19,7 @@ from datetime import datetime, timezone                     # Para timestamps y 
 from datetime import timedelta                              # Para cálculos de tiempo
 import os                                                   # Para variables de entorno
 import csv                                                  # Para leer archivos CSV
+from concurrent.futures import ThreadPoolExecutor, as_completed  # Para concurrencia
 
 
 # ============================================
@@ -375,14 +376,28 @@ if __name__ == "__main__":
     
     lista_resultados = []
 
-    print("Iniciando escaneo y recolección de datos...")
-    for host in hostnames:
-        print(f" -> Analizando: {host}")
-        datos_host = escanear_servidor(host)
-        lista_resultados.append(datos_host)
+    # Definimos el número de hilos (trabajadores en paralelo)
+    MAX_WORKERS = 50 
+
+    print(f"Iniciando escaneo concurrente con {MAX_WORKERS} hilos...")
     
-    # Guardamos toda la lista de diccionarios en un único archivo JSON bien formateado
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        # Lanzamos todas las tareas
+        futuros = {executor.submit(escanear_servidor, host): host for host in hostnames}
+        
+        # Conforme vayan terminando, recogemos los resultados
+        for i, futuro in enumerate(as_completed(futuros)):
+            host = futuros[futuro]
+            try:
+                datos_host = futuro.result()
+                lista_resultados.append(datos_host)
+                if i % 10 == 0: # Feedback visual cada 10 hosts
+                    print(f"[{i}/{len(hostnames)}] Finalizado: {host}")
+            except Exception as e:
+                print(f"Error procesando {host}: {e}")
+
+    # Guardar resultados
     with open("resultados/resultados_sonda_base.json", "w", encoding="utf-8") as f:
         json.dump(lista_resultados, f, indent=4, ensure_ascii=False)
-    
+
     print(f"\n[!] Listo. Se han guardado los datos de {len(hostnames)} servidores en resultados/resultados_sonda_base.json.")
