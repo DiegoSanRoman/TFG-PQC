@@ -18,11 +18,35 @@ from cryptography.hazmat.primitives import serialization    # Para manejar clave
 from datetime import datetime, timezone                     # Para timestamps y zona horaria
 from datetime import timedelta                              # Para cálculos de tiempo
 import os                                                   # Para variables de entorno
+import csv                                                  # Para leer archivos CSV
 
 
 # ============================================
 # FUNCIONES AUXILIARES
 # ============================================
+
+def leer_hostnames_csv(ruta_csv, longitud_max):
+    '''
+    Lee los hostnames desde un archivo CSV (columna B)
+    :param ruta_csv: Ruta al archivo CSV
+    :param longitud_max: Número máximo de hostnames a leer
+    :return: Lista de hostnames
+    '''
+    hostnames = []
+    try:
+        with open(ruta_csv, 'r', encoding='utf-8') as archivo:
+            lector = csv.reader(archivo)
+            for fila in lector:
+                # La columna B es el índice 1 (columna A es índice 0)
+                if len(fila) >= 2 and fila[1]:  # Verificar que existe columna B y no está vacía
+                    hostnames.append(fila[1])
+                    # Detener si alcanzamos el límite
+                    if len(hostnames) >= longitud_max:
+                        break
+    except Exception as e:
+        print(f"Error al leer el archivo CSV: {e}")
+    return hostnames
+
 
 def obtener_latencia_dns(hostname):
     '''
@@ -339,16 +363,15 @@ if __name__ == "__main__":
         print("    Si quieres forzar en OQS, usa: ALLOW_OQS=1")
         raise SystemExit(1)
     
-    # Lista de hostnames a escanear (se puede modificar)
-    hostnames = [
-        "cosec.inf.uc3m.es",
-        "www.uc3m.es",
-        "www.google.com",
-        "www.facebook.com",
-        "cloudflare.com", 
-        "expired.badssl.com",
-        "self-signed.badssl.com"
-    ]
+    # Leer hostnames desde el archivo CSV
+    ruta_csv = "data/tranco.csv"
+    hostnames = leer_hostnames_csv(ruta_csv, 1000)
+    
+    if not hostnames:
+        print(f"[!] No se encontraron hostnames en {ruta_csv}")
+        raise SystemExit(1)
+    
+    print(f"Se han cargado {len(hostnames)} hostnames desde {ruta_csv}")
     
     lista_resultados = []
 
