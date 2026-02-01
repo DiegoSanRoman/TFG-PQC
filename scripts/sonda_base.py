@@ -114,9 +114,14 @@ class ResultadoEscaneo:
     entorno: Entorno
     
     def to_dict(self) -> Dict[str, Any]:
-        """Convierte a diccionario, serializando dataclasses anidadas"""
+        """
+        Convierte a diccionario, serializando dataclasses anidadas.
+        :return: Diccionario con los datos del escaneo
+        """
+
         result = asdict(self)
         return result
+
 
 
 # ============================================
@@ -127,6 +132,14 @@ class CertificateAnalyzer:
     '''Analiza y procesa certificados X.509'''
     
     def __init__(self, cert_der: bytes, hostname: str, ip: str, ssock, latencia_dns: Optional[float]):
+        '''
+        :param cert_der: Certificado en formato DER (bytes)
+        :param hostname: Nombre del host o dominio
+        :param ip: IP del servidor
+        :param ssock: Socket SSL/TLS conectado
+        :param latencia_dns: Latencia DNS en milisegundos (opcional)
+        '''
+
         self.cert_der = cert_der
         self.hostname = hostname
         self.ip = ip
@@ -135,7 +148,12 @@ class CertificateAnalyzer:
         self.cert = x509.load_der_x509_certificate(cert_der)
     
     def analizar(self, tiempo_conexion: float) -> DatosExito:
-        '''Realiza análisis completo del certificado'''
+        '''
+        Realiza análisis completo del certificado
+        :param tiempo_conexion: Tiempo de conexión en segundos
+        :return: DatosExito con la información procesada
+        '''
+
         detalles = self.ssock.cipher()
         
         return DatosExito(
@@ -146,14 +164,24 @@ class CertificateAnalyzer:
         )
     
     def _analizar_conexion(self, tiempo_conexion: float) -> Conexion:
-        '''Extrae información de la conexión'''
+        '''
+        Extrae información de la conexión
+        :param tiempo_conexion: Tiempo de conexión en segundos
+        :return: Conexion con los datos de la conexión
+        '''
+
         return Conexion(
             tiempo_conexion_segundos=round(tiempo_conexion, 3),
             latencia_dns_ms=self.latencia_dns
         )
     
     def _analizar_protocolo(self, detalles: tuple) -> Protocolo:
-        '''Extrae información del protocolo TLS/SSL'''
+        '''
+        Extrae información del protocolo TLS/SSL
+        :param detalles: Tupla con detalles del cifrado (nombre, versión, bits clave)
+        :return: Protocolo con los datos del protocolo TLS/SSL
+        '''
+
         cipher_name = detalles[0]
         return Protocolo(
             version=self.ssock.version(),
@@ -164,7 +192,11 @@ class CertificateAnalyzer:
         )
     
     def _analizar_certificado(self) -> Certificado:
-        '''Extrae información del certificado'''
+        '''
+        Extrae información del certificado
+        :return: Certificado con los datos del certificado
+        '''
+
         info_clave = obtener_informacion_clave(self.cert)
         san_list = extraer_san(self.cert)
         
@@ -216,7 +248,11 @@ class CertificateAnalyzer:
         )
     
     def _analizar_seguridad_avanzada(self) -> AnálisisSeguridadAvanzado:
-        '''Extrae análisis de seguridad avanzada: HSTS, OCSP, versiones TLS'''
+        '''
+        Extrae análisis de seguridad avanzada: HSTS, OCSP, versiones TLS
+        :return: AnálisisSeguridadAvanzado con los datos de seguridad avanzada
+        '''
+
         logger.debug("Analizando seguridad avanzada para %s", self.hostname)
         
         # HSTS
@@ -492,8 +528,12 @@ def obtener_versiones_tls_soportadas(hostname: str, ip: str) -> Dict[str, bool]:
     return versiones_soportadas
 
 
-
 def en_contenedor():
+    '''
+    Detecta si el script se está ejecutando dentro de un contenedor Docker
+    :return: True si está en contenedor, False si no
+    '''
+
     try:
         if Path("/.dockerenv").exists():
             return True
@@ -505,6 +545,12 @@ def en_contenedor():
 
 
 def crear_contexto_ssl(modo_compatible=False):
+    '''
+    Crea un contexto SSL con configuraciones específicas
+    :param modo_compatible: Si es True, fuerza TLS 1.2 y ciphers compatibles
+    :return: Contexto SSL configurado
+    '''
+
     # Cargamos la configuración por defecto de SSL del sistema
     ctx = ssl.create_default_context()
 
@@ -535,6 +581,7 @@ def conectar_y_extraer(hostname: str, ip: str, ctx, latencia_dns: Optional[float
     :param latencia_dns: Latencia DNS en ms
     :return: DatosExito con la información procesada
     '''
+
     # --- MEDICIÓN DE TIEMPO ---
     tiempo_inicio = time.perf_counter()
 
@@ -565,17 +612,13 @@ def conectar_y_extraer(hostname: str, ip: str, ctx, latencia_dns: Optional[float
         raise  # Re-raise SSL errors para que sean manejados arriba
     except Exception as e:
         raise RuntimeError(f"Error inesperado en conexión: {type(e).__name__}: {e}")
-
-
-# ============================================
-# FUNCION PRINCIPAL DE LA SONDA
-# ============================================
     except (socket.error, OSError) as e:
         raise RuntimeError(f"Error de conexión de red a {ip}:443 - {type(e).__name__}: {e}")
     except ssl.SSLError as e:
         raise  # Re-raise SSL errors para que sean manejados arriba
     except Exception as e:
         raise RuntimeError(f"Error inesperado en conexión: {type(e).__name__}: {e}")
+
 
 
 # ============================================
@@ -650,6 +693,7 @@ def escanear_servidor(hostname: str) -> Dict[str, Any]:
     
     # Devolvemos como diccionario
     return resultado.to_dict()
+
 
 
 # ============================================
