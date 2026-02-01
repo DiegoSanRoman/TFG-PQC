@@ -1,68 +1,504 @@
-2026-02-01 17:52:04,535 INFO Se han cargado 100 hostnames desde data/tranco.csv
-2026-02-01 17:52:04,535 INFO Iniciando escaneo concurrente con 30 hilos...
-2026-02-01 17:52:04,643 WARNING No se pudo resolver DNS para akadns.net
-2026-02-01 17:52:04,648 WARNING No se pudo resolver DNS para gtld-servers.net
-2026-02-01 17:52:04,646 WARNING No se pudo resolver DNS para windowsupdate.com
-2026-02-01 17:52:04,663 WARNING [0/100] Escaneo fallido para akadns.net: No se pudo resolver DNS para akadns.net
-2026-02-01 17:52:04,665 WARNING No se pudo resolver DNS para akamaiedge.net
-2026-02-01 17:52:04,667 WARNING No se pudo resolver DNS para microsoftonline.com
-2026-02-01 17:52:04,671 WARNING No se pudo resolver DNS para akamai.net
-2026-02-01 17:52:04,675 INFO [0/100] Progreso
-2026-02-01 17:52:04,691 WARNING [1/100] Escaneo fallido para gtld-servers.net: No se pudo resolver DNS para gtld-servers.net
-2026-02-01 17:52:04,693 WARNING [2/100] Escaneo fallido para windowsupdate.com: No se pudo resolver DNS para windowsupdate.com
-2026-02-01 17:52:04,696 WARNING [3/100] Escaneo fallido para akamaiedge.net: No se pudo resolver DNS para akamaiedge.net
-2026-02-01 17:52:04,697 WARNING [4/100] Escaneo fallido para microsoftonline.com: No se pudo resolver DNS para microsoftonline.com
-2026-02-01 17:52:04,697 WARNING [5/100] Escaneo fallido para akamai.net: No se pudo resolver DNS para akamai.net
-2026-02-01 17:52:04,817 WARNING No se pudo resolver DNS para e2ro.com
-2026-02-01 17:52:04,825 WARNING [6/100] Escaneo fallido para e2ro.com: No se pudo resolver DNS para e2ro.com
-2026-02-01 17:52:08,417 WARNING Error de red para domaincontrol.com: Conexión rechazada por 127.0.0.1:443
-2026-02-01 17:52:08,420 WARNING [7/100] Escaneo fallido para domaincontrol.com: Conexión rechazada por 127.0.0.1:443
-2026-02-01 17:52:08,521 INFO [10/100] Progreso
-2026-02-01 17:52:08,543 WARNING No se pudo resolver DNS para aaplimg.com
-2026-02-01 17:52:08,569 INFO [20/100] Progreso
-2026-02-01 17:52:08,587 WARNING No se pudo resolver DNS para office.net
-2026-02-01 17:52:08,592 WARNING No se pudo resolver DNS para apple-dns.net
-2026-02-01 17:52:08,593 WARNING Error de red para amazonaws.com: Conexión rechazada por 72.21.206.80:443
-2026-02-01 17:52:08,596 WARNING No se pudo resolver DNS para akam.net
-2026-02-01 17:52:08,615 WARNING No se pudo resolver DNS para trafficmanager.net
-2026-02-01 17:52:08,621 WARNING [24/100] Escaneo fallido para aaplimg.com: No se pudo resolver DNS para aaplimg.com
-2026-02-01 17:52:08,776 WARNING No se pudo resolver DNS para cloudfront.net
-2026-02-01 17:52:08,803 WARNING No se pudo resolver DNS para tiktokcdn.com
-2026-02-01 17:52:08,807 WARNING No se pudo resolver DNS para pv-cdn.net
-2026-02-01 17:52:08,808 WARNING [29/100] Escaneo fallido para office.net: No se pudo resolver DNS para office.net
-2026-02-01 17:52:08,819 WARNING [30/100] Escaneo fallido para apple-dns.net: No se pudo resolver DNS para apple-dns.net
-2026-02-01 17:52:08,823 INFO [30/100] Progreso
-2026-02-01 17:52:08,839 WARNING [31/100] Escaneo fallido para amazonaws.com: Conexión rechazada por 72.21.206.80:443
-2026-02-01 17:52:08,842 WARNING [33/100] Escaneo fallido para akam.net: No se pudo resolver DNS para akam.net
-2026-02-01 17:52:08,843 WARNING No se pudo resolver DNS para ax-msedge.net
-2026-02-01 17:52:08,853 WARNING [36/100] Escaneo fallido para trafficmanager.net: No se pudo resolver DNS para trafficmanager.net
-2026-02-01 17:52:08,853 WARNING [40/100] Escaneo fallido para cloudfront.net: No se pudo resolver DNS para cloudfront.net
-2026-02-01 17:52:08,853 INFO [40/100] Progreso
-2026-02-01 17:52:08,854 WARNING [41/100] Escaneo fallido para pv-cdn.net: No se pudo resolver DNS para pv-cdn.net
-2026-02-01 17:52:08,854 WARNING [42/100] Escaneo fallido para tiktokcdn.com: No se pudo resolver DNS para tiktokcdn.com
-2026-02-01 17:52:08,858 WARNING [43/100] Escaneo fallido para ax-msedge.net: No se pudo resolver DNS para ax-msedge.net
-2026-02-01 17:52:08,867 WARNING No se pudo resolver DNS para gvt2.com
-2026-02-01 17:52:08,874 WARNING [44/100] Escaneo fallido para gvt2.com: No se pudo resolver DNS para gvt2.com
-2026-02-01 17:52:08,907 WARNING No se pudo resolver DNS para ytimg.com
-2026-02-01 17:52:08,914 WARNING [47/100] Escaneo fallido para ytimg.com: No se pudo resolver DNS para ytimg.com
-2026-02-01 17:52:08,923 WARNING No se pudo resolver DNS para t-msedge.net
-2026-02-01 17:52:08,927 WARNING [48/100] Escaneo fallido para t-msedge.net: No se pudo resolver DNS para t-msedge.net
-2026-02-01 17:52:08,937 WARNING No se pudo resolver DNS para gvt1.com
-2026-02-01 17:52:08,953 WARNING [49/100] Escaneo fallido para gvt1.com: No se pudo resolver DNS para gvt1.com
-2026-02-01 17:52:10,853 INFO [50/100] Progreso
-2026-02-01 17:52:11,931 WARNING No se pudo resolver DNS para edgekey.net
-2026-02-01 17:52:11,935 WARNING [56/100] Escaneo fallido para edgekey.net: No se pudo resolver DNS para edgekey.net
-2026-02-01 17:52:12,296 INFO [60/100] Progreso
-2026-02-01 17:52:12,319 WARNING No se pudo resolver DNS para edgesuite.net
-2026-02-01 17:52:12,320 WARNING [62/100] Escaneo fallido para edgesuite.net: No se pudo resolver DNS para edgesuite.net
-2026-02-01 17:52:12,328 WARNING No se pudo resolver DNS para root-servers.net
-2026-02-01 17:52:12,334 WARNING [63/100] Escaneo fallido para root-servers.net: No se pudo resolver DNS para root-servers.net
-2026-02-01 17:52:12,517 WARNING No se pudo resolver DNS para vedcdnlb.com
-2026-02-01 17:52:12,520 WARNING [67/100] Escaneo fallido para vedcdnlb.com: No se pudo resolver DNS para vedcdnlb.com
-2026-02-01 17:52:12,705 INFO [70/100] Progreso
-2026-02-01 17:52:13,605 INFO [80/100] Progreso
-2026-02-01 17:52:14,442 INFO [90/100] Progreso
-2026-02-01 17:52:17,201 WARNING Error de red para ripn.net: Timeout conectando a 194.226.65.229:443 para ripn.net
-2026-02-01 17:52:17,204 WARNING [99/100] Escaneo fallido para ripn.net: Timeout conectando a 194.226.65.229:443 para ripn.net
-2026-02-01 17:52:17,241 INFO Listo. Escaneo completado: 73 exitosos, 27 fallidos (73.00% éxito)
-2026-02-01 17:52:17,241 INFO Resultados guardados en resultados/resultados_sonda_base.json
+2026-02-01 18:03:10,961 INFO Se han cargado 200 hostnames desde data/tranco.csv
+2026-02-01 18:03:10,962 INFO Iniciando escaneo concurrente con 30 hilos...
+2026-02-01 18:03:11,039 WARNING No se pudo resolver DNS para gtld-servers.net
+2026-02-01 18:03:11,042 WARNING [0/200] Escaneo fallido para gtld-servers.net: No se pudo resolver DNS para gtld-servers.net
+2026-02-01 18:03:11,042 INFO [0/200] Progreso
+2026-02-01 18:03:11,054 WARNING No se pudo resolver DNS para akamaiedge.net
+2026-02-01 18:03:11,056 WARNING [1/200] Escaneo fallido para akamaiedge.net: No se pudo resolver DNS para akamaiedge.net
+2026-02-01 18:03:11,076 WARNING No se pudo resolver DNS para microsoftonline.com
+2026-02-01 18:03:11,082 WARNING No se pudo resolver DNS para windowsupdate.com
+2026-02-01 18:03:11,088 WARNING No se pudo resolver DNS para akamai.net
+2026-02-01 18:03:11,088 WARNING [2/200] Escaneo fallido para microsoftonline.com: No se pudo resolver DNS para microsoftonline.com
+2026-02-01 18:03:11,100 WARNING [3/200] Escaneo fallido para windowsupdate.com: No se pudo resolver DNS para windowsupdate.com
+2026-02-01 18:03:11,101 WARNING [4/200] Escaneo fallido para akamai.net: No se pudo resolver DNS para akamai.net
+2026-02-01 18:03:11,106 WARNING No se pudo resolver DNS para e2ro.com
+2026-02-01 18:03:11,113 WARNING [5/200] Escaneo fallido para e2ro.com: No se pudo resolver DNS para e2ro.com
+2026-02-01 18:03:11,120 WARNING No se pudo resolver DNS para akadns.net
+2026-02-01 18:03:11,145 WARNING [6/200] Escaneo fallido para akadns.net: No se pudo resolver DNS para akadns.net
+2026-02-01 18:03:14,044 WARNING Error de red para amazonaws.com: Conexión rechazada por 72.21.210.29:443
+2026-02-01 18:03:14,056 WARNING [7/200] Escaneo fallido para amazonaws.com: Conexión rechazada por 72.21.210.29:443
+2026-02-01 18:03:14,580 WARNING Error de red para domaincontrol.com: Conexión rechazada por 127.0.0.1:443
+2026-02-01 18:03:14,581 WARNING [8/200] Escaneo fallido para domaincontrol.com: Conexión rechazada por 127.0.0.1:443
+2026-02-01 18:03:14,592 INFO [10/200] Progreso
+2026-02-01 18:03:14,619 WARNING No se pudo resolver DNS para apple-dns.net
+2026-02-01 18:03:14,647 WARNING No se pudo resolver DNS para office.net
+2026-02-01 18:03:14,664 WARNING No se pudo resolver DNS para akam.net
+2026-02-01 18:03:14,664 WARNING No se pudo resolver DNS para aaplimg.com
+2026-02-01 18:03:14,710 INFO [20/200] Progreso
+2026-02-01 18:03:14,745 WARNING No se pudo resolver DNS para trafficmanager.net
+2026-02-01 18:03:14,758 WARNING No se pudo resolver DNS para cloudfront.net
+2026-02-01 18:03:14,799 WARNING [22/200] Escaneo fallido para apple-dns.net: No se pudo resolver DNS para apple-dns.net
+2026-02-01 18:03:14,800 WARNING [27/200] Escaneo fallido para office.net: No se pudo resolver DNS para office.net
+2026-02-01 18:03:14,804 INFO [30/200] Progreso
+2026-02-01 18:03:14,805 WARNING [31/200] Escaneo fallido para akam.net: No se pudo resolver DNS para akam.net
+2026-02-01 18:03:14,805 WARNING [34/200] Escaneo fallido para aaplimg.com: No se pudo resolver DNS para aaplimg.com
+2026-02-01 18:03:14,805 WARNING [35/200] Escaneo fallido para cloudfront.net: No se pudo resolver DNS para cloudfront.net
+2026-02-01 18:03:14,792 WARNING No se pudo resolver DNS para pv-cdn.net
+2026-02-01 18:03:14,814 WARNING [36/200] Escaneo fallido para pv-cdn.net: No se pudo resolver DNS para pv-cdn.net
+2026-02-01 18:03:14,814 WARNING [37/200] Escaneo fallido para trafficmanager.net: No se pudo resolver DNS para trafficmanager.net
+2026-02-01 18:03:14,846 WARNING No se pudo resolver DNS para tiktokcdn.com
+2026-02-01 18:03:14,857 WARNING [39/200] Escaneo fallido para tiktokcdn.com: No se pudo resolver DNS para tiktokcdn.com
+2026-02-01 18:03:14,888 WARNING No se pudo resolver DNS para ax-msedge.net
+2026-02-01 18:03:14,904 WARNING [40/200] Escaneo fallido para ax-msedge.net: No se pudo resolver DNS para ax-msedge.net
+2026-02-01 18:03:14,905 INFO [40/200] Progreso
+2026-02-01 18:03:14,957 WARNING No se pudo resolver DNS para gvt2.com
+2026-02-01 18:03:14,958 WARNING [43/200] Escaneo fallido para gvt2.com: No se pudo resolver DNS para gvt2.com
+2026-02-01 18:03:15,009 WARNING No se pudo resolver DNS para ytimg.com
+2026-02-01 18:03:15,011 WARNING [45/200] Escaneo fallido para ytimg.com: No se pudo resolver DNS para ytimg.com
+2026-02-01 18:03:15,180 WARNING No se pudo resolver DNS para t-msedge.net
+2026-02-01 18:03:15,185 WARNING [47/200] Escaneo fallido para t-msedge.net: No se pudo resolver DNS para t-msedge.net
+2026-02-01 18:03:15,215 WARNING No se pudo resolver DNS para gvt1.com
+2026-02-01 18:03:15,222 WARNING [48/200] Escaneo fallido para gvt1.com: No se pudo resolver DNS para gvt1.com
+2026-02-01 18:03:16,125 INFO [50/200] Progreso
+2026-02-01 18:03:17,709 WARNING No se pudo resolver DNS para edgekey.net
+2026-02-01 18:03:17,714 WARNING [56/200] Escaneo fallido para edgekey.net: No se pudo resolver DNS para edgekey.net
+2026-02-01 18:03:18,042 INFO [60/200] Progreso
+2026-02-01 18:03:18,055 WARNING No se pudo resolver DNS para edgesuite.net
+2026-02-01 18:03:18,070 WARNING [61/200] Escaneo fallido para edgesuite.net: No se pudo resolver DNS para edgesuite.net
+2026-02-01 18:03:18,175 WARNING No se pudo resolver DNS para root-servers.net
+2026-02-01 18:03:18,177 WARNING [64/200] Escaneo fallido para root-servers.net: No se pudo resolver DNS para root-servers.net
+2026-02-01 18:03:18,212 WARNING No se pudo resolver DNS para vedcdnlb.com
+2026-02-01 18:03:18,214 WARNING [66/200] Escaneo fallido para vedcdnlb.com: No se pudo resolver DNS para vedcdnlb.com
+2026-02-01 18:03:18,344 WARNING Error de red para ntp.org: Conexión rechazada por 209.148.110.246:443
+2026-02-01 18:03:18,379 WARNING [68/200] Escaneo fallido para ntp.org: Conexión rechazada por 209.148.110.246:443
+2026-02-01 18:03:18,520 INFO [70/200] Progreso
+2026-02-01 18:03:18,803 WARNING No se pudo resolver DNS para a2z.com
+2026-02-01 18:03:18,806 WARNING [75/200] Escaneo fallido para a2z.com: No se pudo resolver DNS para a2z.com
+2026-02-01 18:03:18,811 WARNING No se pudo resolver DNS para cdninstagram.com
+2026-02-01 18:03:18,820 WARNING [76/200] Escaneo fallido para cdninstagram.com: No se pudo resolver DNS para cdninstagram.com
+2026-02-01 18:03:19,267 INFO [80/200] Progreso
+2026-02-01 18:03:20,041 WARNING No se pudo resolver DNS para bytefcdn-oversea.com
+2026-02-01 18:03:20,047 WARNING [85/200] Escaneo fallido para bytefcdn-oversea.com: No se pudo resolver DNS para bytefcdn-oversea.com
+2026-02-01 18:03:20,104 WARNING Error de red para ripn.net: Timeout conectando a 194.226.65.229:443 para ripn.net
+2026-02-01 18:03:20,118 WARNING [86/200] Escaneo fallido para ripn.net: Timeout conectando a 194.226.65.229:443 para ripn.net
+2026-02-01 18:03:20,385 WARNING No se pudo resolver DNS para dnsowl.com
+2026-02-01 18:03:20,393 WARNING [88/200] Escaneo fallido para dnsowl.com: No se pudo resolver DNS para dnsowl.com
+2026-02-01 18:03:20,544 INFO [90/200] Progreso
+2026-02-01 18:03:21,526 WARNING No se pudo resolver DNS para amazon.dev
+2026-02-01 18:03:21,532 WARNING [98/200] Escaneo fallido para amazon.dev: No se pudo resolver DNS para amazon.dev
+2026-02-01 18:03:21,685 INFO [100/200] Progreso
+2026-02-01 18:03:21,714 WARNING No se pudo resolver DNS para steamserver.net
+2026-02-01 18:03:21,725 WARNING [101/200] Escaneo fallido para steamserver.net: No se pudo resolver DNS para steamserver.net
+2026-02-01 18:03:21,749 WARNING No se pudo resolver DNS para wac-msedge.net
+2026-02-01 18:03:21,755 WARNING [102/200] Escaneo fallido para wac-msedge.net: No se pudo resolver DNS para wac-msedge.net
+2026-02-01 18:03:21,954 WARNING No se pudo resolver DNS para dual-s-msedge.net
+2026-02-01 18:03:21,960 WARNING [105/200] Escaneo fallido para dual-s-msedge.net: No se pudo resolver DNS para dual-s-msedge.net
+2026-02-01 18:03:22,009 WARNING No se pudo resolver DNS para vecdnlb.com
+2026-02-01 18:03:22,017 WARNING [106/200] Escaneo fallido para vecdnlb.com: No se pudo resolver DNS para vecdnlb.com
+2026-02-01 18:03:22,174 WARNING No se pudo resolver DNS para msftncsi.com
+2026-02-01 18:03:22,196 WARNING [110/200] Escaneo fallido para msftncsi.com: No se pudo resolver DNS para msftncsi.com
+2026-02-01 18:03:22,196 INFO [110/200] Progreso
+2026-02-01 18:03:23,337 INFO [120/200] Progreso
+2026-02-01 18:03:23,428 WARNING No se pudo resolver DNS para ggpht.com
+2026-02-01 18:03:23,436 WARNING No se pudo resolver DNS para spov-msedge.net
+2026-02-01 18:03:23,438 WARNING [123/200] Escaneo fallido para ggpht.com: No se pudo resolver DNS para ggpht.com
+2026-02-01 18:03:23,439 WARNING [124/200] Escaneo fallido para spov-msedge.net: No se pudo resolver DNS para spov-msedge.net
+2026-02-01 18:03:23,519 WARNING No se pudo resolver DNS para cdn77.org
+2026-02-01 18:03:23,521 WARNING [126/200] Escaneo fallido para cdn77.org: No se pudo resolver DNS para cdn77.org
+2026-02-01 18:03:23,550 WARNING No se pudo resolver DNS para tiktokcdn-us.com
+2026-02-01 18:03:23,558 WARNING No se pudo resolver DNS para msftconnecttest.com
+2026-02-01 18:03:23,560 WARNING [128/200] Escaneo fallido para tiktokcdn-us.com: No se pudo resolver DNS para tiktokcdn-us.com
+2026-02-01 18:03:23,564 WARNING [129/200] Escaneo fallido para msftconnecttest.com: No se pudo resolver DNS para msftconnecttest.com
+2026-02-01 18:03:23,595 WARNING No se pudo resolver DNS para spo-msedge.net
+2026-02-01 18:03:23,599 WARNING No se pudo resolver DNS para 3gppnetwork.org
+2026-02-01 18:03:23,601 WARNING [130/200] Escaneo fallido para spo-msedge.net: No se pudo resolver DNS para spo-msedge.net
+2026-02-01 18:03:23,602 INFO [130/200] Progreso
+2026-02-01 18:03:23,605 WARNING [131/200] Escaneo fallido para 3gppnetwork.org: No se pudo resolver DNS para 3gppnetwork.org
+2026-02-01 18:03:23,997 WARNING No se pudo resolver DNS para aws.dev
+2026-02-01 18:03:23,999 WARNING [135/200] Escaneo fallido para aws.dev: No se pudo resolver DNS para aws.dev
+2026-02-01 18:03:24,094 WARNING No se pudo resolver DNS para ln-msedge.net
+2026-02-01 18:03:24,101 WARNING [137/200] Escaneo fallido para ln-msedge.net: No se pudo resolver DNS para ln-msedge.net
+2026-02-01 18:03:24,416 INFO [140/200] Progreso
+2026-02-01 18:03:24,828 WARNING No se pudo resolver DNS para cdn-apple.com
+2026-02-01 18:03:24,837 WARNING [144/200] Escaneo fallido para cdn-apple.com: No se pudo resolver DNS para cdn-apple.com
+2026-02-01 18:03:25,051 WARNING No se pudo resolver DNS para miit.gov.cn
+2026-02-01 18:03:25,054 WARNING [145/200] Escaneo fallido para miit.gov.cn: No se pudo resolver DNS para miit.gov.cn
+2026-02-01 18:03:25,248 WARNING Error de red para registrar-servers.com: Conexión rechazada por 198.54.117.206:443
+2026-02-01 18:03:25,249 WARNING [148/200] Escaneo fallido para registrar-servers.com: Conexión rechazada por 198.54.117.206:443
+2026-02-01 18:03:25,612 INFO [150/200] Progreso
+2026-02-01 18:03:26,134 WARNING Error de red para trbcdn.net: Conexión rechazada por 127.0.0.1:443
+2026-02-01 18:03:26,140 WARNING [153/200] Escaneo fallido para trbcdn.net: Conexión rechazada por 127.0.0.1:443
+2026-02-01 18:03:26,608 INFO [160/200] Progreso
+2026-02-01 18:03:26,635 WARNING No se pudo resolver DNS para azurefd.net
+2026-02-01 18:03:26,641 WARNING [161/200] Escaneo fallido para azurefd.net: No se pudo resolver DNS para azurefd.net
+2026-02-01 18:03:26,643 WARNING No se pudo resolver DNS para azurewebsites.net
+2026-02-01 18:03:26,650 WARNING [162/200] Escaneo fallido para azurewebsites.net: No se pudo resolver DNS para azurewebsites.net
+2026-02-01 18:03:27,323 WARNING No se pudo resolver DNS para nflxso.net
+2026-02-01 18:03:27,326 WARNING [166/200] Escaneo fallido para nflxso.net: No se pudo resolver DNS para nflxso.net
+2026-02-01 18:03:27,331 WARNING No se pudo resolver DNS para ttdns2.com
+2026-02-01 18:03:27,333 WARNING [167/200] Escaneo fallido para ttdns2.com: No se pudo resolver DNS para ttdns2.com
+2026-02-01 18:03:27,347 WARNING No se pudo resolver DNS para playstation.net
+2026-02-01 18:03:27,356 WARNING [168/200] Escaneo fallido para playstation.net: No se pudo resolver DNS para playstation.net
+2026-02-01 18:03:27,512 INFO [170/200] Progreso
+2026-02-01 18:03:28,024 WARNING Error de red para msedge.net: Timeout conectando a 204.79.197.197:443 para msedge.net
+2026-02-01 18:03:28,033 WARNING [175/200] Escaneo fallido para msedge.net: Timeout conectando a 204.79.197.197:443 para msedge.net
+2026-02-01 18:03:28,668 INFO [180/200] Progreso
+2026-02-01 18:03:28,797 WARNING Error de red para macromedia.com: Timeout conectando a 192.150.16.118:443 para macromedia.com
+2026-02-01 18:03:28,800 WARNING [184/200] Escaneo fallido para macromedia.com: Timeout conectando a 192.150.16.118:443 para macromedia.com
+2026-02-01 18:03:28,971 INFO [190/200] Progreso
+2026-02-01 18:03:29,155 WARNING Error de red para cncdn.com: Error de conexión de red a 211.99.99.79:443 - SSLError: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1000)
+2026-02-01 18:03:29,158 WARNING [198/200] Escaneo fallido para cncdn.com: Error de conexión de red a 211.99.99.79:443 - SSLError: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1000)
+2026-02-01 18:03:30,714 WARNING Error de red para shifen.com: Timeout conectando a 202.108.250.218:443 para shifen.com
+2026-02-01 18:03:30,715 WARNING [199/200] Escaneo fallido para shifen.com: Timeout conectando a 202.108.250.218:443 para shifen.com
+2026-02-01 18:03:30,783 INFO Listo. Escaneo completado: 140 exitosos, 60 fallidos (70.00% éxito)
+2026-02-01 18:03:30,784 INFO Resultados guardados en resultados/resultados_sonda_base.json
+2026-02-01 18:03:52,300 INFO Se han cargado 500 hostnames desde data/tranco.csv
+2026-02-01 18:03:52,301 INFO Iniciando escaneo concurrente con 30 hilos...
+2026-02-01 18:03:52,366 WARNING No se pudo resolver DNS para microsoftonline.com
+2026-02-01 18:03:52,369 WARNING [0/500] Escaneo fallido para microsoftonline.com: No se pudo resolver DNS para microsoftonline.com
+2026-02-01 18:03:52,371 INFO [0/500] Progreso
+2026-02-01 18:03:52,375 WARNING No se pudo resolver DNS para akadns.net
+2026-02-01 18:03:52,379 WARNING [1/500] Escaneo fallido para akadns.net: No se pudo resolver DNS para akadns.net
+2026-02-01 18:03:52,383 WARNING No se pudo resolver DNS para gtld-servers.net
+2026-02-01 18:03:52,393 WARNING [2/500] Escaneo fallido para gtld-servers.net: No se pudo resolver DNS para gtld-servers.net
+2026-02-01 18:03:52,399 WARNING No se pudo resolver DNS para akamai.net
+2026-02-01 18:03:52,404 WARNING No se pudo resolver DNS para akamaiedge.net
+2026-02-01 18:03:52,406 WARNING [3/500] Escaneo fallido para akamai.net: No se pudo resolver DNS para akamai.net
+2026-02-01 18:03:52,416 WARNING [4/500] Escaneo fallido para akamaiedge.net: No se pudo resolver DNS para akamaiedge.net
+2026-02-01 18:03:52,429 WARNING No se pudo resolver DNS para e2ro.com
+2026-02-01 18:03:52,431 WARNING [5/500] Escaneo fallido para e2ro.com: No se pudo resolver DNS para e2ro.com
+2026-02-01 18:03:52,451 WARNING No se pudo resolver DNS para windowsupdate.com
+2026-02-01 18:03:52,455 WARNING [6/500] Escaneo fallido para windowsupdate.com: No se pudo resolver DNS para windowsupdate.com
+2026-02-01 18:03:55,709 WARNING Error de red para domaincontrol.com: Conexión rechazada por 127.0.0.1:443
+2026-02-01 18:03:55,720 WARNING [7/500] Escaneo fallido para domaincontrol.com: Conexión rechazada por 127.0.0.1:443
+2026-02-01 18:03:55,937 WARNING Error de red para amazonaws.com: Conexión rechazada por 72.21.206.80:443
+2026-02-01 18:03:55,946 WARNING [8/500] Escaneo fallido para amazonaws.com: Conexión rechazada por 72.21.206.80:443
+2026-02-01 18:03:56,218 WARNING No se pudo resolver DNS para apple-dns.net
+2026-02-01 18:03:56,218 INFO [10/500] Progreso
+2026-02-01 18:03:56,260 WARNING No se pudo resolver DNS para aaplimg.com
+2026-02-01 18:03:56,268 WARNING [14/500] Escaneo fallido para apple-dns.net: No se pudo resolver DNS para apple-dns.net
+2026-02-01 18:03:56,274 WARNING No se pudo resolver DNS para office.net
+2026-02-01 18:03:56,280 WARNING [20/500] Escaneo fallido para aaplimg.com: No se pudo resolver DNS para aaplimg.com
+2026-02-01 18:03:56,316 WARNING No se pudo resolver DNS para akam.net
+2026-02-01 18:03:56,341 INFO [20/500] Progreso
+2026-02-01 18:03:56,352 WARNING [25/500] Escaneo fallido para office.net: No se pudo resolver DNS para office.net
+2026-02-01 18:03:56,386 WARNING [27/500] Escaneo fallido para akam.net: No se pudo resolver DNS para akam.net
+2026-02-01 18:03:56,386 INFO [30/500] Progreso
+2026-02-01 18:03:56,403 WARNING No se pudo resolver DNS para cloudfront.net
+2026-02-01 18:03:56,429 WARNING No se pudo resolver DNS para pv-cdn.net
+2026-02-01 18:03:56,453 WARNING No se pudo resolver DNS para trafficmanager.net
+2026-02-01 18:03:56,456 WARNING [35/500] Escaneo fallido para cloudfront.net: No se pudo resolver DNS para cloudfront.net
+2026-02-01 18:03:56,482 WARNING [36/500] Escaneo fallido para pv-cdn.net: No se pudo resolver DNS para pv-cdn.net
+2026-02-01 18:03:56,493 WARNING [38/500] Escaneo fallido para trafficmanager.net: No se pudo resolver DNS para trafficmanager.net
+2026-02-01 18:03:56,516 WARNING No se pudo resolver DNS para tiktokcdn.com
+2026-02-01 18:03:56,528 WARNING No se pudo resolver DNS para ax-msedge.net
+2026-02-01 18:03:56,529 WARNING [40/500] Escaneo fallido para tiktokcdn.com: No se pudo resolver DNS para tiktokcdn.com
+2026-02-01 18:03:56,534 INFO [40/500] Progreso
+2026-02-01 18:03:56,535 WARNING [41/500] Escaneo fallido para ax-msedge.net: No se pudo resolver DNS para ax-msedge.net
+2026-02-01 18:03:56,544 WARNING No se pudo resolver DNS para gvt2.com
+2026-02-01 18:03:56,550 WARNING [42/500] Escaneo fallido para gvt2.com: No se pudo resolver DNS para gvt2.com
+2026-02-01 18:03:56,614 WARNING No se pudo resolver DNS para ytimg.com
+2026-02-01 18:03:56,622 WARNING [44/500] Escaneo fallido para ytimg.com: No se pudo resolver DNS para ytimg.com
+2026-02-01 18:03:56,748 WARNING No se pudo resolver DNS para t-msedge.net
+2026-02-01 18:03:56,749 WARNING [47/500] Escaneo fallido para t-msedge.net: No se pudo resolver DNS para t-msedge.net
+2026-02-01 18:03:56,757 WARNING No se pudo resolver DNS para gvt1.com
+2026-02-01 18:03:56,759 WARNING [48/500] Escaneo fallido para gvt1.com: No se pudo resolver DNS para gvt1.com
+2026-02-01 18:03:58,332 INFO [50/500] Progreso
+2026-02-01 18:03:59,914 WARNING No se pudo resolver DNS para edgekey.net
+2026-02-01 18:03:59,915 WARNING [56/500] Escaneo fallido para edgekey.net: No se pudo resolver DNS para edgekey.net
+2026-02-01 18:04:00,097 INFO [60/500] Progreso
+2026-02-01 18:04:00,106 WARNING No se pudo resolver DNS para edgesuite.net
+2026-02-01 18:04:00,108 WARNING [61/500] Escaneo fallido para edgesuite.net: No se pudo resolver DNS para edgesuite.net
+2026-02-01 18:04:00,139 WARNING No se pudo resolver DNS para root-servers.net
+2026-02-01 18:04:00,140 WARNING [63/500] Escaneo fallido para root-servers.net: No se pudo resolver DNS para root-servers.net
+2026-02-01 18:04:00,228 WARNING No se pudo resolver DNS para vedcdnlb.com
+2026-02-01 18:04:00,234 WARNING [66/500] Escaneo fallido para vedcdnlb.com: No se pudo resolver DNS para vedcdnlb.com
+2026-02-01 18:04:00,383 INFO [70/500] Progreso
+2026-02-01 18:04:00,558 WARNING No se pudo resolver DNS para a2z.com
+2026-02-01 18:04:00,563 WARNING [75/500] Escaneo fallido para a2z.com: No se pudo resolver DNS para a2z.com
+2026-02-01 18:04:00,570 WARNING No se pudo resolver DNS para cdninstagram.com
+2026-02-01 18:04:00,575 WARNING [76/500] Escaneo fallido para cdninstagram.com: No se pudo resolver DNS para cdninstagram.com
+2026-02-01 18:04:00,665 INFO [80/500] Progreso
+2026-02-01 18:04:01,549 WARNING Error de red para ripn.net: Timeout conectando a 194.226.65.229:443 para ripn.net
+2026-02-01 18:04:01,559 WARNING [84/500] Escaneo fallido para ripn.net: Timeout conectando a 194.226.65.229:443 para ripn.net
+2026-02-01 18:04:01,586 WARNING No se pudo resolver DNS para bytefcdn-oversea.com
+2026-02-01 18:04:01,587 WARNING [85/500] Escaneo fallido para bytefcdn-oversea.com: No se pudo resolver DNS para bytefcdn-oversea.com
+2026-02-01 18:04:02,785 WARNING No se pudo resolver DNS para dnsowl.com
+2026-02-01 18:04:02,790 WARNING [88/500] Escaneo fallido para dnsowl.com: No se pudo resolver DNS para dnsowl.com
+2026-02-01 18:04:03,170 INFO [90/500] Progreso
+2026-02-01 18:04:03,620 WARNING No se pudo resolver DNS para amazon.dev
+2026-02-01 18:04:03,622 WARNING [97/500] Escaneo fallido para amazon.dev: No se pudo resolver DNS para amazon.dev
+2026-02-01 18:04:03,923 INFO [100/500] Progreso
+2026-02-01 18:04:03,942 WARNING No se pudo resolver DNS para steamserver.net
+2026-02-01 18:04:03,943 WARNING [101/500] Escaneo fallido para steamserver.net: No se pudo resolver DNS para steamserver.net
+2026-02-01 18:04:03,957 WARNING No se pudo resolver DNS para wac-msedge.net
+2026-02-01 18:04:03,958 WARNING [103/500] Escaneo fallido para wac-msedge.net: No se pudo resolver DNS para wac-msedge.net
+2026-02-01 18:04:03,987 WARNING No se pudo resolver DNS para dual-s-msedge.net
+2026-02-01 18:04:03,989 WARNING [104/500] Escaneo fallido para dual-s-msedge.net: No se pudo resolver DNS para dual-s-msedge.net
+2026-02-01 18:04:04,158 WARNING No se pudo resolver DNS para vecdnlb.com
+2026-02-01 18:04:04,164 WARNING [106/500] Escaneo fallido para vecdnlb.com: No se pudo resolver DNS para vecdnlb.com
+2026-02-01 18:04:04,257 WARNING No se pudo resolver DNS para msftncsi.com
+2026-02-01 18:04:04,268 WARNING [108/500] Escaneo fallido para msftncsi.com: No se pudo resolver DNS para msftncsi.com
+2026-02-01 18:04:04,456 INFO [110/500] Progreso
+2026-02-01 18:04:04,771 WARNING No se pudo resolver DNS para miit.gov.cn
+2026-02-01 18:04:04,784 WARNING [117/500] Escaneo fallido para miit.gov.cn: No se pudo resolver DNS para miit.gov.cn
+2026-02-01 18:04:05,117 INFO [120/500] Progreso
+2026-02-01 18:04:05,316 WARNING No se pudo resolver DNS para spov-msedge.net
+2026-02-01 18:04:05,322 WARNING [122/500] Escaneo fallido para spov-msedge.net: No se pudo resolver DNS para spov-msedge.net
+2026-02-01 18:04:05,332 WARNING No se pudo resolver DNS para ggpht.com
+2026-02-01 18:04:05,346 WARNING [123/500] Escaneo fallido para ggpht.com: No se pudo resolver DNS para ggpht.com
+2026-02-01 18:04:05,359 WARNING No se pudo resolver DNS para cdn77.org
+2026-02-01 18:04:05,366 WARNING [125/500] Escaneo fallido para cdn77.org: No se pudo resolver DNS para cdn77.org
+2026-02-01 18:04:05,374 WARNING No se pudo resolver DNS para tiktokcdn-us.com
+2026-02-01 18:04:05,379 WARNING [126/500] Escaneo fallido para tiktokcdn-us.com: No se pudo resolver DNS para tiktokcdn-us.com
+2026-02-01 18:04:05,392 WARNING No se pudo resolver DNS para msftconnecttest.com
+2026-02-01 18:04:05,396 WARNING [127/500] Escaneo fallido para msftconnecttest.com: No se pudo resolver DNS para msftconnecttest.com
+2026-02-01 18:04:05,402 WARNING No se pudo resolver DNS para 3gppnetwork.org
+2026-02-01 18:04:05,404 WARNING [128/500] Escaneo fallido para 3gppnetwork.org: No se pudo resolver DNS para 3gppnetwork.org
+2026-02-01 18:04:05,518 WARNING No se pudo resolver DNS para spo-msedge.net
+2026-02-01 18:04:05,527 WARNING [130/500] Escaneo fallido para spo-msedge.net: No se pudo resolver DNS para spo-msedge.net
+2026-02-01 18:04:05,528 INFO [130/500] Progreso
+2026-02-01 18:04:06,496 WARNING No se pudo resolver DNS para aws.dev
+2026-02-01 18:04:06,498 WARNING [136/500] Escaneo fallido para aws.dev: No se pudo resolver DNS para aws.dev
+2026-02-01 18:04:06,504 WARNING No se pudo resolver DNS para ln-msedge.net
+2026-02-01 18:04:06,508 WARNING [137/500] Escaneo fallido para ln-msedge.net: No se pudo resolver DNS para ln-msedge.net
+2026-02-01 18:04:07,409 INFO [140/500] Progreso
+2026-02-01 18:04:07,532 WARNING No se pudo resolver DNS para cdn-apple.com
+2026-02-01 18:04:07,534 WARNING [143/500] Escaneo fallido para cdn-apple.com: No se pudo resolver DNS para cdn-apple.com
+2026-02-01 18:04:08,124 WARNING Error de red para registrar-servers.com: Conexión rechazada por 198.54.117.206:443
+2026-02-01 18:04:08,126 WARNING [148/500] Escaneo fallido para registrar-servers.com: Conexión rechazada por 198.54.117.206:443
+2026-02-01 18:04:08,230 WARNING Error de red para trbcdn.net: Conexión rechazada por 127.0.0.1:443
+2026-02-01 18:04:08,239 WARNING [150/500] Escaneo fallido para trbcdn.net: Conexión rechazada por 127.0.0.1:443
+2026-02-01 18:04:08,240 INFO [150/500] Progreso
+2026-02-01 18:04:09,308 WARNING No se pudo resolver DNS para azurefd.net
+2026-02-01 18:04:09,315 WARNING [160/500] Escaneo fallido para azurefd.net: No se pudo resolver DNS para azurefd.net
+2026-02-01 18:04:09,315 INFO [160/500] Progreso
+2026-02-01 18:04:09,334 WARNING No se pudo resolver DNS para azurewebsites.net
+2026-02-01 18:04:09,335 WARNING [161/500] Escaneo fallido para azurewebsites.net: No se pudo resolver DNS para azurewebsites.net
+2026-02-01 18:04:10,031 WARNING No se pudo resolver DNS para ttdns2.com
+2026-02-01 18:04:10,035 WARNING [165/500] Escaneo fallido para ttdns2.com: No se pudo resolver DNS para ttdns2.com
+2026-02-01 18:04:10,044 WARNING No se pudo resolver DNS para nflxso.net
+2026-02-01 18:04:10,045 WARNING [166/500] Escaneo fallido para nflxso.net: No se pudo resolver DNS para nflxso.net
+2026-02-01 18:04:10,175 WARNING No se pudo resolver DNS para playstation.net
+2026-02-01 18:04:10,180 WARNING [168/500] Escaneo fallido para playstation.net: No se pudo resolver DNS para playstation.net
+2026-02-01 18:04:10,352 INFO [170/500] Progreso
+2026-02-01 18:04:10,361 WARNING No se pudo resolver DNS para nominetdns.uk
+2026-02-01 18:04:10,366 WARNING [171/500] Escaneo fallido para nominetdns.uk: No se pudo resolver DNS para nominetdns.uk
+2026-02-01 18:04:10,890 WARNING Error de red para msedge.net: Timeout conectando a 204.79.197.197:443 para msedge.net
+2026-02-01 18:04:10,899 WARNING [176/500] Escaneo fallido para msedge.net: Timeout conectando a 204.79.197.197:443 para msedge.net
+2026-02-01 18:04:10,937 WARNING No se pudo resolver DNS para azureedge.net
+2026-02-01 18:04:10,950 WARNING [177/500] Escaneo fallido para azureedge.net: No se pudo resolver DNS para azureedge.net
+2026-02-01 18:04:11,371 INFO [180/500] Progreso
+2026-02-01 18:04:12,170 INFO [190/500] Progreso
+2026-02-01 18:04:12,267 WARNING Error de red para macromedia.com: Timeout conectando a 192.150.16.118:443 para macromedia.com
+2026-02-01 18:04:12,279 WARNING [193/500] Escaneo fallido para macromedia.com: Timeout conectando a 192.150.16.118:443 para macromedia.com
+2026-02-01 18:04:13,240 WARNING No se pudo resolver DNS para wsdvs.com
+2026-02-01 18:04:13,245 WARNING [198/500] Escaneo fallido para wsdvs.com: No se pudo resolver DNS para wsdvs.com
+2026-02-01 18:04:14,233 INFO [200/500] Progreso
+2026-02-01 18:04:14,510 WARNING No se pudo resolver DNS para akamaized.net
+2026-02-01 18:04:14,513 WARNING [203/500] Escaneo fallido para akamaized.net: No se pudo resolver DNS para akamaized.net
+2026-02-01 18:04:15,188 INFO [210/500] Progreso
+2026-02-01 18:04:15,228 WARNING Error de red para shifen.com: Timeout conectando a 202.108.250.218:443 para shifen.com
+2026-02-01 18:04:15,243 WARNING [211/500] Escaneo fallido para shifen.com: Timeout conectando a 202.108.250.218:443 para shifen.com
+2026-02-01 18:04:15,286 WARNING No se pudo resolver DNS para jomodns.com
+2026-02-01 18:04:15,293 WARNING [213/500] Escaneo fallido para jomodns.com: No se pudo resolver DNS para jomodns.com
+2026-02-01 18:04:15,475 WARNING No se pudo resolver DNS para rocket-cdn.com
+2026-02-01 18:04:15,478 WARNING [216/500] Escaneo fallido para rocket-cdn.com: No se pudo resolver DNS para rocket-cdn.com
+2026-02-01 18:04:15,514 WARNING No se pudo resolver DNS para wixsite.com
+2026-02-01 18:04:15,522 WARNING [217/500] Escaneo fallido para wixsite.com: No se pudo resolver DNS para wixsite.com
+2026-02-01 18:04:15,550 WARNING No se pudo resolver DNS para static.microsoft
+2026-02-01 18:04:15,561 WARNING [218/500] Escaneo fallido para static.microsoft: No se pudo resolver DNS para static.microsoft
+2026-02-01 18:04:15,570 WARNING No se pudo resolver DNS para demdex.net
+2026-02-01 18:04:15,577 WARNING [219/500] Escaneo fallido para demdex.net: No se pudo resolver DNS para demdex.net
+2026-02-01 18:04:15,614 INFO [220/500] Progreso
+2026-02-01 18:04:15,715 WARNING No se pudo resolver DNS para alibabadns.com
+2026-02-01 18:04:15,723 WARNING [222/500] Escaneo fallido para alibabadns.com: No se pudo resolver DNS para alibabadns.com
+2026-02-01 18:04:15,741 WARNING No se pudo resolver DNS para ksyuncdn.com
+2026-02-01 18:04:15,744 WARNING [223/500] Escaneo fallido para ksyuncdn.com: No se pudo resolver DNS para ksyuncdn.com
+2026-02-01 18:04:15,747 WARNING No se pudo resolver DNS para ttvnw.net
+2026-02-01 18:04:15,752 WARNING [224/500] Escaneo fallido para ttvnw.net: No se pudo resolver DNS para ttvnw.net
+2026-02-01 18:04:15,846 WARNING No se pudo resolver DNS para samsungqbe.com
+2026-02-01 18:04:15,855 WARNING [227/500] Escaneo fallido para samsungqbe.com: No se pudo resolver DNS para samsungqbe.com
+2026-02-01 18:04:15,867 WARNING No se pudo resolver DNS para omtrdc.net
+2026-02-01 18:04:15,872 WARNING [229/500] Escaneo fallido para omtrdc.net: No se pudo resolver DNS para omtrdc.net
+2026-02-01 18:04:15,901 INFO [230/500] Progreso
+2026-02-01 18:04:15,904 WARNING No se pudo resolver DNS para dns-parking.com
+2026-02-01 18:04:15,905 WARNING [231/500] Escaneo fallido para dns-parking.com: No se pudo resolver DNS para dns-parking.com
+2026-02-01 18:04:15,931 WARNING No se pudo resolver DNS para nr-data.net
+2026-02-01 18:04:15,936 WARNING [232/500] Escaneo fallido para nr-data.net: No se pudo resolver DNS para nr-data.net
+2026-02-01 18:04:16,364 WARNING Error de red para cncdn.com: Error de conexión de red a 211.99.99.79:443 - SSLError: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1000)
+2026-02-01 18:04:16,370 WARNING [236/500] Escaneo fallido para cncdn.com: Error de conexión de red a 211.99.99.79:443 - SSLError: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1000)
+2026-02-01 18:04:17,387 WARNING Error de red para mangosip.ru: Timeout conectando a 81.88.86.11:443 para mangosip.ru
+2026-02-01 18:04:17,398 WARNING [239/500] Escaneo fallido para mangosip.ru: Timeout conectando a 81.88.86.11:443 para mangosip.ru
+2026-02-01 18:04:17,465 WARNING No se pudo resolver DNS para hichina.com
+2026-02-01 18:04:17,475 WARNING [240/500] Escaneo fallido para hichina.com: No se pudo resolver DNS para hichina.com
+2026-02-01 18:04:17,482 INFO [240/500] Progreso
+2026-02-01 18:04:17,593 WARNING No se pudo resolver DNS para samsungcloud.com
+2026-02-01 18:04:17,602 WARNING [242/500] Escaneo fallido para samsungcloud.com: No se pudo resolver DNS para samsungcloud.com
+2026-02-01 18:04:17,604 WARNING No se pudo resolver DNS para media-amazon.com
+2026-02-01 18:04:17,606 WARNING [243/500] Escaneo fallido para media-amazon.com: No se pudo resolver DNS para media-amazon.com
+2026-02-01 18:04:17,672 WARNING No se pudo resolver DNS para capcutapi.com
+2026-02-01 18:04:17,680 WARNING [245/500] Escaneo fallido para capcutapi.com: No se pudo resolver DNS para capcutapi.com
+2026-02-01 18:04:17,810 WARNING No se pudo resolver DNS para mtgglobals.com
+2026-02-01 18:04:17,811 WARNING [248/500] Escaneo fallido para mtgglobals.com: No se pudo resolver DNS para mtgglobals.com
+2026-02-01 18:04:17,935 INFO [250/500] Progreso
+2026-02-01 18:04:18,661 WARNING No se pudo resolver DNS para kwai-pro.com
+2026-02-01 18:04:18,665 WARNING [253/500] Escaneo fallido para kwai-pro.com: No se pudo resolver DNS para kwai-pro.com
+2026-02-01 18:04:18,699 WARNING No se pudo resolver DNS para fastly-edge.com
+2026-02-01 18:04:18,707 WARNING [255/500] Escaneo fallido para fastly-edge.com: No se pudo resolver DNS para fastly-edge.com
+2026-02-01 18:04:18,778 WARNING No se pudo resolver DNS para name-services.com
+2026-02-01 18:04:18,778 WARNING Error de red para comcast.net: Conexión rechazada por 96.99.227.0:443
+2026-02-01 18:04:18,796 WARNING [258/500] Escaneo fallido para name-services.com: No se pudo resolver DNS para name-services.com
+2026-02-01 18:04:18,800 WARNING [259/500] Escaneo fallido para comcast.net: Conexión rechazada por 96.99.227.0:443
+2026-02-01 18:04:18,925 INFO [260/500] Progreso
+2026-02-01 18:04:18,943 WARNING No se pudo resolver DNS para heytapmobile.com
+2026-02-01 18:04:18,945 WARNING [261/500] Escaneo fallido para heytapmobile.com: No se pudo resolver DNS para heytapmobile.com
+2026-02-01 18:04:19,048 WARNING No se pudo resolver DNS para byteoversea.net
+2026-02-01 18:04:19,073 WARNING [264/500] Escaneo fallido para byteoversea.net: No se pudo resolver DNS para byteoversea.net
+2026-02-01 18:04:19,190 WARNING Error de red para edgecdn.ru: Error de conexión de red a 193.17.93.93:443 - SSLError: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1000)
+2026-02-01 18:04:19,214 WARNING [267/500] Escaneo fallido para edgecdn.ru: Error de conexión de red a 193.17.93.93:443 - SSLError: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1000)
+2026-02-01 18:04:19,762 INFO [270/500] Progreso
+2026-02-01 18:04:20,863 INFO [280/500] Progreso
+2026-02-01 18:04:21,076 WARNING Error de red para cdngslb.com: Timeout conectando a 115.238.23.241:443 para cdngslb.com
+2026-02-01 18:04:21,096 WARNING [281/500] Escaneo fallido para cdngslb.com: Timeout conectando a 115.238.23.241:443 para cdngslb.com
+2026-02-01 18:04:22,467 WARNING Error de red para prudential.com: Timeout conectando a 161.151.208.41:443 para prudential.com
+2026-02-01 18:04:22,475 WARNING [290/500] Escaneo fallido para prudential.com: Timeout conectando a 161.151.208.41:443 para prudential.com
+2026-02-01 18:04:22,503 INFO [290/500] Progreso
+2026-02-01 18:04:22,581 WARNING No se pudo resolver DNS para douyincdn.com
+2026-02-01 18:04:22,590 WARNING [294/500] Escaneo fallido para douyincdn.com: No se pudo resolver DNS para douyincdn.com
+2026-02-01 18:04:23,521 WARNING Error de red para kaspersky-labs.com: Conexión rechazada por 127.0.0.1:443
+2026-02-01 18:04:23,530 WARNING [299/500] Escaneo fallido para kaspersky-labs.com: Conexión rechazada por 127.0.0.1:443
+2026-02-01 18:04:23,572 WARNING No se pudo resolver DNS para vedsalb.com
+2026-02-01 18:04:23,580 WARNING [300/500] Escaneo fallido para vedsalb.com: No se pudo resolver DNS para vedsalb.com
+2026-02-01 18:04:23,581 INFO [300/500] Progreso
+2026-02-01 18:04:24,299 WARNING No se pudo resolver DNS para akamaihd.net
+2026-02-01 18:04:24,301 WARNING [304/500] Escaneo fallido para akamaihd.net: No se pudo resolver DNS para akamaihd.net
+2026-02-01 18:04:24,913 WARNING Error de red para jsdelivr.net: Error de conexión de red a 1.2.3.4:443 - OSError: [Errno 101] Network is unreachable
+2026-02-01 18:04:24,922 WARNING [307/500] Escaneo fallido para jsdelivr.net: Error de conexión de red a 1.2.3.4:443 - OSError: [Errno 101] Network is unreachable
+2026-02-01 18:04:24,932 WARNING No se pudo resolver DNS para tiktokv.us
+2026-02-01 18:04:24,940 WARNING [308/500] Escaneo fallido para tiktokv.us: No se pudo resolver DNS para tiktokv.us
+2026-02-01 18:04:24,962 WARNING No se pudo resolver DNS para whecloud.com
+2026-02-01 18:04:24,965 WARNING [310/500] Escaneo fallido para whecloud.com: No se pudo resolver DNS para whecloud.com
+2026-02-01 18:04:24,967 INFO [310/500] Progreso
+2026-02-01 18:04:25,142 WARNING No se pudo resolver DNS para bamgrid.com
+2026-02-01 18:04:25,152 WARNING [315/500] Escaneo fallido para bamgrid.com: No se pudo resolver DNS para bamgrid.com
+2026-02-01 18:04:25,422 WARNING No se pudo resolver DNS para allawnos.com
+2026-02-01 18:04:25,423 WARNING [317/500] Escaneo fallido para allawnos.com: No se pudo resolver DNS para allawnos.com
+2026-02-01 18:04:25,589 WARNING No se pudo resolver DNS para samsungcloudsolution.com
+2026-02-01 18:04:25,595 WARNING [320/500] Escaneo fallido para samsungcloudsolution.com: No se pudo resolver DNS para samsungcloudsolution.com
+2026-02-01 18:04:25,595 INFO [320/500] Progreso
+2026-02-01 18:04:25,640 WARNING No se pudo resolver DNS para cdnbuild.net
+2026-02-01 18:04:25,648 WARNING [322/500] Escaneo fallido para cdnbuild.net: No se pudo resolver DNS para cdnbuild.net
+2026-02-01 18:04:25,839 WARNING No se pudo resolver DNS para sc-cdn.net
+2026-02-01 18:04:25,840 WARNING [324/500] Escaneo fallido para sc-cdn.net: No se pudo resolver DNS para sc-cdn.net
+2026-02-01 18:04:25,878 WARNING No se pudo resolver DNS para live-video.net
+2026-02-01 18:04:25,884 WARNING [326/500] Escaneo fallido para live-video.net: No se pudo resolver DNS para live-video.net
+2026-02-01 18:04:26,170 WARNING No se pudo resolver DNS para facebook.net
+2026-02-01 18:04:26,175 WARNING [329/500] Escaneo fallido para facebook.net: No se pudo resolver DNS para facebook.net
+2026-02-01 18:04:26,205 INFO [330/500] Progreso
+2026-02-01 18:04:26,737 WARNING No se pudo resolver DNS para rzone.de
+2026-02-01 18:04:26,746 WARNING [334/500] Escaneo fallido para rzone.de: No se pudo resolver DNS para rzone.de
+2026-02-01 18:04:26,796 WARNING No se pudo resolver DNS para a-msedge.net
+2026-02-01 18:04:26,810 WARNING [336/500] Escaneo fallido para a-msedge.net: No se pudo resolver DNS para a-msedge.net
+2026-02-01 18:04:27,253 INFO [340/500] Progreso
+2026-02-01 18:04:27,584 WARNING No se pudo resolver DNS para heytapdl.com
+2026-02-01 18:04:27,588 WARNING [342/500] Escaneo fallido para heytapdl.com: No se pudo resolver DNS para heytapdl.com
+2026-02-01 18:04:27,596 WARNING No se pudo resolver DNS para ibyteimg.com
+2026-02-01 18:04:27,613 WARNING [343/500] Escaneo fallido para ibyteimg.com: No se pudo resolver DNS para ibyteimg.com
+2026-02-01 18:04:27,626 WARNING No se pudo resolver DNS para aiv-delivery.net
+2026-02-01 18:04:27,632 WARNING [344/500] Escaneo fallido para aiv-delivery.net: No se pudo resolver DNS para aiv-delivery.net
+2026-02-01 18:04:27,670 WARNING No se pudo resolver DNS para easebar.com
+2026-02-01 18:04:27,674 WARNING [345/500] Escaneo fallido para easebar.com: No se pudo resolver DNS para easebar.com
+2026-02-01 18:04:28,261 WARNING No se pudo resolver DNS para sc-gw.com
+2026-02-01 18:04:28,268 WARNING [350/500] Escaneo fallido para sc-gw.com: No se pudo resolver DNS para sc-gw.com
+2026-02-01 18:04:28,268 INFO [350/500] Progreso
+2026-02-01 18:04:28,331 WARNING No se pudo resolver DNS para scdn.co
+2026-02-01 18:04:28,333 WARNING [351/500] Escaneo fallido para scdn.co: No se pudo resolver DNS para scdn.co
+2026-02-01 18:04:28,400 WARNING No se pudo resolver DNS para nstld.com
+2026-02-01 18:04:28,407 WARNING [354/500] Escaneo fallido para nstld.com: No se pudo resolver DNS para nstld.com
+2026-02-01 18:04:28,444 WARNING No se pudo resolver DNS para kwaipros.com
+2026-02-01 18:04:28,449 WARNING [355/500] Escaneo fallido para kwaipros.com: No se pudo resolver DNS para kwaipros.com
+2026-02-01 18:04:29,120 INFO [360/500] Progreso
+2026-02-01 18:04:29,137 WARNING No se pudo resolver DNS para tiktokcdn-eu.com
+2026-02-01 18:04:29,143 WARNING [361/500] Escaneo fallido para tiktokcdn-eu.com: No se pudo resolver DNS para tiktokcdn-eu.com
+2026-02-01 18:04:29,985 WARNING No se pudo resolver DNS para myhuaweicloud.com
+2026-02-01 18:04:29,990 WARNING [369/500] Escaneo fallido para myhuaweicloud.com: No se pudo resolver DNS para myhuaweicloud.com
+2026-02-01 18:04:30,044 INFO [370/500] Progreso
+2026-02-01 18:04:30,056 WARNING No se pudo resolver DNS para mynetname.net
+2026-02-01 18:04:30,060 WARNING [371/500] Escaneo fallido para mynetname.net: No se pudo resolver DNS para mynetname.net
+2026-02-01 18:04:30,365 WARNING Error de red para inner-active.mobi: Timeout conectando a 62.219.50.32:443 para inner-active.mobi
+2026-02-01 18:04:30,378 WARNING [375/500] Escaneo fallido para inner-active.mobi: Timeout conectando a 62.219.50.32:443 para inner-active.mobi
+2026-02-01 18:04:31,326 WARNING No se pudo resolver DNS para sfx.ms
+2026-02-01 18:04:31,341 WARNING [379/500] Escaneo fallido para sfx.ms: No se pudo resolver DNS para sfx.ms
+2026-02-01 18:04:31,621 INFO [380/500] Progreso
+2026-02-01 18:04:31,824 WARNING Error de red para vkuser.net: Timeout conectando a 95.213.37.126:443 para vkuser.net
+2026-02-01 18:04:31,839 WARNING [384/500] Escaneo fallido para vkuser.net: Timeout conectando a 95.213.37.126:443 para vkuser.net
+2026-02-01 18:04:31,900 WARNING No se pudo resolver DNS para avcdn.net
+2026-02-01 18:04:31,901 WARNING Error de red para ipv4only.arpa: Timeout conectando a 192.0.0.171:443 para ipv4only.arpa
+2026-02-01 18:04:31,923 WARNING [387/500] Escaneo fallido para avcdn.net: No se pudo resolver DNS para avcdn.net
+2026-02-01 18:04:31,932 WARNING [388/500] Escaneo fallido para ipv4only.arpa: Timeout conectando a 192.0.0.171:443 para ipv4only.arpa
+2026-02-01 18:04:31,934 WARNING No se pudo resolver DNS para tiktokv.eu
+2026-02-01 18:04:31,934 WARNING [389/500] Escaneo fallido para tiktokv.eu: No se pudo resolver DNS para tiktokv.eu
+2026-02-01 18:04:31,961 WARNING No se pudo resolver DNS para wswebcdn.com
+2026-02-01 18:04:31,962 WARNING No se pudo resolver DNS para pangle.io
+2026-02-01 18:04:31,969 INFO [390/500] Progreso
+2026-02-01 18:04:31,975 WARNING [391/500] Escaneo fallido para wswebcdn.com: No se pudo resolver DNS para wswebcdn.com
+2026-02-01 18:04:31,975 WARNING [392/500] Escaneo fallido para pangle.io: No se pudo resolver DNS para pangle.io
+2026-02-01 18:04:31,985 WARNING Error de red para avsxappcaptiveportal.com: Timeout conectando a 52.20.60.244:443 para avsxappcaptiveportal.com
+2026-02-01 18:04:31,986 WARNING [393/500] Escaneo fallido para avsxappcaptiveportal.com: Timeout conectando a 52.20.60.244:443 para avsxappcaptiveportal.com
+2026-02-01 18:04:32,155 WARNING Error de red para wbx2.com: Timeout conectando a 13.59.223.207:443 para wbx2.com
+2026-02-01 18:04:32,172 WARNING [394/500] Escaneo fallido para wbx2.com: Timeout conectando a 13.59.223.207:443 para wbx2.com
+2026-02-01 18:04:33,008 INFO [400/500] Progreso
+2026-02-01 18:04:33,378 WARNING No se pudo resolver DNS para rbxcdn.com
+2026-02-01 18:04:33,386 WARNING [404/500] Escaneo fallido para rbxcdn.com: No se pudo resolver DNS para rbxcdn.com
+2026-02-01 18:04:33,394 WARNING No se pudo resolver DNS para aiv-cdn.net
+2026-02-01 18:04:33,399 WARNING [405/500] Escaneo fallido para aiv-cdn.net: No se pudo resolver DNS para aiv-cdn.net
+2026-02-01 18:04:33,423 WARNING No se pudo resolver DNS para xcal.tv
+2026-02-01 18:04:33,433 WARNING [406/500] Escaneo fallido para xcal.tv: No se pudo resolver DNS para xcal.tv
+2026-02-01 18:04:33,875 INFO [410/500] Progreso
+2026-02-01 18:04:33,886 WARNING No se pudo resolver DNS para namebrightdns.com
+2026-02-01 18:04:33,894 WARNING [411/500] Escaneo fallido para namebrightdns.com: No se pudo resolver DNS para namebrightdns.com
+2026-02-01 18:04:34,993 WARNING No se pudo resolver DNS para online-metrix.net
+2026-02-01 18:04:34,999 WARNING [416/500] Escaneo fallido para online-metrix.net: No se pudo resolver DNS para online-metrix.net
+2026-02-01 18:04:35,038 WARNING No se pudo resolver DNS para aliyuncsslbintl.com
+2026-02-01 18:04:35,043 WARNING [417/500] Escaneo fallido para aliyuncsslbintl.com: No se pudo resolver DNS para aliyuncsslbintl.com
+2026-02-01 18:04:35,418 INFO [420/500] Progreso
+2026-02-01 18:04:35,523 WARNING Error de red para nflxvideo.net: Error de conexión de red a 34.252.74.1:443 - SSLError: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1000)
+2026-02-01 18:04:35,529 WARNING [423/500] Escaneo fallido para nflxvideo.net: Error de conexión de red a 34.252.74.1:443 - SSLError: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1000)
+2026-02-01 18:04:35,763 WARNING No se pudo resolver DNS para beian.gov.cn
+2026-02-01 18:04:35,768 WARNING [425/500] Escaneo fallido para beian.gov.cn: No se pudo resolver DNS para beian.gov.cn
+2026-02-01 18:04:35,801 WARNING No se pudo resolver DNS para msidentity.com
+2026-02-01 18:04:35,808 WARNING [427/500] Escaneo fallido para msidentity.com: No se pudo resolver DNS para msidentity.com
+2026-02-01 18:04:35,952 WARNING Error de red para alicdn.com: Timeout conectando a 140.205.77.240:443 para alicdn.com
+2026-02-01 18:04:35,965 WARNING [428/500] Escaneo fallido para alicdn.com: Timeout conectando a 140.205.77.240:443 para alicdn.com
+2026-02-01 18:04:36,000 INFO [430/500] Progreso
+2026-02-01 18:04:36,015 WARNING No se pudo resolver DNS para cdn20.com
+2026-02-01 18:04:36,022 WARNING [431/500] Escaneo fallido para cdn20.com: No se pudo resolver DNS para cdn20.com
+2026-02-01 18:04:36,968 WARNING Error de red para imcmdb.net: Timeout conectando a 85.10.250.72:443 para imcmdb.net
+2026-02-01 18:04:36,982 WARNING [437/500] Escaneo fallido para imcmdb.net: Timeout conectando a 85.10.250.72:443 para imcmdb.net
+2026-02-01 18:04:37,145 INFO [440/500] Progreso
+2026-02-01 18:04:37,479 WARNING Error de red para firetvcaptiveportal.com: Timeout conectando a 54.210.144.195:443 para firetvcaptiveportal.com
+2026-02-01 18:04:37,491 WARNING [443/500] Escaneo fallido para firetvcaptiveportal.com: Timeout conectando a 54.210.144.195:443 para firetvcaptiveportal.com
+2026-02-01 18:04:37,552 WARNING No se pudo resolver DNS para qlivecdn.com
+2026-02-01 18:04:37,554 WARNING [445/500] Escaneo fallido para qlivecdn.com: No se pudo resolver DNS para qlivecdn.com
+2026-02-01 18:04:38,448 INFO [450/500] Progreso
+2026-02-01 18:04:38,833 WARNING Error de red para worldnic.com: Timeout conectando a 205.178.187.13:443 para worldnic.com
+2026-02-01 18:04:38,840 WARNING [453/500] Escaneo fallido para worldnic.com: Timeout conectando a 205.178.187.13:443 para worldnic.com
+2026-02-01 18:04:39,083 WARNING No se pudo resolver DNS para tiktokrow-cdn.com
+2026-02-01 18:04:39,092 WARNING [455/500] Escaneo fallido para tiktokrow-cdn.com: No se pudo resolver DNS para tiktokrow-cdn.com
+2026-02-01 18:04:39,129 WARNING No se pudo resolver DNS para byteglb.com
+2026-02-01 18:04:39,132 WARNING [456/500] Escaneo fallido para byteglb.com: No se pudo resolver DNS para byteglb.com
+2026-02-01 18:04:39,515 WARNING Error de red para list-manage.com: Timeout conectando a 205.201.132.96:443 para list-manage.com
+2026-02-01 18:04:39,532 WARNING [459/500] Escaneo fallido para list-manage.com: Timeout conectando a 205.201.132.96:443 para list-manage.com
+2026-02-01 18:04:39,556 INFO [460/500] Progreso
+2026-02-01 18:04:39,633 WARNING No se pudo resolver DNS para my.com
+2026-02-01 18:04:39,637 WARNING [462/500] Escaneo fallido para my.com: No se pudo resolver DNS para my.com
+2026-02-01 18:04:39,834 WARNING No se pudo resolver DNS para 2mdn.net
+2026-02-01 18:04:39,839 WARNING [466/500] Escaneo fallido para 2mdn.net: No se pudo resolver DNS para 2mdn.net
+2026-02-01 18:04:40,371 INFO [470/500] Progreso
+2026-02-01 18:04:41,797 INFO [480/500] Progreso
+2026-02-01 18:04:42,120 INFO [490/500] Progreso
+2026-02-01 18:04:42,144 WARNING Error de red para kwai.net: Timeout conectando a 180.186.38.200:443 para kwai.net
+2026-02-01 18:04:42,149 WARNING [491/500] Escaneo fallido para kwai.net: Timeout conectando a 180.186.38.200:443 para kwai.net
+2026-02-01 18:04:42,374 WARNING Error de red para nflximg.com: Timeout conectando a 207.45.72.215:443 para nflximg.com
+2026-02-01 18:04:42,375 WARNING [493/500] Escaneo fallido para nflximg.com: Timeout conectando a 207.45.72.215:443 para nflximg.com
+2026-02-01 18:04:42,413 WARNING Error de red para nease.net: Conexión rechazada por 59.111.129.134:443
+2026-02-01 18:04:42,416 WARNING [494/500] Escaneo fallido para nease.net: Conexión rechazada por 59.111.129.134:443
+2026-02-01 18:04:42,453 WARNING Error de red para elasticbeanstalk.com: Timeout conectando a 16.15.183.198:443 para elasticbeanstalk.com
+2026-02-01 18:04:42,457 WARNING [496/500] Escaneo fallido para elasticbeanstalk.com: Timeout conectando a 16.15.183.198:443 para elasticbeanstalk.com
+2026-02-01 18:04:43,444 WARNING Error de red para myqcloud.com: Timeout conectando a 0.0.0.1:443 para myqcloud.com
+2026-02-01 18:04:43,447 WARNING [498/500] Escaneo fallido para myqcloud.com: Timeout conectando a 0.0.0.1:443 para myqcloud.com
+2026-02-01 18:04:43,528 WARNING Error de red para tbcache.com: Timeout conectando a 140.205.132.250:443 para tbcache.com
+2026-02-01 18:04:43,532 WARNING [499/500] Escaneo fallido para tbcache.com: Timeout conectando a 140.205.132.250:443 para tbcache.com
+2026-02-01 18:04:43,662 INFO Listo. Escaneo completado: 347 exitosos, 153 fallidos (69.40% éxito)
+2026-02-01 18:04:43,663 INFO Resultados guardados en resultados/resultados_sonda_base.json
