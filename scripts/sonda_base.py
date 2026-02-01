@@ -21,6 +21,7 @@ import os                                                       # Para variables
 import csv                                                      # Para leer archivos CSV
 from concurrent.futures import ThreadPoolExecutor, as_completed # Para concurrencia
 from pathlib import Path                                        # Para rutas
+import argparse                                                 # Para argumentos CLI
 
 
 # ============================================
@@ -356,6 +357,10 @@ def escanear_servidor(hostname):
 
 if __name__ == "__main__":
 
+    parser = argparse.ArgumentParser(description="Sonda TLS: escaneo concurrente de servidores HTTPS")
+    parser.add_argument("--max-workers", type=int, default=50, help="Número de hilos en paralelo")
+    args = parser.parse_args()
+
     # Evita ejecutar con OpenSSL OQS (contenedor) por defecto.
     # Para forzar ejecución en OQS, exporta: ALLOW_OQS=1
     if en_contenedor() and os.getenv("ALLOW_CONTAINER") != "1":
@@ -381,7 +386,7 @@ if __name__ == "__main__":
     lista_resultados = []
 
     # Definimos el número de hilos (trabajadores en paralelo)
-    MAX_WORKERS = 50 
+    MAX_WORKERS = args.max_workers 
 
     print(f"Iniciando escaneo concurrente con {MAX_WORKERS} hilos...")
     
