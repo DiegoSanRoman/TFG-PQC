@@ -22,6 +22,9 @@ import csv                                                      # Para leer arch
 from concurrent.futures import ThreadPoolExecutor, as_completed # Para concurrencia
 from pathlib import Path                                        # Para rutas
 import argparse                                                 # Para argumentos CLI
+import logging                                                  # Para logging
+
+logger = logging.getLogger(__name__)
 
 
 # ============================================
@@ -48,7 +51,7 @@ def leer_hostnames_csv(ruta_csv, longitud_max):
                     if len(hostnames) >= longitud_max:
                         break
     except Exception as e:
-        print(f"Error al leer el archivo CSV: {e}")
+        logger.error("Error al leer el archivo CSV: %s", e)
     return hostnames
 
 
@@ -364,18 +367,31 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Sonda TLS: escaneo concurrente de servidores HTTPS")
     parser.add_argument("--max-workers", type=int, default=50, help="Número de hilos en paralelo")
+    parser.add_argument("--log-level", default="INFO", help="Nivel de log: DEBUG, INFO, WARNING, ERROR")
+    parser.add_argument("--log-file", default="resultados/sonda_base.log", help="Ruta del archivo de log")
     args = parser.parse_args()
+
+    log_path = Path(args.log_file)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    logging.basicConfig(
+        level=getattr(logging, args.log_level.upper(), logging.INFO),
+        format="%(asctime)s %(levelname)s %(message)s",
+        handlers=[
+            logging.FileHandler(log_path, encoding="utf-8"),
+            logging.StreamHandler()
+        ]
+    )
 
     # Evita ejecutar con OpenSSL OQS (contenedor) por defecto.
     # Para forzar ejecución en OQS, exporta: ALLOW_OQS=1
     if en_contenedor() and os.getenv("ALLOW_CONTAINER") != "1":
-        print("[!] Contenedor detectado. Ejecuta esta sonda fuera de Docker para usar el OpenSSL del sistema.")
-        print("    Si quieres forzar en contenedor, usa: ALLOW_CONTAINER=1")
+        logger.error("Contenedor detectado. Ejecuta esta sonda fuera de Docker para usar el OpenSSL del sistema.")
+        logger.error("Si quieres forzar en contenedor, usa: ALLOW_CONTAINER=1")
         raise SystemExit(1)
 
     if "oqs" in ssl.OPENSSL_VERSION.lower() and os.getenv("ALLOW_OQS") != "1":
-        print("[!] OpenSSL OQS detectado. Ejecuta esta sonda fuera del contenedor para usar el OpenSSL del sistema.")
-        print("    Si quieres forzar en OQS, usa: ALLOW_OQS=1")
+        logger.error("OpenSSL OQS detectado. Ejecuta esta sonda fuera del contenedor para usar el OpenSSL del sistema.")
+        logger.error("Si quieres forzar en OQS, usa: ALLOW_OQS=1")
         raise SystemExit(1)
     
     # Leer hostnames desde el archivo CSV
@@ -383,17 +399,17 @@ if __name__ == "__main__":
     hostnames = leer_hostnames_csv(ruta_csv, 100)
     
     if not hostnames:
-        print(f"[!] No se encontraron hostnames en {ruta_csv}")
+        logger.error("No se encontraron hostnames en %s", ruta_csv)
         raise SystemExit(1)
     
-    print(f"Se han cargado {len(hostnames)} hostnames desde {ruta_csv}")
+    logger.info("Se han cargado %s hostnames desde %s", len(hostnames), ruta_csv)
     
     lista_resultados = []
 
     # Definimos el número de hilos (trabajadores en paralelo)
     MAX_WORKERS = args.max_workers 
 
-    print(f"Iniciando escaneo concurrente con {MAX_WORKERS} hilos...")
+    logger.info("Iniciando escaneo concurrente con %s hilos...", MAX_WORKERS)
     
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         # Lanzamos todas las tareas
@@ -406,9 +422,9 @@ if __name__ == "__main__":
                 datos_host = futuro.result()
                 lista_resultados.append(datos_host)
                 if i % 10 == 0: # Feedback visual cada 10 hosts
-                    print(f"[{i}/{len(hostnames)}] Finalizado: {host}")
+                    logger.info("[%s/%s] Finalizado: %s", i, len(hostnames), host)
             except Exception as e:
-                print(f"Error procesando {host}: {e}")
+                logger.error("Error procesando %s: %s", host, e)
 
     # Guardar resultados
     resultados_dir = Path("resultados")
@@ -417,4 +433,4 @@ if __name__ == "__main__":
     with resultados_path.open("w", encoding="utf-8") as f:
         json.dump(lista_resultados, f, indent=4, ensure_ascii=False)
 
-    print(f"\n[!] Listo. Se han guardado los datos de {len(hostnames)} servidores en {resultados_path}.")
+    logger.info("Listo. Se han guardado los datos de %s servidores en %s.", len(hostnames), resultados_path)

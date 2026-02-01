@@ -1,0 +1,13 @@
+2026-02-01 13:26:50,565 INFO Se han cargado 100 hostnames desde data/tranco.csv
+2026-02-01 13:26:50,566 INFO Iniciando escaneo concurrente con 30 hilos...
+2026-02-01 13:26:50,753 INFO [0/100] Finalizado: akamaiedge.net
+2026-02-01 13:26:54,533 INFO [10/100] Finalizado: wikipedia.org
+2026-02-01 13:26:54,567 INFO [20/100] Finalizado: cloudflare.com
+2026-02-01 13:26:54,644 INFO [30/100] Finalizado: youtube.com
+2026-02-01 13:26:54,818 INFO [40/100] Finalizado: workers.dev
+2026-02-01 13:26:56,930 INFO [50/100] Finalizado: spotify.com
+2026-02-01 13:26:58,323 INFO [60/100] Finalizado: tiktokv.com
+2026-02-01 13:26:58,808 INFO [70/100] Finalizado: wa.me
+2026-02-01 13:26:59,960 INFO [80/100] Finalizado: yandex.net
+2026-02-01 13:27:00,580 INFO [90/100] Finalizado: ui.com
+2026-02-01 13:27:03,306 INFO Listo. Se han guardado los datos de 100 servidores en resultados/resultados_sonda_base.json.
