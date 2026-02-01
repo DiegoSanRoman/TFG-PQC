@@ -26,6 +26,7 @@ import argparse                                                     # Para argum
 import logging                                                      # Para logging
 from dataclasses import dataclass, asdict                           # Para dataclasses
 from typing import Optional, List, Dict, Any                        # Para type hints
+from tqdm import tqdm                                               # Para barras de progreso
 
 logger = logging.getLogger(__name__)
 
@@ -233,9 +234,9 @@ def resolver_dns(hostname):
     '''
 
     try:
-        inicio = time.time()
+        inicio = time.perf_counter()
         respuesta = dns.resolver.resolve(hostname, 'A')
-        latencia = (time.time() - inicio) * 1000  # Convertir a ms
+        latencia = (time.perf_counter() - inicio) * 1000  # Convertir a ms
         ip = str(respuesta[0]) if respuesta else None
         if not ip:
             return None, None
@@ -378,7 +379,7 @@ def conectar_y_extraer(hostname: str, ip: str, ctx, latencia_dns: Optional[float
     :return: DatosExito con la información procesada
     '''
     # --- MEDICIÓN DE TIEMPO ---
-    tiempo_inicio = time.time()
+    tiempo_inicio = time.perf_counter()
 
     try:
         # --- ESTABLECIMIENTO DE LA CONEXIÓN ---
@@ -388,7 +389,7 @@ def conectar_y_extraer(hostname: str, ip: str, ctx, latencia_dns: Optional[float
                 cert_der = ssock.getpeercert(binary_form=True)
 
                 # Registramos el momento final después de completar la conexión y obtener el certificado
-                tiempo_fin = time.time()
+                tiempo_fin = time.perf_counter()
                 tiempo_conexion = tiempo_fin - tiempo_inicio
 
                 # --- ANÁLISIS DEL CERTIFICADO USANDO CertificateAnalyzer ---
@@ -504,7 +505,7 @@ if __name__ == "__main__":
     parser.add_argument("--input-csv", default="data/tranco.csv", help="Ruta del archivo CSV de entrada con hostnames")
     parser.add_argument("--max-hostnames", type=int, default=100, help="Número máximo de hostnames a escanear")
     parser.add_argument("--max-workers", type=int, default=50, help="Número de hilos en paralelo")
-    parser.add_argument("--log-level", default="INFO", help="Nivel de log: DEBUG, INFO, WARNING, ERROR")
+    parser.add_argument("--log-level", default="INFO", help="Nivel de log: DEBUG, INFO, WARNING, ERROR (solo archivo)")
     parser.add_argument("--log-file", default="resultados/sonda_base.log", help="Ruta del archivo de log")
     args = parser.parse_args()
 
@@ -514,8 +515,7 @@ if __name__ == "__main__":
         level=getattr(logging, args.log_level.upper(), logging.INFO),
         format="%(asctime)s %(levelname)s %(message)s",
         handlers=[
-            logging.FileHandler(log_path, encoding="utf-8"),
-            logging.StreamHandler()
+            logging.FileHandler(log_path, encoding="utf-8")
         ]
     )
 
@@ -552,20 +552,21 @@ if __name__ == "__main__":
         # Lanzamos todas las tareas
         futuros = {executor.submit(escanear_servidor, host): host for host in hostnames}
         
-        # Conforme vayan terminando, recogemos los resultados
-        for i, futuro in enumerate(as_completed(futuros)):
-            host = futuros[futuro]
-            try:
-                datos_host = futuro.result()
-                lista_resultados.append(datos_host)
-                if datos_host.get("estado") == "exito":
-                    logger.debug("[%s/%s] Escaneo exitoso: %s", i, len(hostnames), host)
-                else:
-                    logger.warning("[%s/%s] Escaneo fallido para %s: %s", i, len(hostnames), host, datos_host.get("error"))
-                if i % 10 == 0: # Feedback visual cada 10 hosts
-                    logger.info("[%s/%s] Progreso", i, len(hostnames))
-            except Exception as e:
-                logger.error("Error inesperado procesando %s: %s", host, e)
+        # Conforme vayan terminando, recogemos los resultados con barra de progreso
+        with tqdm(total=len(hostnames), desc="Escaneo TLS", unit="host") as pbar:
+            for futuro in as_completed(futuros):
+                host = futuros[futuro]
+                try:
+                    datos_host = futuro.result()
+                    lista_resultados.append(datos_host)
+                    if datos_host.get("estado") == "exito":
+                        logger.debug("Escaneo exitoso: %s", host)
+                    else:
+                        logger.warning("Escaneo fallido para %s: %s", host, datos_host.get("error"))
+                except Exception as e:
+                    logger.error("Error inesperado procesando %s: %s", host, e)
+                finally:
+                    pbar.update(1)  # Actualizar barra de progreso
 
     # Calcular estadísticas
     exitosos = sum(1 for r in lista_resultados if r.get("estado") == "exito")
