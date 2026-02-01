@@ -52,20 +52,23 @@ def leer_hostnames_csv(ruta_csv, longitud_max):
     return hostnames
 
 
-def obtener_latencia_dns(hostname):
+def resolver_dns(hostname):
     '''
-    Mide el tiempo de resolución DNS en milisegundos
+    Resuelve el DNS y mide la latencia en milisegundos
     :param hostname: El nombre del host o dominio a resolver
-    :return: Latencia en ms o None si falla
+    :return: Tupla (ip, latencia_ms) o (None, None) si falla
     '''
 
     try:
         inicio = time.time()
-        dns.resolver.resolve(hostname, 'A')
+        respuesta = dns.resolver.resolve(hostname, 'A')
         latencia = (time.time() - inicio) * 1000  # Convertir a ms
-        return round(latencia, 2)
+        ip = str(respuesta[0]) if respuesta else None
+        if not ip:
+            return None, None
+        return ip, round(latencia, 2)
     except Exception:
-        return None
+        return None, None
 
 
 def extraer_san(cert):
@@ -195,12 +198,12 @@ def crear_contexto_ssl(modo_compatible=False):
     return ctx
 
 
-def conectar_y_extraer(hostname, ctx, resultado, latencia_dns):
+def conectar_y_extraer(hostname, ip, ctx, resultado, latencia_dns):
     # --- MEDICIÓN DE TIEMPO ---
     tiempo_inicio = time.time()
 
     # --- ESTABLECIMIENTO DE LA CONEXIÓN ---
-    with socket.create_connection((hostname, 443), timeout=5) as sock:
+    with socket.create_connection((ip, 443), timeout=5) as sock:
         with ctx.wrap_socket(sock, server_hostname=hostname) as ssock:
             # Extraemos una tupla con (nombre_cifrado, version_protocolo, bits_usados)
             detalles = ssock.cipher()
@@ -328,18 +331,20 @@ def escanear_servidor(hostname):
     }
     
     try:
-        # --- MEDICIÓN DE LATENCIA DNS ---
-        latencia_dns = obtener_latencia_dns(hostname)
+        # --- RESOLUCIÓN DNS Y LATENCIA ---
+        ip, latencia_dns = resolver_dns(hostname)
+        if not ip:
+            raise RuntimeError("No se pudo resolver DNS")
 
         try:
             contexto = crear_contexto_ssl(modo_compatible=False)
-            conectar_y_extraer(hostname, contexto, resultado, latencia_dns)
+            conectar_y_extraer(hostname, ip, contexto, resultado, latencia_dns)
         except ssl.SSLError as e:
             # Solo reintentamos en modo compatible si el OpenSSL es OQS
             if "oqs" in ssl.OPENSSL_VERSION.lower():
                 resultado["entorno"]["fallback_tls12"] = True
                 contexto = crear_contexto_ssl(modo_compatible=True)
-                conectar_y_extraer(hostname, contexto, resultado, latencia_dns)
+                conectar_y_extraer(hostname, ip, contexto, resultado, latencia_dns)
             else:
                 raise e
 
