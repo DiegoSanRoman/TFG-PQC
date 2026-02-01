@@ -30,6 +30,15 @@ from tqdm import tqdm                                               # Para barra
 
 logger = logging.getLogger(__name__)
 
+# ============================================
+# CONSTANTES DE RUTAS
+# ============================================
+BASE_DIR = Path(__file__).parent.parent  # Directorio raíz del proyecto
+DATA_DIR = BASE_DIR / "data"
+RESULTADOS_DIR = BASE_DIR / "resultados"
+CSV_DEFECTO = DATA_DIR / "tranco.csv"
+LOG_DEFECTO = RESULTADOS_DIR / "sonda_base.log"
+
 
 # ============================================
 # DATACLASSES PARA ESTRUCTURA DE RESULTADOS
@@ -202,17 +211,16 @@ class CertificateAnalyzer:
 # FUNCIONES AUXILIARES
 # ============================================
 
-def leer_hostnames_csv(ruta_csv, longitud_max):
+def leer_hostnames_csv(ruta_csv: Path, longitud_max: int) -> List[str]:
     '''
     Lee los hostnames desde un archivo CSV (columna B)
-    :param ruta_csv: Ruta al archivo CSV
+    :param ruta_csv: Ruta al archivo CSV (Path object)
     :param longitud_max: Número máximo de hostnames a leer
     :return: Lista de hostnames
     '''
     hostnames = []
     try:
-        ruta = Path(ruta_csv)
-        with ruta.open('r', encoding='utf-8') as archivo:
+        with ruta_csv.open('r', encoding='utf-8') as archivo:
             lector = csv.reader(archivo)
             for fila in lector:
                 # La columna B es el índice 1 (columna A es índice 0)
@@ -222,7 +230,7 @@ def leer_hostnames_csv(ruta_csv, longitud_max):
                     if len(hostnames) >= longitud_max:
                         break
     except Exception as e:
-        logger.error("Error al leer el archivo CSV: %s", e)
+        logger.error("Error al leer el archivo CSV %s: %s", ruta_csv, e)
     return hostnames
 
 
@@ -502,14 +510,14 @@ def escanear_servidor(hostname: str) -> Dict[str, Any]:
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Sonda TLS: escaneo concurrente de servidores HTTPS")
-    parser.add_argument("--input-csv", default="data/tranco.csv", help="Ruta del archivo CSV de entrada con hostnames")
+    parser.add_argument("--input-csv", type=Path, default=CSV_DEFECTO, help="Ruta del archivo CSV de entrada con hostnames")
     parser.add_argument("--max-hostnames", type=int, default=100, help="Número máximo de hostnames a escanear")
     parser.add_argument("--max-workers", type=int, default=50, help="Número de hilos en paralelo")
-    parser.add_argument("--log-level", default="INFO", help="Nivel de log: DEBUG, INFO, WARNING, ERROR (solo archivo)")
-    parser.add_argument("--log-file", default="resultados/sonda_base.log", help="Ruta del archivo de log")
+    parser.add_argument("--log-level", default="WARNING", help="Nivel de log: DEBUG, INFO, WARNING, ERROR (solo archivo)")
+    parser.add_argument("--log-file", type=Path, default=LOG_DEFECTO, help="Ruta del archivo de log")
     args = parser.parse_args()
 
-    log_path = Path(args.log_file)
+    log_path = args.log_file
     log_path.parent.mkdir(parents=True, exist_ok=True)
     logging.basicConfig(
         level=getattr(logging, args.log_level.upper(), logging.INFO),
@@ -532,7 +540,7 @@ if __name__ == "__main__":
         raise SystemExit(1)
     
     # Leer hostnames desde el archivo CSV
-    ruta_csv = Path(args.input_csv)
+    ruta_csv = args.input_csv
     hostnames = leer_hostnames_csv(ruta_csv, args.max_hostnames)
     
     if not hostnames:
@@ -585,9 +593,8 @@ if __name__ == "__main__":
     }
 
     # Guardar resultados
-    resultados_dir = Path("resultados")
-    resultados_dir.mkdir(parents=True, exist_ok=True)
-    resultados_path = resultados_dir / "resultados_sonda_base.json"
+    RESULTADOS_DIR.mkdir(parents=True, exist_ok=True)
+    resultados_path = RESULTADOS_DIR / "resultados_sonda_base.json"
     
     datos_finales = {
         "resumen": resumen["estadisticas"],
