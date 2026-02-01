@@ -20,6 +20,7 @@ from datetime import timedelta                                  # Para cálculos
 import os                                                       # Para variables de entorno
 import csv                                                      # Para leer archivos CSV
 from concurrent.futures import ThreadPoolExecutor, as_completed # Para concurrencia
+from pathlib import Path                                        # Para rutas
 
 
 # ============================================
@@ -35,7 +36,8 @@ def leer_hostnames_csv(ruta_csv, longitud_max):
     '''
     hostnames = []
     try:
-        with open(ruta_csv, 'r', encoding='utf-8') as archivo:
+        ruta = Path(ruta_csv)
+        with ruta.open('r', encoding='utf-8') as archivo:
             lector = csv.reader(archivo)
             for fila in lector:
                 # La columna B es el índice 1 (columna A es índice 0)
@@ -161,7 +163,7 @@ def tiene_pfs(cipher_name):
 
 def en_contenedor():
     try:
-        if os.path.exists("/.dockerenv"):
+        if Path("/.dockerenv").exists():
             return True
         with open("/proc/1/cgroup", "r", encoding="utf-8") as f:
             contenido = f.read()
@@ -367,7 +369,7 @@ if __name__ == "__main__":
         raise SystemExit(1)
     
     # Leer hostnames desde el archivo CSV
-    ruta_csv = "data/tranco.csv"
+    ruta_csv = Path("data/tranco.csv")
     hostnames = leer_hostnames_csv(ruta_csv, 100)
     
     if not hostnames:
@@ -399,7 +401,10 @@ if __name__ == "__main__":
                 print(f"Error procesando {host}: {e}")
 
     # Guardar resultados
-    with open("resultados/resultados_sonda_base.json", "w", encoding="utf-8") as f:
+    resultados_dir = Path("resultados")
+    resultados_dir.mkdir(parents=True, exist_ok=True)
+    resultados_path = resultados_dir / "resultados_sonda_base.json"
+    with resultados_path.open("w", encoding="utf-8") as f:
         json.dump(lista_resultados, f, indent=4, ensure_ascii=False)
 
-    print(f"\n[!] Listo. Se han guardado los datos de {len(hostnames)} servidores en resultados/resultados_sonda_base.json.")
+    print(f"\n[!] Listo. Se han guardado los datos de {len(hostnames)} servidores en {resultados_path}.")
