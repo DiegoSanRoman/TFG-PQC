@@ -7,22 +7,23 @@ con certificados autofirmados o caducados (lo hice asi porque el certificado de 
 """
 
 # Importaciones necesarias
-import socket                                                   # Para conexiones TCP
-import ssl                                                      # Para capa SSL/TLS 
-import json                                                     # Para guardar resultados en JSON
-import time                                                     # Para medir tiempo de conexión
-import hashlib                                                  # Para calcular hashes de certificados
-import dns.resolver                                             # Para medir latencia DNS
-from cryptography import x509                                   # Para manejar certificados X.509
-from cryptography.hazmat.primitives import serialization        # Para manejar claves públicas
-from datetime import datetime, timezone                         # Para timestamps y zona horaria
-from datetime import timedelta                                  # Para cálculos de tiempo
-import os                                                       # Para variables de entorno
-import csv                                                      # Para leer archivos CSV
-from concurrent.futures import ThreadPoolExecutor, as_completed # Para concurrencia
-from pathlib import Path                                        # Para rutas
-import argparse                                                 # Para argumentos CLI
-import logging                                                  # Para logging
+import socket                                                       # Para conexiones TCP
+import ssl                                                          # Para capa SSL/TLS 
+import json                                                         # Para guardar resultados en JSON
+import time                                                         # Para medir tiempo de conexión
+import hashlib                                                      # Para calcular hashes de certificados
+import dns.resolver                                                 # Para medir latencia DNS
+from cryptography import x509                                       # Para manejar certificados X.509
+from cryptography.hazmat.primitives import serialization            # Para manejar claves públicas
+from cryptography.hazmat.primitives.asymmetric import rsa, ec, dsa  # Para tipos de claves simétricas
+from datetime import datetime, timezone                             # Para timestamps y zona horaria
+from datetime import timedelta                                      # Para cálculos de tiempo
+import os                                                           # Para variables de entorno
+import csv                                                          # Para leer archivos CSV
+from concurrent.futures import ThreadPoolExecutor, as_completed     # Para concurrencia
+from pathlib import Path                                            # Para rutas
+import argparse                                                     # Para argumentos CLI
+import logging                                                      # Para logging
 
 logger = logging.getLogger(__name__)
 
@@ -104,9 +105,6 @@ def obtener_informacion_clave(cert):
         "algoritmo": None,
         "tamaño_bits": None
     }
-    
-    # Determinar tipo de clave
-    from cryptography.hazmat.primitives.asymmetric import rsa, ec, dsa
     
     if isinstance(public_key, rsa.RSAPublicKey):
         info["algoritmo"] = "RSA"
@@ -460,11 +458,35 @@ if __name__ == "__main__":
             except Exception as e:
                 logger.error("Error inesperado procesando %s: %s", host, e)
 
+    # Calcular estadísticas
+    exitosos = sum(1 for r in lista_resultados if r.get("estado") == "exito")
+    fallidos = len(lista_resultados) - exitosos
+    tiempo_total = time.time()
+    
+    # Generar resumen
+    resumen = {
+        "estadisticas": {
+            "timestamp_finalizacion": datetime.now(timezone.utc).isoformat(),
+            "total_hostnames": len(hostnames),
+            "escaneos_exitosos": exitosos,
+            "escaneos_fallidos": fallidos,
+            "tasa_exito_percent": round((exitosos / len(hostnames) * 100) if hostnames else 0, 2)
+        }
+    }
+
     # Guardar resultados
     resultados_dir = Path("resultados")
     resultados_dir.mkdir(parents=True, exist_ok=True)
     resultados_path = resultados_dir / "resultados_sonda_base.json"
+    
+    datos_finales = {
+        "resumen": resumen["estadisticas"],
+        "datos": lista_resultados
+    }
+    
     with resultados_path.open("w", encoding="utf-8") as f:
-        json.dump(lista_resultados, f, indent=4, ensure_ascii=False)
+        json.dump(datos_finales, f, indent=4, ensure_ascii=False)
 
-    logger.info("Listo. Se han guardado los datos de %s servidores en %s.", len(hostnames), resultados_path)
+    logger.info("Listo. Escaneo completado: %s exitosos, %s fallidos (%.2f%% éxito)", 
+                exitosos, fallidos, resumen["estadisticas"]["tasa_exito_percent"])
+    logger.info("Resultados guardados en %s", resultados_path)
