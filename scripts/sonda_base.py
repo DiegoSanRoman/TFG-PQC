@@ -394,6 +394,7 @@ def escanear_servidor(hostname):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Sonda TLS: escaneo concurrente de servidores HTTPS")
+    parser.add_argument("--input-csv", default="data/tranco.csv", help="Ruta del archivo CSV de entrada con hostnames")
     parser.add_argument("--max-workers", type=int, default=50, help="Número de hilos en paralelo")
     parser.add_argument("--log-level", default="INFO", help="Nivel de log: DEBUG, INFO, WARNING, ERROR")
     parser.add_argument("--log-file", default="resultados/sonda_base.log", help="Ruta del archivo de log")
@@ -423,7 +424,7 @@ if __name__ == "__main__":
         raise SystemExit(1)
     
     # Leer hostnames desde el archivo CSV
-    ruta_csv = Path("data/tranco.csv")
+    ruta_csv = Path(args.input_csv)
     hostnames = leer_hostnames_csv(ruta_csv, 100)
     
     if not hostnames:
