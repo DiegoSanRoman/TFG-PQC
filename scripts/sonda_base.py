@@ -205,108 +205,119 @@ def conectar_y_extraer(hostname, ip, ctx, resultado, latencia_dns):
     # --- MEDICIÓN DE TIEMPO ---
     tiempo_inicio = time.time()
 
-    # --- ESTABLECIMIENTO DE LA CONEXIÓN ---
-    with socket.create_connection((ip, 443), timeout=5) as sock:
-        with ctx.wrap_socket(sock, server_hostname=hostname) as ssock:
-            # Extraemos una tupla con (nombre_cifrado, version_protocolo, bits_usados)
-            detalles = ssock.cipher()
+    try:
+        # --- ESTABLECIMIENTO DE LA CONEXIÓN ---
+        with socket.create_connection((ip, 443), timeout=5) as sock:
+            with ctx.wrap_socket(sock, server_hostname=hostname) as ssock:
+                # Extraemos una tupla con (nombre_cifrado, version_protocolo, bits_usados)
+                detalles = ssock.cipher()
 
-            # Obtenemos el certificado del servidor en formato binario (DER)
-            cert_der = ssock.getpeercert(binary_form=True)
+                # Obtenemos el certificado del servidor en formato binario (DER)
+                cert_der = ssock.getpeercert(binary_form=True)
 
-            # Usamos la librería cryptography para convertir esos bytes "en bruto" en un objeto manejable
-            cert = x509.load_der_x509_certificate(cert_der)
+                # Usamos la librería cryptography para convertir esos bytes "en bruto" en un objeto manejable
+                cert = x509.load_der_x509_certificate(cert_der)
 
-            # Registramos el momento final después de completar la conexión y obtener el certificado
-            tiempo_fin = time.time()
-            tiempo_conexion = tiempo_fin - tiempo_inicio
+                # Registramos el momento final después de completar la conexión y obtener el certificado
+                tiempo_fin = time.time()
+                tiempo_conexion = tiempo_fin - tiempo_inicio
 
-            # --- EXTRACCIÓN Y ORGANIZACIÓN DE DATOS ---
+                # --- EXTRACCIÓN Y ORGANIZACIÓN DE DATOS ---
 
-            # Información de la clave pública
-            info_clave = obtener_informacion_clave(cert)
+                # Información de la clave pública
+                info_clave = obtener_informacion_clave(cert)
 
-            # Nombres alternativos (SAN)
-            san_list = extraer_san(cert)
+                # Nombres alternativos (SAN)
+                san_list = extraer_san(cert)
 
-            # Fechas de validez
-            valido_desde = cert.not_valid_before_utc
-            valido_hasta = cert.not_valid_after_utc
-            ahora = datetime.now(timezone.utc)
+                # Fechas de validez
+                valido_desde = cert.not_valid_before_utc
+                valido_hasta = cert.not_valid_after_utc
+                ahora = datetime.now(timezone.utc)
 
-            # Cálculo de días válido
-            if ahora < valido_desde:
-                dias_valido = (valido_hasta - valido_desde).days
-                estado_validez = "no_valido_aun"
-            elif ahora > valido_hasta:
-                dias_valido = 0
-                estado_validez = "caducado"
-            else:
-                dias_valido = (valido_hasta - ahora).days
-                estado_validez = "valido"
+                # Cálculo de días válido
+                if ahora < valido_desde:
+                    dias_valido = (valido_hasta - valido_desde).days
+                    estado_validez = "no_valido_aun"
+                elif ahora > valido_hasta:
+                    dias_valido = 0
+                    estado_validez = "caducado"
+                else:
+                    dias_valido = (valido_hasta - ahora).days
+                    estado_validez = "valido"
 
-            # Hash del certificado
-            hash_sha256 = hashlib.sha256(cert_der).hexdigest()
-            hash_sha1 = hashlib.sha1(cert_der).hexdigest()
+                # Hash del certificado
+                hash_sha256 = hashlib.sha256(cert_der).hexdigest()
+                hash_sha1 = hashlib.sha1(cert_der).hexdigest()
 
-            # Suite de cifrado analizada
-            cipher_name = detalles[0]
-            tiene_pfs_socket = tiene_pfs(cipher_name)
-            es_debil = es_cipher_debil(cipher_name)
+                # Suite de cifrado analizada
+                cipher_name = detalles[0]
+                tiene_pfs_socket = tiene_pfs(cipher_name)
+                es_debil = es_cipher_debil(cipher_name)
 
-            # Información de seguridad
-            tamaño_clave = info_clave.get("tamaño_bits")
-            clave_debil = tamaño_clave is not None and tamaño_clave < 2048 if info_clave.get("algoritmo") == "RSA" else False
+                # Información de seguridad
+                tamaño_clave = info_clave.get("tamaño_bits")
+                clave_debil = tamaño_clave is not None and tamaño_clave < 2048 if info_clave.get("algoritmo") == "RSA" else False
 
-            resultado["estado"] = "exito"
-            resultado["datos"] = {
-                "conexion": {
-                    "tiempo_conexion_segundos": round(tiempo_conexion, 3),
-                    "latencia_dns_ms": latencia_dns
-                },
-                "protocolo": {
-                    "version": ssock.version(),         
-                    "suite_cifrado": cipher_name,       
-                    "bits_clave": detalles[2],          
-                    "perfect_forward_secrecy": tiene_pfs_socket,
-                    "suite_debil": es_debil
-                },
-                "certificado": {
-                    # Información básica
-                    "sujeto": cert.subject.rfc4514_string(),
-                    "emisor": cert.issuer.rfc4514_string(),
-                    "numero_serie": cert.serial_number,
-                    "algoritmo_firma": cert.signature_algorithm_oid._name,
-
-                    # Fechas de validez
-                    "valido_desde": valido_desde.isoformat(),
-                    "valido_hasta": valido_hasta.isoformat(),
-                    "dias_valido": dias_valido,
-                    "estado_validez": estado_validez,
-
-                    # Nombres alternativos
-                    "subject_alternative_names": san_list,
-
-                    # Información de clave pública
-                    "clave_publica": {
-                        "algoritmo": info_clave.get("algoritmo"),
-                        "tamaño_bits": tamaño_clave,
-                        "clave_debil": clave_debil
+                resultado["estado"] = "exito"
+                resultado["datos"] = {
+                    "conexion": {
+                        "tiempo_conexion_segundos": round(tiempo_conexion, 3),
+                        "latencia_dns_ms": latencia_dns
                     },
-
-                    # Hashes
-                    "hash": {
-                        "sha256": hash_sha256,
-                        "sha1": hash_sha1
+                    "protocolo": {
+                        "version": ssock.version(),         
+                        "suite_cifrado": cipher_name,       
+                        "bits_clave": detalles[2],          
+                        "perfect_forward_secrecy": tiene_pfs_socket,
+                        "suite_debil": es_debil
                     },
+                    "certificado": {
+                        # Información básica
+                        "sujeto": cert.subject.rfc4514_string(),
+                        "emisor": cert.issuer.rfc4514_string(),
+                        "numero_serie": cert.serial_number,
+                        "algoritmo_firma": cert.signature_algorithm_oid._name,
 
-                    # Cadena de certificados
-                    "cadena_certificados": obtener_cadena_certificados(ssock, hostname),
+                        # Fechas de validez
+                        "valido_desde": valido_desde.isoformat(),
+                        "valido_hasta": valido_hasta.isoformat(),
+                        "dias_valido": dias_valido,
+                        "estado_validez": estado_validez,
 
-                    # Información adicional
-                    "es_autofirmado": cert.issuer == cert.subject
+                        # Nombres alternativos
+                        "subject_alternative_names": san_list,
+
+                        # Información de clave pública
+                        "clave_publica": {
+                            "algoritmo": info_clave.get("algoritmo"),
+                            "tamaño_bits": tamaño_clave,
+                            "clave_debil": clave_debil
+                        },
+
+                        # Hashes
+                        "hash": {
+                            "sha256": hash_sha256,
+                            "sha1": hash_sha1
+                        },
+
+                        # Cadena de certificados
+                        "cadena_certificados": obtener_cadena_certificados(ssock, hostname),
+
+                        # Información adicional
+                        "es_autofirmado": cert.issuer == cert.subject
+                    }
                 }
-            }
+    except socket.timeout:
+        raise RuntimeError(f"Timeout conectando a {ip}:443 para {hostname}")
+    except ConnectionRefusedError:
+        raise RuntimeError(f"Conexión rechazada por {ip}:443")
+    except (socket.error, OSError) as e:
+        raise RuntimeError(f"Error de conexión de red a {ip}:443 - {type(e).__name__}: {e}")
+    except ssl.SSLError as e:
+        raise  # Re-raise SSL errors para que sean manejados arriba
+    except Exception as e:
+        raise RuntimeError(f"Error inesperado en conexión: {type(e).__name__}: {e}")
 
 
 # ============================================
@@ -337,23 +348,42 @@ def escanear_servidor(hostname):
         # --- RESOLUCIÓN DNS Y LATENCIA ---
         ip, latencia_dns = resolver_dns(hostname)
         if not ip:
-            raise RuntimeError("No se pudo resolver DNS")
+            logger.warning("No se pudo resolver DNS para %s", hostname)
+            raise RuntimeError(f"No se pudo resolver DNS para {hostname}")
+        
+        logger.debug("DNS resuelto para %s -> %s (latencia: %.2f ms)", hostname, ip, latencia_dns)
 
         try:
             contexto = crear_contexto_ssl(modo_compatible=False)
             conectar_y_extraer(hostname, ip, contexto, resultado, latencia_dns)
+        except RuntimeError as e:
+            # Errores de red (timeout, conexión rechazada, etc.)
+            logger.warning("Error de red para %s: %s", hostname, e)
+            raise
         except ssl.SSLError as e:
+            # Errores de TLS/SSL
+            logger.debug("Error SSL inicial para %s: %s", hostname, e)
             # Solo reintentamos en modo compatible si el OpenSSL es OQS
             if "oqs" in ssl.OPENSSL_VERSION.lower():
+                logger.debug("Reintentando con fallback TLS 1.2 para %s", hostname)
                 resultado["entorno"]["fallback_tls12"] = True
                 contexto = crear_contexto_ssl(modo_compatible=True)
-                conectar_y_extraer(hostname, ip, contexto, resultado, latencia_dns)
+                try:
+                    conectar_y_extraer(hostname, ip, contexto, resultado, latencia_dns)
+                except RuntimeError as e:
+                    logger.warning("Error de red en fallback para %s: %s", hostname, e)
+                    raise
+                except ssl.SSLError as e:
+                    logger.error("Error SSL persistente en fallback para %s: %s", hostname, e)
+                    raise
             else:
-                raise e
+                logger.error("Error SSL para %s (OpenSSL no es OQS): %s", hostname, e)
+                raise
 
     except Exception as e:
         # Si algo falla, guardamos el mensaje de error
         resultado["error"] = str(e)
+        logger.debug("Escaneo fallido para %s: %s", hostname, resultado["error"])
     
     # Devolvemos el resultado completo
     return resultado
@@ -421,10 +451,14 @@ if __name__ == "__main__":
             try:
                 datos_host = futuro.result()
                 lista_resultados.append(datos_host)
+                if datos_host.get("estado") == "exito":
+                    logger.debug("[%s/%s] Escaneo exitoso: %s", i, len(hostnames), host)
+                else:
+                    logger.warning("[%s/%s] Escaneo fallido para %s: %s", i, len(hostnames), host, datos_host.get("error"))
                 if i % 10 == 0: # Feedback visual cada 10 hosts
-                    logger.info("[%s/%s] Finalizado: %s", i, len(hostnames), host)
+                    logger.info("[%s/%s] Progreso", i, len(hostnames))
             except Exception as e:
-                logger.error("Error procesando %s: %s", host, e)
+                logger.error("Error inesperado procesando %s: %s", host, e)
 
     # Guardar resultados
     resultados_dir = Path("resultados")
