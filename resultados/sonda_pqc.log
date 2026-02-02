@@ -1,0 +1,52 @@
+2026-02-02 11:47:44,401 INFO Iniciando sonda PQC con OpenSSL personalizado
+2026-02-02 11:47:44,401 INFO Binario OpenSSL: /opt/openssl/bin/openssl
+2026-02-02 11:47:44,402 INFO Se han cargado 100 hostnames desde /home/tfg/data/tranco.csv
+2026-02-02 11:47:44,403 INFO Grupos PQC a probar: Automático, prime256v1, x25519_mlkem768, p256_kyber768, kyber768, frodo640aes, sikep434
+2026-02-02 11:47:44,403 INFO Iniciando escaneo concurrente con 20 hilos...
+2026-02-02 11:47:46,292 WARNING Escaneo sin éxitos para akadns.net (0/7 pruebas exitosas)
+2026-02-02 11:47:46,297 WARNING Escaneo sin éxitos para amazonaws.com (0/7 pruebas exitosas)
+2026-02-02 11:47:48,475 WARNING Escaneo sin éxitos para microsoftonline.com (0/7 pruebas exitosas)
+2026-02-02 11:47:49,026 WARNING Escaneo sin éxitos para akamaiedge.net (0/7 pruebas exitosas)
+2026-02-02 11:47:49,251 WARNING Escaneo sin éxitos para windowsupdate.com (0/7 pruebas exitosas)
+2026-02-02 11:47:51,422 WARNING Escaneo sin éxitos para domaincontrol.com (0/7 pruebas exitosas)
+2026-02-02 11:47:52,020 WARNING Escaneo sin éxitos para e2ro.com (0/7 pruebas exitosas)
+2026-02-02 11:47:57,184 WARNING Escaneo sin éxitos para akamai.net (0/7 pruebas exitosas)
+2026-02-02 11:47:57,186 WARNING Escaneo sin éxitos para gtld-servers.net (0/7 pruebas exitosas)
+2026-02-02 11:47:58,012 WARNING Escaneo sin éxitos para aaplimg.com (0/7 pruebas exitosas)
+2026-02-02 11:48:02,340 WARNING Escaneo sin éxitos para cloudfront.net (0/7 pruebas exitosas)
+2026-02-02 11:48:03,704 WARNING Error en appsflyersdk.com con grupo Automático: Command '['/opt/openssl/bin/openssl', 's_client', '-connect', 'appsflyersdk.com:443', '-servername', 'appsflyersdk.com', '-tls1_3', '-ign_eof']' timed out after 8 seconds
+2026-02-02 11:48:04,653 WARNING Escaneo sin éxitos para pv-cdn.net (0/7 pruebas exitosas)
+2026-02-02 11:48:06,022 WARNING Error en ripn.net con grupo Automático: Command '['/opt/openssl/bin/openssl', 's_client', '-connect', 'ripn.net:443', '-servername', 'ripn.net', '-tls1_3', '-ign_eof']' timed out after 8 seconds
+2026-02-02 11:48:07,375 WARNING Escaneo sin éxitos para office.net (0/7 pruebas exitosas)
+2026-02-02 11:48:07,377 WARNING Escaneo sin éxitos para tiktokcdn.com (0/7 pruebas exitosas)
+2026-02-02 11:48:07,441 WARNING Escaneo sin éxitos para akam.net (0/7 pruebas exitosas)
+2026-02-02 11:48:09,969 WARNING Escaneo sin éxitos para apple-dns.net (0/7 pruebas exitosas)
+2026-02-02 11:48:11,581 WARNING Escaneo sin éxitos para gvt1.com (0/7 pruebas exitosas)
+2026-02-02 11:48:11,814 WARNING Error en appsflyersdk.com con grupo p256_kyber768: Command '['/opt/openssl/bin/openssl', 's_client', '-connect', 'appsflyersdk.com:443', '-servername', 'appsflyersdk.com', '-tls1_3', '-ign_eof', '-groups', 'p256_kyber768']' timed out after 8 seconds
+2026-02-02 11:48:12,479 WARNING Escaneo sin éxitos para trafficmanager.net (0/7 pruebas exitosas)
+2026-02-02 11:48:13,910 WARNING Escaneo sin éxitos para t-msedge.net (0/7 pruebas exitosas)
+2026-02-02 11:48:14,027 WARNING Error en ripn.net con grupo prime256v1: Command '['/opt/openssl/bin/openssl', 's_client', '-connect', 'ripn.net:443', '-servername', 'ripn.net', '-tls1_3', '-ign_eof', '-groups', 'prime256v1']' timed out after 8 seconds
+2026-02-02 11:48:14,522 WARNING Escaneo sin éxitos para edgekey.net (0/7 pruebas exitosas)
+2026-02-02 11:48:15,020 WARNING Escaneo sin éxitos para ax-msedge.net (0/7 pruebas exitosas)
+2026-02-02 11:48:17,123 WARNING Escaneo sin éxitos para edgesuite.net (0/7 pruebas exitosas)
+2026-02-02 11:48:17,268 WARNING Escaneo sin éxitos para vedcdnlb.com (0/7 pruebas exitosas)
+2026-02-02 11:48:17,332 WARNING Escaneo sin éxitos para root-servers.net (0/7 pruebas exitosas)
+2026-02-02 11:48:19,828 WARNING Error en appsflyersdk.com con grupo kyber768: Command '['/opt/openssl/bin/openssl', 's_client', '-connect', 'appsflyersdk.com:443', '-servername', 'appsflyersdk.com', '-tls1_3', '-ign_eof', '-groups', 'kyber768']' timed out after 8 seconds
+2026-02-02 11:48:20,072 WARNING Escaneo sin éxitos para ytimg.com (0/7 pruebas exitosas)
+2026-02-02 11:48:20,142 WARNING Escaneo sin éxitos para gvt2.com (0/7 pruebas exitosas)
+2026-02-02 11:48:22,044 WARNING Error en ripn.net con grupo p256_kyber768: Command '['/opt/openssl/bin/openssl', 's_client', '-connect', 'ripn.net:443', '-servername', 'ripn.net', '-tls1_3', '-ign_eof', '-groups', 'p256_kyber768']' timed out after 8 seconds
+2026-02-02 11:48:25,280 WARNING Error en ui.com con grupo Automático: Command '['/opt/openssl/bin/openssl', 's_client', '-connect', 'ui.com:443', '-servername', 'ui.com', '-tls1_3', '-ign_eof']' timed out after 8 seconds
+2026-02-02 11:48:27,842 WARNING Error en appsflyersdk.com con grupo frodo640aes: Command '['/opt/openssl/bin/openssl', 's_client', '-connect', 'appsflyersdk.com:443', '-servername', 'appsflyersdk.com', '-tls1_3', '-ign_eof', '-groups', 'frodo640aes']' timed out after 8 seconds
+2026-02-02 11:48:30,057 WARNING Error en ripn.net con grupo kyber768: Command '['/opt/openssl/bin/openssl', 's_client', '-connect', 'ripn.net:443', '-servername', 'ripn.net', '-tls1_3', '-ign_eof', '-groups', 'kyber768']' timed out after 8 seconds
+2026-02-02 11:48:33,351 WARNING Error en ui.com con grupo p256_kyber768: Command '['/opt/openssl/bin/openssl', 's_client', '-connect', 'ui.com:443', '-servername', 'ui.com', '-tls1_3', '-ign_eof', '-groups', 'p256_kyber768']' timed out after 8 seconds
+2026-02-02 11:48:38,070 WARNING Error en ripn.net con grupo frodo640aes: Command '['/opt/openssl/bin/openssl', 's_client', '-connect', 'ripn.net:443', '-servername', 'ripn.net', '-tls1_3', '-ign_eof', '-groups', 'frodo640aes']' timed out after 8 seconds
+2026-02-02 11:48:38,108 WARNING Escaneo sin éxitos para ripn.net (0/7 pruebas exitosas)
+2026-02-02 11:48:41,365 WARNING Error en ui.com con grupo kyber768: Command '['/opt/openssl/bin/openssl', 's_client', '-connect', 'ui.com:443', '-servername', 'ui.com', '-tls1_3', '-ign_eof', '-groups', 'kyber768']' timed out after 8 seconds
+2026-02-02 11:48:49,379 WARNING Error en ui.com con grupo frodo640aes: Command '['/opt/openssl/bin/openssl', 's_client', '-connect', 'ui.com:443', '-servername', 'ui.com', '-tls1_3', '-ign_eof', '-groups', 'frodo640aes']' timed out after 8 seconds
+2026-02-02 11:48:49,440 INFO ======================================================================
+2026-02-02 11:48:49,441 INFO Escaneo PQC completado
+2026-02-02 11:48:49,441 INFO Tiempo total: 64.99 segundos
+2026-02-02 11:48:49,441 INFO Hosts con al menos un éxito: 73/100 (73.00%)
+2026-02-02 11:48:49,441 INFO Pruebas exitosas: 299/700 (42.71%)
+2026-02-02 11:48:49,442 INFO Resultados guardados en /home/tfg/resultados/resultados_sonda_pqc.json
+2026-02-02 11:48:49,442 INFO ======================================================================
