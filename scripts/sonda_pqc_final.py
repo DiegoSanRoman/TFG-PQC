@@ -22,16 +22,19 @@ from concurrent.futures import ThreadPoolExecutor, as_completed  # Para concurre
 from tqdm import tqdm                                       # Para barras de progreso
 from typing import List, Dict, Any, Optional                # Para type hints
 
+# Configurar logging
 logger = logging.getLogger(__name__)
 
 # ============================================
 # CONSTANTES DE RUTAS
 # ============================================
-BASE_DIR = Path(__file__).parent.parent  # Directorio raíz del proyecto
-DATA_DIR = BASE_DIR / "data"
-RESULTADOS_DIR = BASE_DIR / "resultados"
-CSV_DEFECTO = DATA_DIR / "tranco.csv"
-LOG_DEFECTO = RESULTADOS_DIR / "sonda_pqc.log"
+BASE_DIR = Path(__file__).parent.parent         # Directorio raíz del proyecto
+DATA_DIR = BASE_DIR / "data"                    # Directorio de datos
+RESULTADOS_DIR = BASE_DIR / "resultados"        # Directorio de resultados
+CSV_DEFECTO = DATA_DIR / "tranco.csv"           # Archivo CSV de input por defecto
+LOG_DEFECTO = RESULTADOS_DIR / "sonda_pqc.log"  # Archivo de log por defecto
+
+
 
 # ============================================
 # FUNCIONES AUXILIARES
@@ -44,7 +47,8 @@ def leer_hostnames_csv(ruta_csv: Path, longitud_max: int) -> List[str]:
     :param longitud_max: Número máximo de hostnames a leer
     :return: Lista de hostnames
     '''
-    hostnames = []
+    hostnames = []  # Lista para almacenar los hostnames
+    # Leer el archivo CSV
     try:
         with ruta_csv.open('r', encoding='utf-8') as archivo:
             lector = csv.reader(archivo)
@@ -58,6 +62,7 @@ def leer_hostnames_csv(ruta_csv: Path, longitud_max: int) -> List[str]:
     except Exception as e:
         logger.error("Error al leer el archivo CSV %s: %s", ruta_csv, e)
     return hostnames
+
 
 
 # ============================================
@@ -522,19 +527,23 @@ def escanear_servidor_pqc(hostname: str, grupos: List[Optional[str]], openssl_bi
     :param grupos: Lista de grupos a probar (None para automático)
     :return: Diccionario con los resultados del escaneo
     '''
+    # Diccionario para almacenar resultados por hostname
     resultado_host = {
         "hostname": hostname,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "pruebas": []
     }
     
+    # Probar cada grupo
     for g in grupos:
         label = g if g else "Automático"
         resultado = sonda_pqc(hostname, g, openssl_bin=openssl_bin, proc_semaphore=proc_semaphore)
         resultado["grupo"] = label
         resultado_host["pruebas"].append(resultado)
     
+    # Retornar resultados del host
     return resultado_host
+
 
 
 # ============================================
@@ -542,6 +551,7 @@ def escanear_servidor_pqc(hostname: str, grupos: List[Optional[str]], openssl_bi
 # ============================================
 
 if __name__ == "__main__":
+    # Parseo de argumentos CLI
     parser = argparse.ArgumentParser(description="Sonda PQC: escaneo concurrente de servidores HTTPS con algoritmos post-cuánticos")
     parser.add_argument("--input-csv", type=Path, default=CSV_DEFECTO, help="Ruta del archivo CSV de entrada con hostnames")
     parser.add_argument("--max-hostnames", type=int, default=100, help="Número máximo de hostnames a escanear")
@@ -590,6 +600,7 @@ if __name__ == "__main__":
     ruta_csv = args.input_csv
     hostnames = leer_hostnames_csv(ruta_csv, args.max_hostnames)
     
+    # Verificar que se han leído hostnames
     if not hostnames:
         logger.error("No se encontraron hostnames en %s", ruta_csv)
         raise SystemExit(1)
@@ -597,6 +608,7 @@ if __name__ == "__main__":
     logger.info("Se han cargado %s hostnames desde %s", len(hostnames), ruta_csv)
     logger.info("Grupos PQC a probar: %s", ", ".join([g if g else "Automático" for g in grupos]))
     
+    # Lista para almacenar todos los resultados
     lista_resultados = []
 
     # Definimos el número de hilos (trabajadores en paralelo)
@@ -607,8 +619,10 @@ if __name__ == "__main__":
     # Tiempo de inicio
     tiempo_inicio_total = time.time()
     
+    # Semáforo para limitar procesos OpenSSL concurrentes
     proc_semaphore = threading.BoundedSemaphore(args.max_openssl_procs)
 
+    # Usamos ThreadPoolExecutor para concurrencia
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         # Lanzamos todas las tareas
         futuros = {executor.submit(escanear_servidor_pqc, host, grupos, args.openssl_bin, proc_semaphore): host for host in hostnames}
@@ -625,6 +639,7 @@ if __name__ == "__main__":
                     exitosos = sum(1 for prueba in datos_host["pruebas"] if prueba.get("status") == "ACEPTADO")
                     total_pruebas = len(datos_host["pruebas"])
                     
+                    # Loguear el resultado del host
                     if exitosos > 0:
                         logger.debug("Escaneo completado: %s (%d/%d pruebas exitosas)", host, exitosos, total_pruebas)
                     else:
@@ -643,6 +658,7 @@ if __name__ == "__main__":
     total_pruebas = 0
     pruebas_exitosas = 0
     
+    # Recorrer resultados para estadísticas
     for resultado in lista_resultados:
         pruebas = resultado.get("pruebas", [])
         total_pruebas += len(pruebas)
