@@ -14,6 +14,7 @@ import csv                                                  # Para leer archivos
 import logging                                              # Para logging
 import argparse                                             # Para argumentos CLI
 import socket                                               # Para pre-check TCP
+import threading                                            # Para semáforo de procesos
 from datetime import datetime, timezone                     # Para timestamps y zona horaria
 from pathlib import Path                                    # Para rutas
 from concurrent.futures import ThreadPoolExecutor, as_completed  # Para concurrencia
@@ -62,7 +63,7 @@ def leer_hostnames_csv(ruta_csv: Path, longitud_max: int) -> List[str]:
 # FUNCION PRINCIPAL
 # ============================================
 
-def sonda_pqc(hostname, group=None, openssl_bin=None):
+def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
     '''
     Función que intenta conectarse a un servidor HTTPS usando OpenSSL con soporte para cifrados post-cuánticos (híbridos y puros).
     :param hostname: El nombre del host o dominio del servidor HTTPS a escanear
@@ -105,21 +106,27 @@ def sonda_pqc(hostname, group=None, openssl_bin=None):
         tiempo_inicio = time.time()
 
         # Ejecutamos con Popen para controlar mejor timeouts y limpieza
-        process = subprocess.Popen(
-            cmd,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            start_new_session=True
-        )
-
+        if proc_semaphore:
+            proc_semaphore.acquire()
         try:
-            stdout_bytes, stderr_bytes = process.communicate(input=b"HEAD / HTTP/1.0\n\n", timeout=8)
-        except subprocess.TimeoutExpired:
-            process.kill()
-            stdout_bytes, stderr_bytes = process.communicate()
-            logger.warning("Timeout en %s con grupo %s", hostname, group if group else "Automático")
-            return {"status": "ERROR", "res": "Timeout en s_client", "tiempo_conexion_segundos": None}
+            process = subprocess.Popen(
+                cmd,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                start_new_session=True
+            )
+
+            try:
+                stdout_bytes, stderr_bytes = process.communicate(input=b"HEAD / HTTP/1.0\n\n", timeout=8)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                stdout_bytes, stderr_bytes = process.communicate()
+                logger.warning("Timeout en %s con grupo %s", hostname, group if group else "Automático")
+                return {"status": "ERROR", "res": "Timeout en s_client", "tiempo_conexion_segundos": None}
+        finally:
+            if proc_semaphore:
+                proc_semaphore.release()
 
         # Medimos el tiempo final
         tiempo_fin = time.time()
@@ -155,7 +162,7 @@ def sonda_pqc(hostname, group=None, openssl_bin=None):
         return {"status": "ERROR", "res": str(e), "tiempo_conexion_segundos": None}
 
 
-def escanear_servidor_pqc(hostname: str, grupos: List[Optional[str]], openssl_bin: str) -> Dict[str, Any]:
+def escanear_servidor_pqc(hostname: str, grupos: List[Optional[str]], openssl_bin: str, proc_semaphore) -> Dict[str, Any]:
     '''
     Escanea un servidor con múltiples grupos PQC y retorna los resultados
     :param hostname: Nombre del host a escanear
@@ -170,7 +177,7 @@ def escanear_servidor_pqc(hostname: str, grupos: List[Optional[str]], openssl_bi
     
     for g in grupos:
         label = g if g else "Automático"
-        resultado = sonda_pqc(hostname, g, openssl_bin=openssl_bin)
+        resultado = sonda_pqc(hostname, g, openssl_bin=openssl_bin, proc_semaphore=proc_semaphore)
         resultado["grupo"] = label
         resultado_host["pruebas"].append(resultado)
     
@@ -193,6 +200,12 @@ if __name__ == "__main__":
         default=os.getenv("OPENSSL_BIN", "/opt/openssl/bin/openssl"),
         help="Ruta al binario OpenSSL (o variable de entorno OPENSSL_BIN)"
     )
+    parser.add_argument(
+        "--max-openssl-procs",
+        type=int,
+        default=min(8, os.cpu_count() or 1),
+        help="Límite de procesos OpenSSL concurrentes"
+    )
     args = parser.parse_args()
 
     # Configurar logging
@@ -208,6 +221,7 @@ if __name__ == "__main__":
 
     logger.info("Iniciando sonda PQC con OpenSSL personalizado")
     logger.info("Binario OpenSSL: %s", args.openssl_bin)
+    logger.info("Límite de procesos OpenSSL: %s", args.max_openssl_procs)
 
     # Probamos diferentes protocolos, desde automático (None) hasta algunos híbridos y algunos puros PQC
     grupos = [None, "prime256v1", "x25519_mlkem768", "p256_kyber768", "kyber768", "frodo640aes", "sikep434"]
@@ -240,9 +254,11 @@ if __name__ == "__main__":
     # Tiempo de inicio
     tiempo_inicio_total = time.time()
     
+    proc_semaphore = threading.BoundedSemaphore(args.max_openssl_procs)
+
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         # Lanzamos todas las tareas
-        futuros = {executor.submit(escanear_servidor_pqc, host, grupos, args.openssl_bin): host for host in hostnames}
+        futuros = {executor.submit(escanear_servidor_pqc, host, grupos, args.openssl_bin, proc_semaphore): host for host in hostnames}
         
         # Conforme vayan terminando, recogemos los resultados con barra de progreso
         with tqdm(total=len(hostnames), desc="Escaneo PQC", unit="host") as pbar:
