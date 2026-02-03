@@ -14,6 +14,7 @@ import csv                                                  # Para leer archivos
 import logging                                              # Para logging
 import argparse                                             # Para argumentos CLI
 import socket                                               # Para pre-check TCP
+import re                                                   # Para parseo de salida
 import threading                                            # Para semáforo de procesos
 from datetime import datetime, timezone                     # Para timestamps y zona horaria
 from pathlib import Path                                    # Para rutas
@@ -83,22 +84,132 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
     
     logger.debug("Probando %s con grupo %s", hostname, group if group else "Automático")
     
-    # Pre-check TCP para separar fallos de infraestructura de PQC
+    # Pre-check DNS/TCP para separar fallos de infraestructura de PQC
+    dns_time_ms = None
+    tcp_time_ms = None
+    ip_resuelta = None
+    ip_familia = None
+    sni_usado = hostname
+    sni_difiere = False
+    retried = False
+
     try:
-        with socket.create_connection((hostname, 443), timeout=3):
-            pass
+        dns_inicio = time.time()
+        addrinfos = socket.getaddrinfo(hostname, 443, type=socket.SOCK_STREAM)
+        dns_time_ms = round((time.time() - dns_inicio) * 1000, 2)
+
+        if not addrinfos:
+            raise socket.gaierror("Sin resultados de DNS")
+
+        family, socktype, proto, canonname, sockaddr = addrinfos[0]
+        ip_resuelta = sockaddr[0]
+        ip_familia = "IPv6" if family == socket.AF_INET6 else "IPv4"
+
+        tcp_inicio = time.time()
+        with socket.socket(family, socktype, proto) as sock:
+            sock.settimeout(3)
+            sock.connect(sockaddr)
+        tcp_time_ms = round((time.time() - tcp_inicio) * 1000, 2)
     except socket.gaierror:
         logger.warning("DNS fallo para %s", hostname)
-        return {"status": "ERROR", "res": "DNS no resolvió", "tiempo_conexion_segundos": None}
+        return {
+            "status": "ERROR",
+            "res": "DNS no resolvió",
+            "tiempo_conexion_segundos": None,
+            "dns_time_ms": dns_time_ms,
+            "tcp_time_ms": tcp_time_ms,
+            "handshake_time_ms": None,
+            "ip": ip_resuelta,
+            "ip_familia": ip_familia,
+            "tls_version": None,
+            "cipher_suite": None,
+            "alpn": None,
+            "tls_alert": None,
+            "cert_issuer": None,
+            "cert_not_before": None,
+            "cert_not_after": None,
+            "cert_san": None,
+            "cert_fingerprint_sha256": None,
+            "response_size_bytes": None,
+            "sni_usado": sni_usado,
+            "sni_difiere": sni_difiere,
+            "retry": retried
+        }
     except ConnectionRefusedError:
         logger.warning("Conexión rechazada para %s:443", hostname)
-        return {"status": "ERROR", "res": "Puerto 443 cerrado o rechazado", "tiempo_conexion_segundos": None}
+        return {
+            "status": "ERROR",
+            "res": "Puerto 443 cerrado o rechazado",
+            "tiempo_conexion_segundos": None,
+            "dns_time_ms": dns_time_ms,
+            "tcp_time_ms": tcp_time_ms,
+            "handshake_time_ms": None,
+            "ip": ip_resuelta,
+            "ip_familia": ip_familia,
+            "tls_version": None,
+            "cipher_suite": None,
+            "alpn": None,
+            "tls_alert": None,
+            "cert_issuer": None,
+            "cert_not_before": None,
+            "cert_not_after": None,
+            "cert_san": None,
+            "cert_fingerprint_sha256": None,
+            "response_size_bytes": None,
+            "sni_usado": sni_usado,
+            "sni_difiere": sni_difiere,
+            "retry": retried
+        }
     except socket.timeout:
         logger.warning("Timeout TCP para %s:443", hostname)
-        return {"status": "ERROR", "res": "Timeout TCP 443", "tiempo_conexion_segundos": None}
+        return {
+            "status": "ERROR",
+            "res": "Timeout TCP 443",
+            "tiempo_conexion_segundos": None,
+            "dns_time_ms": dns_time_ms,
+            "tcp_time_ms": tcp_time_ms,
+            "handshake_time_ms": None,
+            "ip": ip_resuelta,
+            "ip_familia": ip_familia,
+            "tls_version": None,
+            "cipher_suite": None,
+            "alpn": None,
+            "tls_alert": None,
+            "cert_issuer": None,
+            "cert_not_before": None,
+            "cert_not_after": None,
+            "cert_san": None,
+            "cert_fingerprint_sha256": None,
+            "response_size_bytes": None,
+            "sni_usado": sni_usado,
+            "sni_difiere": sni_difiere,
+            "retry": retried
+        }
     except OSError as e:
         logger.warning("Error TCP para %s: %s", hostname, e)
-        return {"status": "ERROR", "res": f"Error TCP: {e}", "tiempo_conexion_segundos": None}
+        return {
+            "status": "ERROR",
+            "res": f"Error TCP: {e}",
+            "tiempo_conexion_segundos": None,
+            "dns_time_ms": dns_time_ms,
+            "tcp_time_ms": tcp_time_ms,
+            "handshake_time_ms": None,
+            "ip": ip_resuelta,
+            "ip_familia": ip_familia,
+            "tls_version": None,
+            "cipher_suite": None,
+            "alpn": None,
+            "tls_alert": None,
+            "cert_issuer": None,
+            "cert_not_before": None,
+            "cert_not_after": None,
+            "cert_san": None,
+            "cert_fingerprint_sha256": None,
+            "response_size_bytes": None,
+            "sni_usado": sni_usado,
+            "sni_difiere": sni_difiere,
+            "retry": retried
+        }
 
     # Ejecutamos el comando y capturamos la salida
     try:
@@ -106,27 +217,61 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
         tiempo_inicio = time.time()
 
         # Ejecutamos con Popen para controlar mejor timeouts y limpieza
-        if proc_semaphore:
-            proc_semaphore.acquire()
-        try:
-            process = subprocess.Popen(
-                cmd,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                start_new_session=True
-            )
+        stdout_bytes = b""
+        stderr_bytes = b""
+        handshake_inicio = time.time()
 
-            try:
-                stdout_bytes, stderr_bytes = process.communicate(input=b"HEAD / HTTP/1.0\n\n", timeout=8)
-            except subprocess.TimeoutExpired:
-                process.kill()
-                stdout_bytes, stderr_bytes = process.communicate()
-                logger.warning("Timeout en %s con grupo %s", hostname, group if group else "Automático")
-                return {"status": "ERROR", "res": "Timeout en s_client", "tiempo_conexion_segundos": None}
-        finally:
+        max_attempts = 2
+        for intento in range(1, max_attempts + 1):
             if proc_semaphore:
-                proc_semaphore.release()
+                proc_semaphore.acquire()
+            try:
+                process = subprocess.Popen(
+                    cmd,
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    start_new_session=True
+                )
+
+                try:
+                    stdout_bytes, stderr_bytes = process.communicate(input=b"HEAD / HTTP/1.0\n\n", timeout=8)
+                    break
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    stdout_bytes, stderr_bytes = process.communicate()
+                    if intento < max_attempts:
+                        retried = True
+                        continue
+                    logger.warning("Timeout en %s con grupo %s", hostname, group if group else "Automático")
+                    return {
+                        "status": "ERROR",
+                        "res": "Timeout en s_client",
+                        "tiempo_conexion_segundos": None,
+                        "dns_time_ms": dns_time_ms,
+                        "tcp_time_ms": tcp_time_ms,
+                        "handshake_time_ms": None,
+                        "ip": ip_resuelta,
+                        "ip_familia": ip_familia,
+                        "tls_version": None,
+                        "cipher_suite": None,
+                        "alpn": None,
+                        "tls_alert": None,
+                        "cert_issuer": None,
+                        "cert_not_before": None,
+                        "cert_not_after": None,
+                        "cert_san": None,
+                        "cert_fingerprint_sha256": None,
+                        "response_size_bytes": None,
+                        "sni_usado": sni_usado,
+                        "sni_difiere": sni_difiere,
+                        "retry": retried
+                    }
+            finally:
+                if proc_semaphore:
+                    proc_semaphore.release()
+
+        handshake_time_ms = round((time.time() - handshake_inicio) * 1000, 2)
 
         # Medimos el tiempo final
         tiempo_fin = time.time()
@@ -135,6 +280,124 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
         # Decodificamos la salida
         stdout = stdout_bytes.decode(errors='ignore') if stdout_bytes else ""
         stderr = stderr_bytes.decode(errors='ignore') if stderr_bytes else ""
+        response_size_bytes = (len(stdout_bytes) if stdout_bytes else 0) + (len(stderr_bytes) if stderr_bytes else 0)
+
+        # Parseo de TLS: versión, cipher y ALPN
+        tls_version = None
+        cipher_suite = None
+        alpn = None
+
+        match_protocol = re.search(r"^\s*Protocol\s*:\s*(.+)$", stdout, re.MULTILINE)
+        if match_protocol:
+            tls_version = match_protocol.group(1).strip()
+
+        match_cipher = re.search(r"^\s*Cipher\s*:\s*(.+)$", stdout, re.MULTILINE)
+        if match_cipher:
+            cipher_suite = match_cipher.group(1).strip()
+        elif "Cipher is" in stdout:
+            match_cipher = re.search(r"Cipher is\s*(.+)$", stdout, re.MULTILINE)
+            if match_cipher:
+                cipher_suite = match_cipher.group(1).strip()
+
+        match_alpn = re.search(r"^\s*ALPN[\s,]+protocol[:\s]+(.+)$", stdout, re.MULTILINE | re.IGNORECASE)
+        if not match_alpn:
+            match_alpn = re.search(r"ALPN[\s,]+selected[:\s]+(.+)$", stdout, re.MULTILINE | re.IGNORECASE)
+        if match_alpn:
+            alpn = match_alpn.group(1).strip()
+
+        # TLS alert específico (si aparece)
+        tls_alert = None
+        for line in (stderr + "\n" + stdout).split("\n"):
+            if "alert" in line.lower():
+                tls_alert = line.strip()
+                break
+
+        # Extraer primer certificado en PEM (servidor)
+        cert_pem = None
+        # Buscar desde Certificate chain o desde el primer BEGIN hasta el primer END
+        cert_match = re.search(
+            r"-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----",
+            stdout,
+            re.DOTALL
+        )
+        if cert_match:
+            cert_pem = cert_match.group(0)
+        
+        # Fallback: intentar desde stderr si stdout no tiene certificado
+        if not cert_pem and stderr:
+            cert_match = re.search(
+                r"-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----",
+                stderr,
+                re.DOTALL
+            )
+            if cert_match:
+                cert_pem = cert_match.group(0)
+
+        cert_issuer = None
+        cert_not_before = None
+        cert_not_after = None
+        cert_san = None
+        cert_fingerprint_sha256 = None
+
+        if cert_pem:
+            x509 = subprocess.run(
+                [openssl_bin, "x509", "-noout", "-issuer", "-dates", "-ext", "subjectAltName", "-fingerprint", "-sha256"],
+                input=cert_pem.encode(),
+                capture_output=True
+            )
+            x509_out = x509.stdout.decode(errors="ignore")
+            for line in x509_out.split("\n"):
+                if line.startswith("issuer="):
+                    cert_issuer = line.replace("issuer=", "").strip()
+                elif line.startswith("notBefore="):
+                    cert_not_before = line.replace("notBefore=", "").strip()
+                elif line.startswith("notAfter="):
+                    cert_not_after = line.replace("notAfter=", "").strip()
+                elif "Fingerprint=" in line or "fingerprint=" in line.lower():
+                    # Captura SHA256 Fingerprint=..., sha256 Fingerprint=..., Fingerprint=...
+                    cert_fingerprint_sha256 = re.sub(r"^.*[Ff]ingerprint\s*=\s*", "", line).strip()
+                elif "Subject Alternative Name" in line:
+                    continue
+                elif "DNS:" in line:
+                    cert_san = line.strip()
+
+        # Detectar fallos reales de handshake
+        handshake_failed = False
+        if tls_alert and ("handshake failure" in tls_alert.lower() or 
+                          "protocol version" in tls_alert.lower() or
+                          "illegal parameter" in tls_alert.lower()):
+            handshake_failed = True
+        
+        # Cipher (NONE) significa que no se negoció nada
+        if cipher_suite and "(NONE)" in cipher_suite:
+            handshake_failed = True
+        
+        # Si hay fallo de handshake confirmado, es RECHAZADO
+        if handshake_failed:
+            logger.debug("Rechazado (handshake failed): %s - %s", hostname, group if group else "Automático")
+            return {
+                "status": "RECHAZADO",
+                "res": tls_alert if tls_alert else "Handshake failed",
+                "tiempo_conexion_segundos": tiempo_conexion_segundos,
+                "dns_time_ms": dns_time_ms,
+                "tcp_time_ms": tcp_time_ms,
+                "handshake_time_ms": handshake_time_ms,
+                "ip": ip_resuelta,
+                "ip_familia": ip_familia,
+                "tls_version": tls_version,
+                "cipher_suite": cipher_suite,
+                "alpn": alpn,
+                "tls_alert": tls_alert,
+                "cert_issuer": cert_issuer,
+                "cert_not_before": cert_not_before,
+                "cert_not_after": cert_not_after,
+                "cert_san": cert_san,
+                "cert_fingerprint_sha256": cert_fingerprint_sha256,
+                "response_size_bytes": response_size_bytes,
+                "sni_usado": sni_usado,
+                "sni_difiere": sni_difiere,
+                "retry": retried
+            }
 
         # Buscar el grupo negociado en la línea Server Temp Key
         negotiated_line = None
@@ -143,23 +406,112 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
                 negotiated_line = line.strip()
                 break
 
-        if negotiated_line:
+        # Éxito real: hay Server Temp Key Y (hay certificado O cipher válido)
+        if negotiated_line and (cert_issuer or (cipher_suite and "(NONE)" not in cipher_suite)):
             logger.debug("Éxito: %s - %s - %s", hostname, group if group else "Automático", negotiated_line)
-            return {"status": "ACEPTADO", "res": negotiated_line, "tiempo_conexion_segundos": tiempo_conexion_segundos}
+            return {
+                "status": "ACEPTADO",
+                "res": negotiated_line,
+                "tiempo_conexion_segundos": tiempo_conexion_segundos,
+                "dns_time_ms": dns_time_ms,
+                "tcp_time_ms": tcp_time_ms,
+                "handshake_time_ms": handshake_time_ms,
+                "ip": ip_resuelta,
+                "ip_familia": ip_familia,
+                "tls_version": tls_version,
+                "cipher_suite": cipher_suite,
+                "alpn": alpn,
+                "tls_alert": tls_alert,
+                "cert_issuer": cert_issuer,
+                "cert_not_before": cert_not_before,
+                "cert_not_after": cert_not_after,
+                "cert_san": cert_san,
+                "cert_fingerprint_sha256": cert_fingerprint_sha256,
+                "response_size_bytes": response_size_bytes,
+                "sni_usado": sni_usado,
+                "sni_difiere": sni_difiere,
+                "retry": retried
+            }
 
-        # Fallback: si no hay Server Temp Key, usamos indicadores de handshake
-        if "Cipher is" in stdout or "New, " in stdout:
+        # Fallback: conexión exitosa si hay cipher válido Y certificado
+        if cipher_suite and "(NONE)" not in cipher_suite and cert_issuer:
             logger.debug("Éxito: %s - %s - Conectado (TLS 1.3)", hostname, group if group else "Automático")
-            return {"status": "ACEPTADO", "res": "Conectado (TLS 1.3)", "tiempo_conexion_segundos": tiempo_conexion_segundos}
+            return {
+                "status": "ACEPTADO",
+                "res": f"Conectado - {cipher_suite}",
+                "tiempo_conexion_segundos": tiempo_conexion_segundos,
+                "dns_time_ms": dns_time_ms,
+                "tcp_time_ms": tcp_time_ms,
+                "handshake_time_ms": handshake_time_ms,
+                "ip": ip_resuelta,
+                "ip_familia": ip_familia,
+                "tls_version": tls_version,
+                "cipher_suite": cipher_suite,
+                "alpn": alpn,
+                "tls_alert": tls_alert,
+                "cert_issuer": cert_issuer,
+                "cert_not_before": cert_not_before,
+                "cert_not_after": cert_not_after,
+                "cert_san": cert_san,
+                "cert_fingerprint_sha256": cert_fingerprint_sha256,
+                "response_size_bytes": response_size_bytes,
+                "sni_usado": sni_usado,
+                "sni_difiere": sni_difiere,
+                "retry": retried
+            }
 
         # Si hay un error específico de incompatibilidad de protocolo/draft
         logger.debug("Rechazado: %s - %s - %s", hostname, group if group else "Automático", stderr.strip())
-        return {"status": "RECHAZADO", "res": "Incompatibilidad de protocolo/draft", "tiempo_conexion_segundos": tiempo_conexion_segundos}
+        return {
+            "status": "RECHAZADO",
+            "res": "Incompatibilidad de protocolo/draft",
+            "tiempo_conexion_segundos": tiempo_conexion_segundos,
+            "dns_time_ms": dns_time_ms,
+            "tcp_time_ms": tcp_time_ms,
+            "handshake_time_ms": handshake_time_ms,
+            "ip": ip_resuelta,
+            "ip_familia": ip_familia,
+            "tls_version": tls_version,
+            "cipher_suite": cipher_suite,
+            "alpn": alpn,
+            "tls_alert": tls_alert,
+            "cert_issuer": cert_issuer,
+            "cert_not_before": cert_not_before,
+            "cert_not_after": cert_not_after,
+            "cert_san": cert_san,
+            "cert_fingerprint_sha256": cert_fingerprint_sha256,
+            "response_size_bytes": response_size_bytes,
+            "sni_usado": sni_usado,
+            "sni_difiere": sni_difiere,
+            "retry": retried
+        }
 
     # Capturamos cualquier excepción (timeout, fallo, etc.)
     except Exception as e:
         logger.warning("Error en %s con grupo %s: %s", hostname, group if group else "Automático", str(e))
-        return {"status": "ERROR", "res": str(e), "tiempo_conexion_segundos": None}
+        return {
+            "status": "ERROR",
+            "res": str(e),
+            "tiempo_conexion_segundos": None,
+            "dns_time_ms": dns_time_ms,
+            "tcp_time_ms": tcp_time_ms,
+            "handshake_time_ms": None,
+            "ip": ip_resuelta,
+            "ip_familia": ip_familia,
+            "tls_version": None,
+            "cipher_suite": None,
+            "alpn": None,
+            "tls_alert": None,
+            "cert_issuer": None,
+            "cert_not_before": None,
+            "cert_not_after": None,
+            "cert_san": None,
+            "cert_fingerprint_sha256": None,
+            "response_size_bytes": None,
+            "sni_usado": sni_usado,
+            "sni_difiere": sni_difiere,
+            "retry": retried
+        }
 
 
 def escanear_servidor_pqc(hostname: str, grupos: List[Optional[str]], openssl_bin: str, proc_semaphore) -> Dict[str, Any]:
