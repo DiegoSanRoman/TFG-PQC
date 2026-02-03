@@ -609,3 +609,309 @@
 2026-02-03 18:19:23,751 INFO Pruebas exitosas: 45/700 (6.43%)
 2026-02-03 18:19:23,751 INFO Resultados guardados en /home/tfg/resultados/resultados_sonda_pqc.json
 2026-02-03 18:19:23,751 INFO ======================================================================
+2026-02-03 18:24:41,393 INFO Iniciando sonda PQC con OpenSSL personalizado
+2026-02-03 18:24:41,393 INFO Binario OpenSSL: /opt/openssl/bin/openssl
+2026-02-03 18:24:41,393 INFO Límite de procesos OpenSSL: 8
+2026-02-03 18:24:41,394 INFO Se han cargado 100 hostnames desde /home/tfg/data/tranco.csv
+2026-02-03 18:24:41,394 INFO Grupos PQC a probar: Automático, prime256v1, x25519_mlkem768, p256_kyber768, kyber768, frodo640aes, sikep434
+2026-02-03 18:24:41,394 INFO Iniciando escaneo concurrente con 20 hilos...
+2026-02-03 18:24:41,415 WARNING DNS fallo para gtld-servers.net
+2026-02-03 18:24:43,922 WARNING DNS fallo para gtld-servers.net
+2026-02-03 18:24:43,926 WARNING DNS fallo para gtld-servers.net
+2026-02-03 18:24:43,930 WARNING DNS fallo para gtld-servers.net
+2026-02-03 18:24:43,934 WARNING DNS fallo para gtld-servers.net
+2026-02-03 18:24:43,938 WARNING DNS fallo para gtld-servers.net
+2026-02-03 18:24:43,941 WARNING DNS fallo para akamai.net
+2026-02-03 18:24:44,022 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-03 18:24:46,447 WARNING DNS fallo para gtld-servers.net
+2026-02-03 18:24:46,447 WARNING Escaneo sin éxitos para gtld-servers.net (0/7 pruebas exitosas)
+2026-02-03 18:24:46,449 WARNING DNS fallo para akamai.net
+2026-02-03 18:24:46,456 WARNING DNS fallo para akamai.net
+2026-02-03 18:24:46,463 WARNING DNS fallo para akamai.net
+2026-02-03 18:24:46,467 WARNING DNS fallo para akamai.net
+2026-02-03 18:24:46,472 WARNING DNS fallo para akamai.net
+2026-02-03 18:24:46,476 WARNING DNS fallo para akamai.net
+2026-02-03 18:24:46,478 WARNING Escaneo sin éxitos para akamai.net (0/7 pruebas exitosas)
+2026-02-03 18:24:46,635 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-03 18:24:48,984 WARNING DNS fallo para akadns.net
+2026-02-03 18:24:48,989 WARNING DNS fallo para akadns.net
+2026-02-03 18:24:48,989 WARNING DNS fallo para gstatic.com
+2026-02-03 18:24:48,993 WARNING DNS fallo para akadns.net
+2026-02-03 18:24:48,997 WARNING DNS fallo para akadns.net
+2026-02-03 18:24:49,000 WARNING DNS fallo para akadns.net
+2026-02-03 18:24:49,004 WARNING DNS fallo para akadns.net
+2026-02-03 18:24:49,009 WARNING DNS fallo para akadns.net
+2026-02-03 18:24:49,010 WARNING Escaneo sin éxitos para akadns.net (0/7 pruebas exitosas)
+2026-02-03 18:24:51,545 WARNING DNS fallo para google.com
+2026-02-03 18:24:51,641 WARNING DNS fallo para amazonaws.com
+2026-02-03 18:24:51,761 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-03 18:24:54,300 WARNING DNS fallo para microsoft.com
+2026-02-03 18:24:54,312 WARNING DNS fallo para apple.com
+2026-02-03 18:24:55,358 WARNING Escaneo sin éxitos para google.com (0/7 pruebas exitosas)
+2026-02-03 18:24:55,392 WARNING DNS fallo para akamaiedge.net
+2026-02-03 18:24:55,396 WARNING DNS fallo para akamaiedge.net
+2026-02-03 18:24:55,400 WARNING DNS fallo para akamaiedge.net
+2026-02-03 18:24:56,742 WARNING DNS fallo para googlevideo.com
+2026-02-03 18:24:56,767 WARNING DNS fallo para amazonaws.com
+2026-02-03 18:24:56,889 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-03 18:24:57,912 WARNING DNS fallo para akamaiedge.net
+2026-02-03 18:24:57,916 WARNING DNS fallo para akamaiedge.net
+2026-02-03 18:24:57,921 WARNING DNS fallo para akamaiedge.net
+2026-02-03 18:24:57,926 WARNING DNS fallo para akamaiedge.net
+2026-02-03 18:24:57,927 WARNING Escaneo sin éxitos para akamaiedge.net (0/7 pruebas exitosas)
+2026-02-03 18:24:59,442 WARNING Escaneo sin éxitos para gstatic.com (0/7 pruebas exitosas)
+2026-02-03 18:24:59,446 WARNING DNS fallo para googletagmanager.com
+2026-02-03 18:24:59,465 WARNING DNS fallo para microsoftonline.com
+2026-02-03 18:24:59,509 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-03 18:24:59,510 WARNING Escaneo sin éxitos para amazonaws.com (0/7 pruebas exitosas)
+2026-02-03 18:24:59,521 WARNING DNS fallo para amazon.com
+2026-02-03 18:25:00,685 WARNING DNS fallo para windowsupdate.com
+2026-02-03 18:25:00,689 WARNING DNS fallo para windowsupdate.com
+2026-02-03 18:25:00,693 WARNING DNS fallo para windowsupdate.com
+2026-02-03 18:25:00,701 WARNING DNS fallo para windowsupdate.com
+2026-02-03 18:25:01,956 WARNING DNS fallo para office.com
+2026-02-03 18:25:01,970 WARNING DNS fallo para microsoftonline.com
+2026-02-03 18:25:01,975 WARNING DNS fallo para microsoftonline.com
+2026-02-03 18:25:01,982 WARNING DNS fallo para microsoftonline.com
+2026-02-03 18:25:01,988 WARNING DNS fallo para microsoftonline.com
+2026-02-03 18:25:01,992 WARNING DNS fallo para microsoftonline.com
+2026-02-03 18:25:01,997 WARNING DNS fallo para microsoftonline.com
+2026-02-03 18:25:01,998 WARNING Escaneo sin éxitos para microsoftonline.com (0/7 pruebas exitosas)
+2026-02-03 18:25:02,358 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-03 18:25:02,364 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-03 18:25:03,206 WARNING DNS fallo para windowsupdate.com
+2026-02-03 18:25:03,211 WARNING DNS fallo para windowsupdate.com
+2026-02-03 18:25:03,216 WARNING DNS fallo para windowsupdate.com
+2026-02-03 18:25:03,217 WARNING Escaneo sin éxitos para windowsupdate.com (0/7 pruebas exitosas)
+2026-02-03 18:25:03,316 WARNING DNS fallo para e2ro.com
+2026-02-03 18:25:03,320 WARNING DNS fallo para e2ro.com
+2026-02-03 18:25:04,511 WARNING DNS fallo para linkedin.com
+2026-02-03 18:25:04,515 WARNING DNS fallo para azure.com
+2026-02-03 18:25:04,527 WARNING DNS fallo para amazon.com
+2026-02-03 18:25:04,534 WARNING DNS fallo para apple.com
+2026-02-03 18:25:05,828 WARNING DNS fallo para e2ro.com
+2026-02-03 18:25:05,833 WARNING DNS fallo para e2ro.com
+2026-02-03 18:25:05,838 WARNING DNS fallo para e2ro.com
+2026-02-03 18:25:05,843 WARNING DNS fallo para e2ro.com
+2026-02-03 18:25:05,847 WARNING DNS fallo para e2ro.com
+2026-02-03 18:25:05,848 WARNING Escaneo sin éxitos para e2ro.com (0/7 pruebas exitosas)
+2026-02-03 18:25:07,370 WARNING DNS fallo para domaincontrol.com
+2026-02-03 18:25:07,374 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-03 18:25:09,819 WARNING DNS fallo para dzen.ru
+2026-02-03 18:25:10,366 WARNING Escaneo sin éxitos para office.com (0/7 pruebas exitosas)
+2026-02-03 18:25:10,408 WARNING DNS fallo para apple-dns.net
+2026-02-03 18:25:10,423 WARNING Escaneo sin éxitos para twitter.com (0/7 pruebas exitosas)
+2026-02-03 18:25:12,380 WARNING DNS fallo para domaincontrol.com
+2026-02-03 18:25:12,384 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-03 18:25:12,396 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-03 18:25:12,396 WARNING Escaneo sin éxitos para domaincontrol.com (0/7 pruebas exitosas)
+2026-02-03 18:25:12,914 WARNING DNS fallo para apple-dns.net
+2026-02-03 18:25:14,905 WARNING DNS fallo para office.net
+2026-02-03 18:25:14,915 WARNING DNS fallo para office.net
+2026-02-03 18:25:14,920 WARNING DNS fallo para office.net
+2026-02-03 18:25:14,924 WARNING DNS fallo para office.net
+2026-02-03 18:25:14,928 WARNING DNS fallo para office.net
+2026-02-03 18:25:14,932 WARNING DNS fallo para office.net
+2026-02-03 18:25:14,936 WARNING DNS fallo para office.net
+2026-02-03 18:25:14,936 WARNING Escaneo sin éxitos para office.net (0/7 pruebas exitosas)
+2026-02-03 18:25:15,419 WARNING DNS fallo para apple-dns.net
+2026-02-03 18:25:15,425 WARNING DNS fallo para microsoft.com
+2026-02-03 18:25:15,429 WARNING DNS fallo para aaplimg.com
+2026-02-03 18:25:15,434 WARNING DNS fallo para bing.com
+2026-02-03 18:25:15,462 WARNING Escaneo sin éxitos para mail.ru (0/7 pruebas exitosas)
+2026-02-03 18:25:17,853 WARNING Escaneo sin éxitos para dzen.ru (0/7 pruebas exitosas)
+2026-02-03 18:25:17,924 WARNING DNS fallo para apple-dns.net
+2026-02-03 18:25:17,968 WARNING DNS fallo para akam.net
+2026-02-03 18:25:20,398 WARNING DNS fallo para trafficmanager.net
+2026-02-03 18:25:20,402 WARNING DNS fallo para trafficmanager.net
+2026-02-03 18:25:20,407 WARNING DNS fallo para trafficmanager.net
+2026-02-03 18:25:20,414 WARNING DNS fallo para trafficmanager.net
+2026-02-03 18:25:20,429 WARNING DNS fallo para sharepoint.com
+2026-02-03 18:25:20,429 WARNING DNS fallo para youtu.be
+2026-02-03 18:25:20,435 WARNING DNS fallo para aaplimg.com
+2026-02-03 18:25:20,440 WARNING DNS fallo para bing.com
+2026-02-03 18:25:20,454 WARNING DNS fallo para apple-dns.net
+2026-02-03 18:25:20,455 WARNING DNS fallo para netflix.com
+2026-02-03 18:25:22,923 WARNING DNS fallo para trafficmanager.net
+2026-02-03 18:25:22,928 WARNING DNS fallo para trafficmanager.net
+2026-02-03 18:25:22,932 WARNING DNS fallo para trafficmanager.net
+2026-02-03 18:25:22,933 WARNING Escaneo sin éxitos para trafficmanager.net (0/7 pruebas exitosas)
+2026-02-03 18:25:22,960 WARNING DNS fallo para apple-dns.net
+2026-02-03 18:25:22,964 WARNING DNS fallo para apple-dns.net
+2026-02-03 18:25:22,965 WARNING Escaneo sin éxitos para apple-dns.net (0/7 pruebas exitosas)
+2026-02-03 18:25:22,973 WARNING DNS fallo para aaplimg.com
+2026-02-03 18:25:22,975 WARNING DNS fallo para akam.net
+2026-02-03 18:25:24,416 WARNING Timeout TCP para ripn.net:443
+2026-02-03 18:25:25,488 WARNING DNS fallo para aaplimg.com
+2026-02-03 18:25:25,489 WARNING DNS fallo para akam.net
+2026-02-03 18:25:25,493 WARNING DNS fallo para aaplimg.com
+2026-02-03 18:25:25,496 WARNING DNS fallo para akam.net
+2026-02-03 18:25:25,498 WARNING DNS fallo para aaplimg.com
+2026-02-03 18:25:25,501 WARNING DNS fallo para akam.net
+2026-02-03 18:25:25,504 WARNING DNS fallo para aaplimg.com
+2026-02-03 18:25:25,505 WARNING Escaneo sin éxitos para aaplimg.com (0/7 pruebas exitosas)
+2026-02-03 18:25:25,564 WARNING DNS fallo para azure.com
+2026-02-03 18:25:27,427 WARNING Timeout TCP para ripn.net:443
+2026-02-03 18:25:28,005 WARNING DNS fallo para youtu.be
+2026-02-03 18:25:28,009 WARNING DNS fallo para akam.net
+2026-02-03 18:25:28,016 WARNING DNS fallo para akam.net
+2026-02-03 18:25:28,016 WARNING Escaneo sin éxitos para akam.net (0/7 pruebas exitosas)
+2026-02-03 18:25:28,038 WARNING DNS fallo para sharepoint.com
+2026-02-03 18:25:28,292 WARNING DNS fallo para cloudfront.net
+2026-02-03 18:25:30,439 WARNING Timeout TCP para ripn.net:443
+2026-02-03 18:25:30,569 WARNING DNS fallo para azure.com
+2026-02-03 18:25:30,576 WARNING DNS fallo para digicert.com
+2026-02-03 18:25:31,233 WARNING Timeout en appsflyersdk.com con grupo Automático
+2026-02-03 18:25:33,221 WARNING DNS fallo para pv-cdn.net
+2026-02-03 18:25:33,225 WARNING DNS fallo para pv-cdn.net
+2026-02-03 18:25:33,229 WARNING DNS fallo para pv-cdn.net
+2026-02-03 18:25:33,232 WARNING DNS fallo para pv-cdn.net
+2026-02-03 18:25:33,236 WARNING DNS fallo para pv-cdn.net
+2026-02-03 18:25:33,242 WARNING DNS fallo para pv-cdn.net
+2026-02-03 18:25:33,249 WARNING DNS fallo para pv-cdn.net
+2026-02-03 18:25:33,249 WARNING Escaneo sin éxitos para pv-cdn.net (0/7 pruebas exitosas)
+2026-02-03 18:25:33,297 WARNING DNS fallo para cloudfront.net
+2026-02-03 18:25:33,301 WARNING DNS fallo para cloudfront.net
+2026-02-03 18:25:33,312 WARNING DNS fallo para googleusercontent.com
+2026-02-03 18:25:33,449 WARNING Timeout TCP para ripn.net:443
+2026-02-03 18:25:35,774 WARNING Escaneo sin éxitos para youtu.be (0/7 pruebas exitosas)
+2026-02-03 18:25:35,804 WARNING DNS fallo para x.com
+2026-02-03 18:25:35,811 WARNING DNS fallo para googlesyndication.com
+2026-02-03 18:25:35,818 WARNING DNS fallo para cloudfront.net
+2026-02-03 18:25:35,822 WARNING DNS fallo para tiktokcdn.com
+2026-02-03 18:25:36,459 WARNING Timeout TCP para ripn.net:443
+2026-02-03 18:25:38,328 WARNING DNS fallo para sharepoint.com
+2026-02-03 18:25:38,330 WARNING DNS fallo para tiktokcdn.com
+2026-02-03 18:25:38,330 WARNING DNS fallo para cloudfront.net
+2026-02-03 18:25:38,337 WARNING DNS fallo para cloudfront.net
+2026-02-03 18:25:38,339 WARNING DNS fallo para tiktokcdn.com
+2026-02-03 18:25:38,349 WARNING DNS fallo para cloudfront.net
+2026-02-03 18:25:38,350 WARNING Escaneo sin éxitos para cloudfront.net (0/7 pruebas exitosas)
+2026-02-03 18:25:38,351 WARNING DNS fallo para tiktokcdn.com
+2026-02-03 18:25:38,815 WARNING DNS fallo para skype.com
+2026-02-03 18:25:40,859 WARNING DNS fallo para tiktokcdn.com
+2026-02-03 18:25:40,862 WARNING DNS fallo para tiktokcdn.com
+2026-02-03 18:25:40,866 WARNING DNS fallo para tiktokcdn.com
+2026-02-03 18:25:40,867 WARNING Escaneo sin éxitos para tiktokcdn.com (0/7 pruebas exitosas)
+2026-02-03 18:25:40,872 WARNING DNS fallo para ax-msedge.net
+2026-02-03 18:25:40,878 WARNING DNS fallo para ax-msedge.net
+2026-02-03 18:25:40,881 WARNING DNS fallo para ax-msedge.net
+2026-02-03 18:25:40,889 WARNING DNS fallo para ax-msedge.net
+2026-02-03 18:25:40,892 WARNING DNS fallo para netflix.com
+2026-02-03 18:25:40,893 WARNING Escaneo sin éxitos para netflix.com (0/7 pruebas exitosas)
+2026-02-03 18:25:40,893 WARNING DNS fallo para gvt2.com
+2026-02-03 18:25:40,894 WARNING DNS fallo para ax-msedge.net
+2026-02-03 18:25:40,901 WARNING DNS fallo para gvt2.com
+2026-02-03 18:25:41,966 WARNING Timeout TCP para ripn.net:443
+2026-02-03 18:25:43,399 WARNING DNS fallo para ax-msedge.net
+2026-02-03 18:25:43,403 WARNING DNS fallo para ax-msedge.net
+2026-02-03 18:25:43,403 WARNING Escaneo sin éxitos para ax-msedge.net (0/7 pruebas exitosas)
+2026-02-03 18:25:43,404 WARNING DNS fallo para vimeo.com
+2026-02-03 18:25:43,408 WARNING DNS fallo para gvt2.com
+2026-02-03 18:25:43,434 WARNING DNS fallo para roblox.com
+2026-02-03 18:25:43,435 WARNING DNS fallo para ntp.org
+2026-02-03 18:25:43,440 WARNING DNS fallo para gvt2.com
+2026-02-03 18:25:43,446 WARNING DNS fallo para gvt2.com
+2026-02-03 18:25:43,450 WARNING DNS fallo para gvt2.com
+2026-02-03 18:25:44,975 WARNING Timeout TCP para ripn.net:443
+2026-02-03 18:25:44,976 WARNING Escaneo sin éxitos para ripn.net (0/7 pruebas exitosas)
+2026-02-03 18:25:45,001 WARNING DNS fallo para gvt1.com
+2026-02-03 18:25:45,005 WARNING DNS fallo para gvt1.com
+2026-02-03 18:25:45,009 WARNING DNS fallo para gvt1.com
+2026-02-03 18:25:45,013 WARNING DNS fallo para gvt1.com
+2026-02-03 18:25:45,955 WARNING DNS fallo para gvt2.com
+2026-02-03 18:25:45,957 WARNING Escaneo sin éxitos para gvt2.com (0/7 pruebas exitosas)
+2026-02-03 18:25:45,972 WARNING DNS fallo para ytimg.com
+2026-02-03 18:25:45,996 WARNING DNS fallo para ytimg.com
+2026-02-03 18:25:45,999 WARNING DNS fallo para ytimg.com
+2026-02-03 18:25:46,002 WARNING DNS fallo para ytimg.com
+2026-02-03 18:25:46,019 WARNING DNS fallo para icloud.com
+2026-02-03 18:25:46,019 WARNING Escaneo sin éxitos para icloud.com (0/7 pruebas exitosas)
+2026-02-03 18:25:46,044 WARNING Escaneo sin éxitos para ntp.org (0/7 pruebas exitosas)
+2026-02-03 18:25:46,858 WARNING DNS fallo para t-msedge.net
+2026-02-03 18:25:46,862 WARNING DNS fallo para t-msedge.net
+2026-02-03 18:25:46,866 WARNING DNS fallo para t-msedge.net
+2026-02-03 18:25:46,870 WARNING DNS fallo para t-msedge.net
+2026-02-03 18:25:47,517 WARNING DNS fallo para gvt1.com
+2026-02-03 18:25:47,522 WARNING DNS fallo para gvt1.com
+2026-02-03 18:25:47,527 WARNING DNS fallo para gvt1.com
+2026-02-03 18:25:47,528 WARNING Escaneo sin éxitos para gvt1.com (0/7 pruebas exitosas)
+2026-02-03 18:25:48,507 WARNING DNS fallo para ytimg.com
+2026-02-03 18:25:48,511 WARNING DNS fallo para roblox.com
+2026-02-03 18:25:48,519 WARNING DNS fallo para gandi.net
+2026-02-03 18:25:48,537 WARNING Escaneo sin éxitos para skype.com (0/7 pruebas exitosas)
+2026-02-03 18:25:49,378 WARNING DNS fallo para t-msedge.net
+2026-02-03 18:25:49,382 WARNING DNS fallo para t-msedge.net
+2026-02-03 18:25:49,388 WARNING DNS fallo para t-msedge.net
+2026-02-03 18:25:49,388 WARNING Escaneo sin éxitos para t-msedge.net (0/7 pruebas exitosas)
+2026-02-03 18:25:49,394 WARNING DNS fallo para edgekey.net
+2026-02-03 18:25:49,398 WARNING DNS fallo para edgekey.net
+2026-02-03 18:25:49,402 WARNING DNS fallo para edgekey.net
+2026-02-03 18:25:49,406 WARNING DNS fallo para edgekey.net
+2026-02-03 18:25:49,409 WARNING DNS fallo para edgekey.net
+2026-02-03 18:25:49,415 WARNING DNS fallo para edgekey.net
+2026-02-03 18:25:51,013 WARNING DNS fallo para ytimg.com
+2026-02-03 18:25:51,017 WARNING DNS fallo para ytimg.com
+2026-02-03 18:25:51,025 WARNING DNS fallo para wa.me
+2026-02-03 18:25:51,032 WARNING DNS fallo para tiktokv.com
+2026-02-03 18:25:51,036 WARNING DNS fallo para yandex.net
+2026-02-03 18:25:51,040 WARNING DNS fallo para cloudflare.net
+2026-02-03 18:25:51,041 WARNING Escaneo sin éxitos para ytimg.com (0/7 pruebas exitosas)
+2026-02-03 18:25:51,049 WARNING DNS fallo para qq.com
+2026-02-03 18:25:51,955 WARNING DNS fallo para edgekey.net
+2026-02-03 18:25:51,956 WARNING Escaneo sin éxitos para edgekey.net (0/7 pruebas exitosas)
+2026-02-03 18:25:54,361 WARNING Timeout en appsflyersdk.com con grupo p256_kyber768
+2026-02-03 18:25:54,400 WARNING Escaneo sin éxitos para gandi.net (0/7 pruebas exitosas)
+2026-02-03 18:25:56,295 WARNING DNS fallo para nginx.org
+2026-02-03 18:25:56,296 WARNING Escaneo sin éxitos para nginx.org (0/7 pruebas exitosas)
+2026-02-03 18:25:56,300 WARNING DNS fallo para root-servers.net
+2026-02-03 18:25:56,303 WARNING DNS fallo para tiktokv.com
+2026-02-03 18:25:56,305 WARNING DNS fallo para root-servers.net
+2026-02-03 18:25:56,309 WARNING DNS fallo para root-servers.net
+2026-02-03 18:25:56,313 WARNING DNS fallo para root-servers.net
+2026-02-03 18:25:56,319 WARNING Escaneo sin éxitos para roblox.com (0/7 pruebas exitosas)
+2026-02-03 18:25:56,321 WARNING DNS fallo para root-servers.net
+2026-02-03 18:25:56,326 WARNING DNS fallo para root-servers.net
+2026-02-03 18:25:56,331 WARNING DNS fallo para root-servers.net
+2026-02-03 18:25:56,333 WARNING Escaneo sin éxitos para root-servers.net (0/7 pruebas exitosas)
+2026-02-03 18:25:56,526 WARNING DNS fallo para edgesuite.net
+2026-02-03 18:25:56,785 WARNING DNS fallo para vedcdnlb.com
+2026-02-03 18:25:58,201 WARNING Timeout TCP para qq.com:443
+2026-02-03 18:25:58,834 WARNING DNS fallo para zoom.us
+2026-02-03 18:25:58,966 WARNING DNS fallo para google-analytics.com
+2026-02-03 18:25:58,986 WARNING DNS fallo para cloudflare.net
+2026-02-03 18:25:59,292 WARNING DNS fallo para vedcdnlb.com
+2026-02-03 18:26:01,533 WARNING DNS fallo para edgesuite.net
+2026-02-03 18:26:01,539 WARNING DNS fallo para edgesuite.net
+2026-02-03 18:26:01,543 WARNING DNS fallo para edgesuite.net
+2026-02-03 18:26:01,548 WARNING DNS fallo para edgesuite.net
+2026-02-03 18:26:01,551 WARNING DNS fallo para edgesuite.net
+2026-02-03 18:26:01,555 WARNING DNS fallo para edgesuite.net
+2026-02-03 18:26:01,555 WARNING Escaneo sin éxitos para edgesuite.net (0/7 pruebas exitosas)
+2026-02-03 18:26:01,777 WARNING DNS fallo para bit.ly
+2026-02-03 18:26:04,286 WARNING DNS fallo para cloudflare.net
+2026-02-03 18:26:04,297 WARNING DNS fallo para vedcdnlb.com
+2026-02-03 18:26:04,301 WARNING DNS fallo para vedcdnlb.com
+2026-02-03 18:26:04,306 WARNING DNS fallo para vedcdnlb.com
+2026-02-03 18:26:04,310 WARNING DNS fallo para vedcdnlb.com
+2026-02-03 18:26:04,316 WARNING DNS fallo para vedcdnlb.com
+2026-02-03 18:26:04,317 WARNING Escaneo sin éxitos para vedcdnlb.com (0/7 pruebas exitosas)
+2026-02-03 18:26:04,325 WARNING DNS fallo para nginx.com
+2026-02-03 18:26:07,011 WARNING Escaneo sin éxitos para tiktokv.com (0/7 pruebas exitosas)
+2026-02-03 18:26:08,843 WARNING Escaneo sin éxitos para qq.com (0/7 pruebas exitosas)
+2026-02-03 18:26:11,722 WARNING Timeout en appsflyersdk.com con grupo kyber768
+2026-02-03 18:26:12,249 WARNING Escaneo sin éxitos para cloudflare-dns.com (0/7 pruebas exitosas)
+2026-02-03 18:26:12,344 WARNING Escaneo sin éxitos para opera.com (0/7 pruebas exitosas)
+2026-02-03 18:26:12,423 WARNING Escaneo sin éxitos para nginx.com (0/7 pruebas exitosas)
+2026-02-03 18:26:18,381 WARNING Timeout en ui.com con grupo Automático
+2026-02-03 18:26:27,758 WARNING Timeout en appsflyersdk.com con grupo frodo640aes
+2026-02-03 18:26:34,524 WARNING Timeout en ui.com con grupo p256_kyber768
+2026-02-03 18:26:50,560 WARNING Timeout en ui.com con grupo kyber768
+2026-02-03 18:27:06,595 WARNING Timeout en ui.com con grupo frodo640aes
+2026-02-03 18:27:06,730 INFO ======================================================================
+2026-02-03 18:27:06,730 INFO Escaneo PQC completado
+2026-02-03 18:27:06,730 INFO Tiempo total: 145.22 segundos
+2026-02-03 18:27:06,731 INFO Hosts con al menos un éxito: 54/100 (54.00%)
+2026-02-03 18:27:06,731 INFO Pruebas exitosas: 54/700 (7.71%)
+2026-02-03 18:27:06,731 INFO Resultados guardados en /home/tfg/resultados/resultados_sonda_pqc.json
+2026-02-03 18:27:06,731 INFO ======================================================================

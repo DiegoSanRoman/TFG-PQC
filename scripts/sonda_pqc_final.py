@@ -75,12 +75,13 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
     # Ruta al binario de OpenSSL personalizado con soporte PQC
     openssl_bin = openssl_bin or "/opt/openssl/bin/openssl"
     
-    # Comando con flags de compatibilidad máxima
-    cmd = [openssl_bin, "s_client", "-connect", f"{hostname}:443", "-servername", hostname, "-tls1_3", "-ign_eof"]
+    # Comando base
+    cmd = [openssl_bin, "s_client", "-connect", f"{hostname}:443", "-servername", hostname, "-ign_eof"]
     
-    # Si se especifica un grupo, lo añadimos al comando. Si no, se usará el modo automático por defecto.
+    # Si se especifica un grupo, forzamos TLS 1.3 y el grupo PQC
+    # Si no, es una conexión normal (sin forzar TLS 1.3 ni grupos)
     if group:
-        cmd += ["-groups", group]
+        cmd += ["-tls1_3", "-groups", group]
     
     logger.debug("Probando %s con grupo %s", hostname, group if group else "Automático")
     
