@@ -44,9 +44,20 @@ def main():
     output_path.parent.mkdir(parents=True, exist_ok=True)
     
     # 2. Aplanar la lista de 'datos'
-    # json_normalize recorre la lista y crea una columna por cada campo,
-    # incluso si están dentro de diccionarios anidados.
-    df = pd.json_normalize(data['datos'], sep='_')
+    # Comprobar si hay un campo 'pruebas' en algún registro (estructura PQC)
+    if data['datos'] and isinstance(data['datos'][0].get('pruebas'), list):
+        # Estructura con múltiples pruebas por hostname
+        # Usar record_path para expandir el array de pruebas
+        # y meta para mantener los campos del nivel superior (hostname, timestamp)
+        df = pd.json_normalize(
+            data['datos'],
+            record_path='pruebas',
+            meta=['hostname', 'timestamp'],
+            sep='_'
+        )
+    else:
+        # Estructura simple sin pruebas múltiples
+        df = pd.json_normalize(data['datos'], sep='_')
     
     # 3. Guardar el resultado en un archivo CSV
     df.to_csv(output_path, index=False, encoding='utf-8')
