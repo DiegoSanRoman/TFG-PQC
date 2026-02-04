@@ -93,9 +93,9 @@ def ejecutar_estudio_ml(ruta_csv):
     
     df_modelo = preprocesar_datos(data)
 
-    # Ver las primeras filas del DataFrame procesado
+    # Ver las 10 primeras filas del DataFrame procesado con todas las columnas
     print("Datos procesados para el modelo:")
-    print(df_modelo.head())
+    print(df_modelo.head(10))
     
     # Dividir características (X) y objetivo (y)
     X = df_modelo.drop(columns=['target_seguridad_alta'])
