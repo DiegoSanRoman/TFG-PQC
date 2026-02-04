@@ -1,9 +1,12 @@
 # Usamos la imagen base cuántica
 FROM openquantumsafe/openssl3
 
-# Instalamos Python y las dependencias necesarias
-RUN apk update && apk add python3 py3-pip
-RUN pip3 install cryptography dnspython tqdm pandas --break-system-packages
+# Instalamos Python, compiladores y dependencias necesarias
+RUN apk update && apk add \
+	python3 py3-pip \
+	build-base musl-dev python3-dev \
+	gfortran openblas-dev lapack-dev
+RUN pip3 install --no-cache-dir cryptography dnspython tqdm pandas numpy matplotlib seaborn scikit-learn --break-system-packages
 
 # Creamos la carpeta de trabajo
 WORKDIR /home/tfg

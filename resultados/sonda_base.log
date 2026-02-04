@@ -120,3 +120,67 @@
 2026-02-01 22:33:34,593 WARNING Escaneo fallido para shifen.com: Timeout conectando a 202.108.250.218:443 para shifen.com
 2026-02-01 22:33:45,106 INFO Listo. Escaneo completado: 141 exitosos, 59 fallidos (70.50% éxito)
 2026-02-01 22:33:45,106 INFO Resultados guardados en /home/diego-san-roman/TFG_Diego/resultados/resultados_sonda_base.json
+2026-02-04 11:18:34,267 INFO Se han cargado 100 hostnames desde /home/diego-san-roman/TFG_Diego/data/tranco.csv
+2026-02-04 11:18:34,267 INFO Iniciando escaneo concurrente con 50 hilos...
+2026-02-04 11:18:34,372 WARNING No se pudo resolver DNS para office.net
+2026-02-04 11:18:34,386 WARNING No se pudo resolver DNS para akam.net
+2026-02-04 11:18:34,393 WARNING No se pudo resolver DNS para apple-dns.net
+2026-02-04 11:18:34,402 WARNING No se pudo resolver DNS para aaplimg.com
+2026-02-04 11:18:34,417 WARNING No se pudo resolver DNS para akadns.net
+2026-02-04 11:18:34,421 WARNING No se pudo resolver DNS para trafficmanager.net
+2026-02-04 11:18:34,435 WARNING No se pudo resolver DNS para microsoftonline.com
+2026-02-04 11:18:34,452 WARNING No se pudo resolver DNS para akamai.net
+2026-02-04 11:18:34,494 WARNING No se pudo resolver DNS para gtld-servers.net
+2026-02-04 11:18:34,520 WARNING No se pudo resolver DNS para e2ro.com
+2026-02-04 11:18:34,551 WARNING No se pudo resolver DNS para cloudfront.net
+2026-02-04 11:18:34,573 WARNING No se pudo resolver DNS para windowsupdate.com
+2026-02-04 11:18:34,621 WARNING Escaneo fallido para cloudfront.net: No se pudo resolver DNS para cloudfront.net
+2026-02-04 11:18:34,621 WARNING Escaneo fallido para akam.net: No se pudo resolver DNS para akam.net
+2026-02-04 11:18:34,621 WARNING Escaneo fallido para office.net: No se pudo resolver DNS para office.net
+2026-02-04 11:18:34,621 WARNING Escaneo fallido para microsoftonline.com: No se pudo resolver DNS para microsoftonline.com
+2026-02-04 11:18:34,621 WARNING Escaneo fallido para e2ro.com: No se pudo resolver DNS para e2ro.com
+2026-02-04 11:18:34,622 WARNING Escaneo fallido para apple-dns.net: No se pudo resolver DNS para apple-dns.net
+2026-02-04 11:18:34,622 WARNING Escaneo fallido para trafficmanager.net: No se pudo resolver DNS para trafficmanager.net
+2026-02-04 11:18:34,622 WARNING Escaneo fallido para akadns.net: No se pudo resolver DNS para akadns.net
+2026-02-04 11:18:34,627 WARNING Escaneo fallido para windowsupdate.com: No se pudo resolver DNS para windowsupdate.com
+2026-02-04 11:18:34,628 WARNING Escaneo fallido para aaplimg.com: No se pudo resolver DNS para aaplimg.com
+2026-02-04 11:18:34,628 WARNING Escaneo fallido para akamai.net: No se pudo resolver DNS para akamai.net
+2026-02-04 11:18:34,628 WARNING Escaneo fallido para gtld-servers.net: No se pudo resolver DNS para gtld-servers.net
+2026-02-04 11:18:34,650 WARNING No se pudo resolver DNS para akamaiedge.net
+2026-02-04 11:18:34,655 WARNING Escaneo fallido para akamaiedge.net: No se pudo resolver DNS para akamaiedge.net
+2026-02-04 11:18:40,184 WARNING Error de red para amazonaws.com: Conexión rechazada por 72.21.210.29:443
+2026-02-04 11:18:40,187 WARNING Escaneo fallido para amazonaws.com: Conexión rechazada por 72.21.210.29:443
+2026-02-04 11:18:40,193 WARNING No se pudo resolver DNS para pv-cdn.net
+2026-02-04 11:18:40,197 WARNING Escaneo fallido para pv-cdn.net: No se pudo resolver DNS para pv-cdn.net
+2026-02-04 11:18:40,337 WARNING Error de red para domaincontrol.com: Conexión rechazada por 127.0.0.1:443
+2026-02-04 11:18:40,350 WARNING Escaneo fallido para domaincontrol.com: Conexión rechazada por 127.0.0.1:443
+2026-02-04 11:18:42,281 WARNING Error de red para ntp.org: Timeout conectando a 209.148.110.246:443 para ntp.org
+2026-02-04 11:18:42,298 WARNING Escaneo fallido para ntp.org: Timeout conectando a 209.148.110.246:443 para ntp.org
+2026-02-04 11:18:42,301 WARNING No se pudo resolver DNS para tiktokcdn.com
+2026-02-04 11:18:42,319 WARNING Escaneo fallido para tiktokcdn.com: No se pudo resolver DNS para tiktokcdn.com
+2026-02-04 11:18:42,732 WARNING Error de red para ripn.net: Timeout conectando a 194.226.65.229:443 para ripn.net
+2026-02-04 11:18:42,741 WARNING Escaneo fallido para ripn.net: Timeout conectando a 194.226.65.229:443 para ripn.net
+2026-02-04 11:18:53,194 WARNING Error de red para fastly.net: Timeout conectando a 151.101.65.6:443 para fastly.net
+2026-02-04 11:18:53,196 WARNING Escaneo fallido para fastly.net: Timeout conectando a 151.101.65.6:443 para fastly.net
+2026-02-04 11:18:53,315 WARNING No se pudo resolver DNS para ax-msedge.net
+2026-02-04 11:18:53,326 WARNING Escaneo fallido para ax-msedge.net: No se pudo resolver DNS para ax-msedge.net
+2026-02-04 11:18:57,178 WARNING No se pudo resolver DNS para gvt2.com
+2026-02-04 11:18:57,181 WARNING Escaneo fallido para gvt2.com: No se pudo resolver DNS para gvt2.com
+2026-02-04 11:18:57,210 WARNING No se pudo resolver DNS para ytimg.com
+2026-02-04 11:18:57,215 WARNING Escaneo fallido para ytimg.com: No se pudo resolver DNS para ytimg.com
+2026-02-04 11:19:01,764 WARNING No se pudo resolver DNS para t-msedge.net
+2026-02-04 11:19:01,774 WARNING Escaneo fallido para t-msedge.net: No se pudo resolver DNS para t-msedge.net
+2026-02-04 11:19:01,819 WARNING Error de red para mail.ru: Timeout conectando a 185.180.201.1:443 para mail.ru
+2026-02-04 11:19:01,823 WARNING No se pudo resolver DNS para gvt1.com
+2026-02-04 11:19:01,867 WARNING No se pudo resolver DNS para edgekey.net
+2026-02-04 11:19:01,902 WARNING Escaneo fallido para mail.ru: Timeout conectando a 185.180.201.1:443 para mail.ru
+2026-02-04 11:19:01,957 WARNING No se pudo resolver DNS para root-servers.net
+2026-02-04 11:19:02,021 WARNING No se pudo resolver DNS para edgesuite.net
+2026-02-04 11:19:02,034 WARNING No se pudo resolver DNS para vedcdnlb.com
+2026-02-04 11:19:02,047 WARNING Escaneo fallido para gvt1.com: No se pudo resolver DNS para gvt1.com
+2026-02-04 11:19:02,058 WARNING Escaneo fallido para edgekey.net: No se pudo resolver DNS para edgekey.net
+2026-02-04 11:19:02,058 WARNING Escaneo fallido para root-servers.net: No se pudo resolver DNS para root-servers.net
+2026-02-04 11:19:02,074 WARNING Escaneo fallido para edgesuite.net: No se pudo resolver DNS para edgesuite.net
+2026-02-04 11:19:02,074 WARNING Escaneo fallido para vedcdnlb.com: No se pudo resolver DNS para vedcdnlb.com
+2026-02-04 11:19:26,640 INFO Listo. Escaneo completado: 70 exitosos, 30 fallidos (70.00% éxito)
+2026-02-04 11:19:26,640 INFO Resultados guardados en /home/diego-san-roman/TFG_Diego/resultados/resultados_sonda_base.json
