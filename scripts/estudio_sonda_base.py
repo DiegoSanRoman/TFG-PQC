@@ -1,3 +1,15 @@
+"""
+scripts.estudio_sonda_base
+-----------------------
+Este script realiza un estudio de Machine Learning para predecir si una conexión TLS tiene "Seguridad Alta" o no, utilizando los datos obtenidos de la sonda base. El objetivo es identificar patrones y características técnicas que permitan clasificar las conexiones en dos grupos: aquellas que cumplen con criterios de seguridad modernos (TLS 1.3 y HSTS activo) y aquellas que no.
+El proceso se divide en tres etapas principales:
+1. Carga y limpieza de datos: Se importan los datos desde un CSV, se filtran las conexiones exitosas y se manejan los valores faltantes.
+2. Ingeniería de características: Se transforman las variables categóricas y se crean nuevas características
+3. Entrenamiento y evaluación: Se entrena un modelo de clasificación (Bosque Aleatorio) y se evalúa su rendimiento, además de visualizar la importancia de las características y la matriz de confusión.
+"""
+
+
+#  Importamos las librerías necesarias para el análisis de datos, visualización y modelado
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -26,16 +38,16 @@ def cargar_y_limpiar(ruta_csv):
 
     # Seleccionamos columnas relevantes para el modelo
     columnas_features = [
-        'datos_conexion_tiempo_conexion_segundos',
-        'datos_conexion_latencia_dns_ms',
-        'datos_protocolo_version',
-        'datos_protocolo_bits_clave',
-        'datos_protocolo_perfect_forward_secrecy',
-        'datos_certificado_dias_valido',
-        'datos_certificado_clave_publica_algoritmo',
-        'datos_certificado_clave_publica_tamaño_bits',
-        'datos_seguridad_avanzada_hsts_presente',
-        'datos_seguridad_avanzada_ocsp_stapling'
+        'datos_conexion_tiempo_conexion_segundos',          # Tiempo total de conexión
+        'datos_conexion_latencia_dns_ms',                   # Latencia de resolución DNS
+        'datos_protocolo_version',                          # Versión de TLS utilizada
+        'datos_protocolo_bits_clave',                       # Tamaño de la clave negociada
+        'datos_protocolo_perfect_forward_secrecy',          # Si se negoció Perfect Forward Secrecy
+        'datos_certificado_dias_valido',                    # Días restantes de validez del certificado
+        'datos_certificado_clave_publica_algoritmo',        # Algoritmo de clave pública (RSA, ECDSA...)
+        'datos_certificado_clave_publica_tamaño_bits',      # Tamaño de la clave pública del certificado
+        'datos_seguridad_avanzada_hsts_presente',           # Si el sitio tiene HSTS activo
+        'datos_seguridad_avanzada_ocsp_stapling'            # Si el sitio tiene OCSP Stapling activo
     ]
     
     df_ml = df_exito[columnas_features].copy()

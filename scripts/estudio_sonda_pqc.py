@@ -1,3 +1,15 @@
+"""
+scripts.estudio_sonda_pqc
+-----------------------
+Este script realiza un estudio de Machine Learning para predecir el grupo PQC (Post-Quantum Cryptography) al que pertenece cada conexión TLS, utilizando los datos obtenidos de la sonda PQC. El objetivo es identificar patrones y características técnicas que permitan clasificar las conexiones en sus respectivos grupos.
+El proceso se divide en tres etapas principales:
+1. Carga y limpieza de datos: Se importan los datos desde un CSV, se filtran las conexiones exitosas y se manejan los valores faltantes.
+2. Ingeniería de características: Se transforman las variables categóricas y se crean nuevas características
+3. Entrenamiento y evaluación: Se entrena un modelo de clasificación (Bosque Aleatorio) y se evalúa su rendimiento, además de visualizar la importancia de las características y la matriz de confusión.
+"""
+
+
+# Importamos las librerías necesarias
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -5,6 +17,7 @@ import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+
 
 
 # ============================================
@@ -24,18 +37,18 @@ def cargar_y_limpiar(ruta_csv):
 
     # Columnas relevantes para el modelo
     columnas_features = [
-        "tiempo_conexion_segundos",
-        "dns_time_ms",
-        "tcp_time_ms",
-        "handshake_time_ms",
-        "ip_familia",
-        "tls_version",
-        "cipher_suite",
-        "alpn",
-        "cert_issuer",
-        "response_size_bytes",
-        "sni_difiere",
-        "retry"
+        "tiempo_conexion_segundos",     # Tiempo total de conexión
+        "dns_time_ms",                  # Tiempo de resolución DNS
+        "tcp_time_ms",                  # Tiempo de establecimiento TCP
+        "handshake_time_ms",            # Tiempo de handshake TLS
+        "ip_familia",                   # IPv4 o IPv6
+        "tls_version",                  # Versión TLS utilizada
+        "cipher_suite",                 # Suite de cifrado negociada
+        "alpn",                         # ALPN negociado
+        "cert_issuer",                  # Emisor del certificado
+        "response_size_bytes",          # Tamaño de la respuesta TLS
+        "sni_difiere",                  # Si el SNI difiere del hostname escaneado
+        "retry"                         # Si hubo reintentos en la conexión
     ]
 
     df_ml = df_exito[columnas_features + ["grupo"]].copy()
