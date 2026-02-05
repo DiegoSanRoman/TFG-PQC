@@ -1,0 +1,69 @@
+{
+  "hostname": "www.uc3m.es",
+  "timestamp": "2026-02-05T11:13:07.687495+00:00",
+  "conexion": {
+    "ip": "176.58.10.138",
+    "latencia_dns_ms": 7.77,
+    "tiempo_tcp_ms": 17.32,
+    "tiempo_handshake_tls_ms": 38.43,
+    "tiempo_total_ms": 55.76
+  },
+  "protocolo": {
+    "version_tls": "TLSv1.2",
+    "cipher_suite": "ECDHE-RSA-AES128-GCM-SHA256",
+    "cipher_suite_protocolo": "TLSv1.2",
+    "cipher_suite_bits": 128,
+    "versiones_soportadas": {
+      "TLS1.0": false,
+      "TLS1.1": false,
+      "TLS1.2": true,
+      "TLS1.3": false
+    }
+  },
+  "certificado_principal": {
+    "sujeto": "CN=uc3m.es",
+    "emisor": "CN=GEANT TLS RSA 1,O=Hellenic Academic and Research Institutions CA,C=GR",
+    "numero_serie": 86449062784361817298976158859495697236,
+    "algoritmo_firma": "sha256WithRSAEncryption",
+    "valido_desde": "2025-11-05T12:18:40+00:00",
+    "valido_hasta": "2026-11-05T12:18:40+00:00",
+    "dias_valido": 273,
+    "estado_validez": "valido",
+    "hash_sha256": "0aaf630953ed4c12dfb5a300244ffb305c0ea27c331d814a57879e55e67fef84",
+    "hash_sha1": "71f11fdb7f462dca05a224e2898e7b62bc3b54d6",
+    "es_autofirmado": false,
+    "subject_alternative_names": [
+      "uc3m.es",
+      "www.uc3m.es"
+    ],
+    "clave_publica": {
+      "algoritmo": "RSA",
+      "tamaño_bits": 2048,
+      "curva": null
+    }
+  },
+  "cadena_certificados": [
+    {
+      "posicion": 0,
+      "sujeto": "CN=uc3m.es",
+      "emisor": "CN=GEANT TLS RSA 1,O=Hellenic Academic and Research Institutions CA,C=GR",
+      "numero_serie": 86449062784361817298976158859495697236,
+      "valido_desde": "2025-11-05T12:18:40+00:00",
+      "valido_hasta": "2026-11-05T12:18:40+00:00",
+      "algoritmo_firma": "sha256WithRSAEncryption",
+      "hash_sha256": "0aaf630953ed4c12dfb5a300244ffb305c0ea27c331d814a57879e55e67fef84",
+      "hash_sha1": "71f11fdb7f462dca05a224e2898e7b62bc3b54d6",
+      "es_autofirmado": false,
+      "subject_alternative_names": [
+        "uc3m.es",
+        "www.uc3m.es"
+      ],
+      "clave_publica": {
+        "algoritmo": "RSA",
+        "tamaño_bits": 2048,
+        "curva": null
+      },
+      "pem": "-----BEGIN CERTIFICATE-----\n0aaf630953ed4c12dfb5a300244ffb305c0ea27c331d814a57879e55e67fef84\n-----END CERTIFICATE-----"
+    }
+  ]
+}
