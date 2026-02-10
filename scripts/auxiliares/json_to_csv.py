@@ -1,3 +1,19 @@
+"""
+Script para convertir un archivo JSON de resultados a formato CSV, facilitando su uso en modelos de Machine Learning.
+Este script toma un archivo JSON que contiene resultados y lo convierte en un archivo CSV, que puede ser utilizado para análisis posteriores.
+
+El proceso se divide en las siguientes etapas:
+1. Configuración de argumentos: Se configuran los argumentos de entrada y salida para el script, permitiendo al usuario especificar el archivo JSON de entrada y el nombre del archivo CSV de salida.
+2. Conversión de datos: Se lee el archivo JSON y se convierte a un DataFrame de pandas, que luego se guarda como un archivo CSV en la carpeta "ml_data/".
+3. Manejo de errores: Se capturan y manejan errores relacionados con la lectura del archivo JSON y la escritura del archivo CSV, asegurando que el script sea robusto y notifique al usuario sobre cualquier problema.
+
+Ejemplo de uso:
+python json_to_csv.py resultados/archivo.json -o ml_data/archivo.csv
+
+Nota: Asegúrate de que el archivo JSON de entrada esté en la carpeta "resultados/" y que tengas permisos de escritura en la carpeta "ml_data/".
+"""
+
+# Importamos las librerías necesarias para la manipulación de datos, manejo de archivos y argumentos
 import json
 import pandas as pd
 import argparse
@@ -5,6 +21,10 @@ import os
 from pathlib import Path
 
 def main():
+    """
+    Función principal que maneja la conversión de JSON a CSV.
+    """
+    
     # Configurar argparse
     parser = argparse.ArgumentParser(description='Convierte archivo JSON de resultados a CSV para ML')
     parser.add_argument('input_file', 

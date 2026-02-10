@@ -66,7 +66,7 @@ def cargar_y_limpiar(ruta_csv):
 
 
 # ============================================
-# 2. INGENIERÍA DE CARACTERÍSTICAS (PRE-PROCESAMIENTO)
+# 2. PRE-PROCESAMIENTO
 # ============================================
 
 def preprocesar_datos(df):

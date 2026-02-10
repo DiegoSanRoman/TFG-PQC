@@ -1,5 +1,6 @@
 """
 sonda_base.py
+-----------------------
 En esta primera versión de la sonda, nos conectamos a servidores HTTPS de diferentes hostnames
 y extraemos información básica del protocolo TLS y del certificado.
 No verificamos la validez del certificado para poder conectarnos a servidores

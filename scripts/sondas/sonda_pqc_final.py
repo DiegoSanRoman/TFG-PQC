@@ -1,5 +1,6 @@
 """
 sonda_pqc_final.py
+-----------------------
 Sonda para pruebas de conectividad con algoritmos post-cuánticos (PQC).
 Utiliza OpenSSL con soporte PQC para probar diferentes grupos de cifrado
 híbridos y puros contra servidores HTTPS.

@@ -1,7 +1,0 @@
-[2026-02-10T10:00:04.096997] ERROR al conectar a cosec.inf.uc3m.es: [SSL: SSLV3_ALERT_HANDSHAKE_FAILURE] ssl/tls alert handshake failure (_ssl.c:1010)
-[2026-02-10T10:00:38.093773] ERROR al conectar a cosec.inf.uc3m.es: [SSL: SSLV3_ALERT_HANDSHAKE_FAILURE] ssl/tls alert handshake failure (_ssl.c:1010)
-[2026-02-10T10:07:11.042359] ERROR al conectar a cosec.inf.uc3m.es: [SSL: SSLV3_ALERT_HANDSHAKE_FAILURE] ssl/tls alert handshake failure (_ssl.c:1010)
-[2026-02-10T10:07:18.740924] ERROR al conectar a cosec.inf.uc3m.es: [SSL: SSLV3_ALERT_HANDSHAKE_FAILURE] ssl/tls alert handshake failure (_ssl.c:1010)
-[2026-02-10T10:20:18.080769] ERROR al conectar a cosec.inf.uc3m.es: [SSL: SSLV3_ALERT_HANDSHAKE_FAILURE] ssl/tls alert handshake failure (_ssl.c:1010)
-[2026-02-10T11:22:26.273562] Conexión exitosa a cosec.inf.uc3m.es (IP: 163.117.61.50, TLS: TLSv1.3, Tiempo: 0.05s)
-[2026-02-10T11:23:45.347447] Conexión exitosa a cosec.inf.uc3m.es (IP: 163.117.61.50, TLS: TLSv1.3, Tiempo: 0.06s)
