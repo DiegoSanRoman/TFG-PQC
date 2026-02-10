@@ -1,3 +1,19 @@
+"""
+Script para conectar a un hostname específico y obtener toda la información posible sobre la conexión, el certificado y el protocolo TLS/SSL utilizado. 
+El resultado se guarda en un JSON único por hostname en la carpeta "resultados/". Además, se registra un log general de conexiones exitosas y errores en "resultados/hostnames.log".
+
+El proceso se divide en tres etapas principales:
+1. Conexión y recopilación de datos: Se conecta al hostname, se mide la latencia DNS, se realiza el handshake TLS/SSL y se extrae toda la información relevante del certificado y la conexión.
+2. Almacenamiento de resultados: Se guarda toda la información recopilada en un JSON estructurado por hostname y se registra un log general de conexiones.
+3. Manejo de errores: Se capturan y registran errores de conexión, resolución DNS o problemas con el certificado, asegurando que el script sea robusto y no se detenga ante fallos en un hostname específico.
+
+Se ejecuta fuera del entorno de la sonda, permitiendo realizar pruebas puntuales a hosts específicos sin necesidad de escanear un dominio completo.
+Ejemplo de uso:
+python hostname_conexion.py --hostname www.ejemplo.com
+
+Nota: Este script requiere permisos de red y acceso a Internet para funcionar correctamente. Asegúrate de tener las dependencias necesarias instaladas (ssl, cryptography, dns.resolver, etc.) y de ejecutar el script en un entorno con acceso a la red.
+"""
+
 import argparse
 import logging
 from pathlib import Path
@@ -18,8 +34,11 @@ logger = logging.getLogger(__name__)
 # ============================================
 # CONSTANTES DE RUTAS
 # ============================================
-BASE_DIR = Path(__file__).parent.parent  # Directorio raíz del proyecto
+BASE_DIR = Path(__file__).parent.parent.parent  # Directorio raíz del proyecto (3 niveles arriba)
 RESULTADOS_DIR = BASE_DIR / "resultados"
+
+# Crear el directorio de resultados si no existe
+RESULTADOS_DIR.mkdir(parents=True, exist_ok=True)
 
 # ============================================
 # FUNCIONES AUXILIARES

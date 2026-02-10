@@ -1,12 +1,12 @@
 {
   "hostname": "cosec.inf.uc3m.es",
-  "timestamp": "2026-02-10T10:35:59.967393+00:00",
+  "timestamp": "2026-02-10T10:23:44.724730+00:00",
   "conexion": {
-    "ip": "163.117.61.51",
-    "latencia_dns_ms": 14.83,
-    "tiempo_tcp_ms": 6.3,
-    "tiempo_handshake_tls_ms": 13.3,
-    "tiempo_total_ms": 19.6
+    "ip": "163.117.61.50",
+    "latencia_dns_ms": 12.6,
+    "tiempo_tcp_ms": 22.49,
+    "tiempo_handshake_tls_ms": 33.53,
+    "tiempo_total_ms": 56.03
   },
   "protocolo": {
     "version_tls": "TLSv1.3",
@@ -27,7 +27,7 @@
     "algoritmo_firma": "sha256WithRSAEncryption",
     "valido_desde": "2025-10-14T10:26:05+00:00",
     "valido_hasta": "2026-10-14T10:26:05+00:00",
-    "dias_valido": 245,
+    "dias_valido": 246,
     "estado_validez": "valido",
     "hash_sha256": "fa94d293efc611a0ae47e64ec5755852fef7b68ce30ebdcf605c15c54e9f072b",
     "hash_sha1": "92f5eecb464028d152539b590becbe62ce3a0541",
