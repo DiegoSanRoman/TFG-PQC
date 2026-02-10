@@ -14,6 +14,7 @@ python hostname_conexion.py --hostname www.ejemplo.com
 Nota: Este script requiere permisos de red y acceso a Internet para funcionar correctamente. Asegúrate de tener las dependencias necesarias instaladas (ssl, cryptography, dns.resolver, etc.) y de ejecutar el script en un entorno con acceso a la red.
 """
 
+# Imports necesarios para la conexión, manejo de certificados, resolución DNS, y almacenamiento de resultados
 import argparse
 import logging
 from pathlib import Path
@@ -40,12 +41,16 @@ RESULTADOS_DIR = BASE_DIR / "resultados"
 # Crear el directorio de resultados si no existe
 RESULTADOS_DIR.mkdir(parents=True, exist_ok=True)
 
+
 # ============================================
 # FUNCIONES AUXILIARES
 # ============================================
 
 def resolver_dns(hostname: str):
-    """Resuelve el DNS y mide la latencia."""
+    """
+    Resuelve el DNS y mide la latencia.
+    Devuelve la IP resuelta y la latencia en milisegundos.
+    """
     try:
         inicio = time.perf_counter()
         respuesta = dns.resolver.resolve(hostname, 'A')
@@ -59,7 +64,10 @@ def resolver_dns(hostname: str):
         return None, None
 
 def obtener_versiones_tls_soportadas(hostname: str, ip: str):
-    """Prueba diferentes versiones de TLS para ver cuáles soporta el servidor."""
+    """
+    Prueba diferentes versiones de TLS para ver cuáles soporta el servidor.
+    Devuelve un diccionario con el resultado de cada versión.
+    """
     versiones_soportadas = {}
     versiones_a_probar = [
         ("TLS1.0", ssl.TLSVersion.TLSv1),
@@ -68,6 +76,7 @@ def obtener_versiones_tls_soportadas(hostname: str, ip: str):
         ("TLS1.3", ssl.TLSVersion.TLSv1_3),
     ]
     
+    # Para cada versión, intentamos establecer una conexión TLS específica y vemos si es exitosa o no
     for nombre_version, tls_version in versiones_a_probar:
         try:
             ctx = ssl.create_default_context()
@@ -86,7 +95,10 @@ def obtener_versiones_tls_soportadas(hostname: str, ip: str):
     return versiones_soportadas
 
 def extraer_san(cert):
-    """Extrae los Subject Alternative Names del certificado."""
+    """
+    Extrae los Subject Alternative Names del certificado.
+    Devuelve una lista de SANs encontrados.
+    """
     san_list = []
     try:
         san_extension = cert.extensions.get_extension_for_class(x509.SubjectAlternativeName)
@@ -98,7 +110,10 @@ def extraer_san(cert):
     return san_list
 
 def obtener_informacion_clave(cert):
-    """Extrae información sobre la clave pública."""
+    """
+    Extrae información sobre la clave pública.
+    Devuelve un diccionario con detalles de la clave.
+    """
     public_key = cert.public_key()
     info = {
         "algoritmo": None,
@@ -120,7 +135,10 @@ def obtener_informacion_clave(cert):
     return info
 
 def obtener_cadena_certificados(sock, hostname):
-    """Obtiene la cadena completa de certificados."""
+    """
+    Obtiene la cadena completa de certificados.
+    Devuelve una lista con la información de cada certificado.
+    """
     cadena = []
     try:
         # Obtener el certificado del peer
@@ -151,7 +169,10 @@ def obtener_cadena_certificados(sock, hostname):
     return cadena
 
 def conectar_a_host(hostname: str):
-    """Conecta a un host y obtiene toda la información posible."""
+    """
+    Conecta a un host y obtiene toda la información posible.
+    Realiza la conexión, obtiene información del certificado, protocolos soportados, y guarda los resultados en un JSON.
+    """
     # Resuelve el DNS y mide la latencia
     ip, latencia_dns = resolver_dns(hostname)
     if not ip:
@@ -260,6 +281,11 @@ def conectar_a_host(hostname: str):
         RESULTADOS_DIR.mkdir(parents=True, exist_ok=True)
         with log_file.open('a') as f:
             f.write(f"[{datetime.now().isoformat()}] ERROR al conectar a {hostname}: {e}\n")
+
+
+# ============================================
+# EJECUCIÓN PRINCIPAL
+# ============================================
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Conexión a un hostname específico.')

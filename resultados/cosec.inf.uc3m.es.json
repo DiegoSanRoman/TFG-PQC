@@ -1,12 +1,12 @@
 {
   "hostname": "cosec.inf.uc3m.es",
-  "timestamp": "2026-02-10T10:35:59.967393+00:00",
+  "timestamp": "2026-02-10T22:27:22.258208+00:00",
   "conexion": {
-    "ip": "163.117.61.51",
-    "latencia_dns_ms": 14.83,
-    "tiempo_tcp_ms": 6.3,
-    "tiempo_handshake_tls_ms": 13.3,
-    "tiempo_total_ms": 19.6
+    "ip": "163.117.61.50",
+    "latencia_dns_ms": 20.72,
+    "tiempo_tcp_ms": 8.15,
+    "tiempo_handshake_tls_ms": 15.46,
+    "tiempo_total_ms": 23.62
   },
   "protocolo": {
     "version_tls": "TLSv1.3",
