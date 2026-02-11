@@ -3572,3 +3572,30 @@
 2026-02-03 21:10:12,864 INFO Pruebas exitosas: 1001/10500 (9.53%)
 2026-02-03 21:10:12,864 INFO Resultados guardados en /home/tfg/resultados/resultados_sonda_pqc.json
 2026-02-03 21:10:12,864 INFO ======================================================================
+2026-02-11 22:43:15,759 INFO Iniciando sonda PQC con OpenSSL personalizado
+2026-02-11 22:43:15,787 INFO Binario OpenSSL: /opt/openssl/bin/openssl
+2026-02-11 22:43:15,787 INFO Límite de procesos OpenSSL: 8
+2026-02-11 22:43:15,787 INFO Se han cargado 1 hostnames desde /home/tfg/data/prueba.csv
+2026-02-11 22:43:15,787 INFO Grupos PQC a probar: Automático, prime256v1, x25519_mlkem768, p256_kyber768, kyber768, frodo640aes, sikep434
+2026-02-11 22:43:15,787 INFO Iniciando escaneo concurrente con 20 hilos...
+2026-02-11 22:43:16,215 INFO ======================================================================
+2026-02-11 22:43:16,215 INFO Escaneo PQC completado
+2026-02-11 22:43:16,215 INFO Tiempo total: 0.43 segundos
+2026-02-11 22:43:16,215 INFO Hosts con al menos un éxito: 1/1 (100.00%)
+2026-02-11 22:43:16,215 INFO Pruebas exitosas: 1/7 (14.29%)
+2026-02-11 22:43:16,215 INFO Resultados guardados en /home/tfg/resultados/resultados_sonda_pqc.json
+2026-02-11 22:43:16,215 INFO ======================================================================
+2026-02-11 22:49:29,768 INFO Iniciando sonda PQC con OpenSSL personalizado
+2026-02-11 22:49:29,768 INFO Binario OpenSSL: /opt/openssl/bin/openssl
+2026-02-11 22:49:29,769 INFO Límite de procesos OpenSSL: 8
+2026-02-11 22:49:29,769 INFO Se han cargado 2 hostnames desde /home/tfg/data/prueba.csv
+2026-02-11 22:49:29,770 INFO Grupos PQC a probar: Automático, prime256v1, x25519_mlkem768, p256_kyber768, kyber768, frodo640aes, sikep434
+2026-02-11 22:49:29,770 INFO Iniciando escaneo concurrente con 20 hilos...
+2026-02-11 22:49:32,850 WARNING Escaneo sin éxitos para uc3m.es (0/7 pruebas exitosas)
+2026-02-11 22:49:32,880 INFO ======================================================================
+2026-02-11 22:49:32,881 INFO Escaneo PQC completado
+2026-02-11 22:49:32,881 INFO Tiempo total: 3.08 segundos
+2026-02-11 22:49:32,882 INFO Hosts con al menos un éxito: 1/2 (50.00%)
+2026-02-11 22:49:32,882 INFO Pruebas exitosas: 1/14 (7.14%)
+2026-02-11 22:49:32,882 INFO Resultados guardados en /home/tfg/resultados/resultados_sonda_pqc.json
+2026-02-11 22:49:32,882 INFO ======================================================================

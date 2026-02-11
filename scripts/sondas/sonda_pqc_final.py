@@ -29,10 +29,10 @@ logger = logging.getLogger(__name__)
 # ============================================
 # CONSTANTES DE RUTAS
 # ============================================
-BASE_DIR = Path(__file__).parent.parent         # Directorio raíz del proyecto
+BASE_DIR = Path(__file__).parent.parent.parent         # Directorio raíz del proyecto
 DATA_DIR = BASE_DIR / "data"                    # Directorio de datos
 RESULTADOS_DIR = BASE_DIR / "resultados"        # Directorio de resultados
-CSV_DEFECTO = DATA_DIR / "tranco.csv"           # Archivo CSV de input por defecto
+CSV_DEFECTO = DATA_DIR / "prueba.csv"           # Archivo CSV de input por defecto
 LOG_DEFECTO = RESULTADOS_DIR / "sonda_pqc.log"  # Archivo de log por defecto
 
 

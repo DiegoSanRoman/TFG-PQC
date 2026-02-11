@@ -184,3 +184,11 @@
 2026-02-04 11:19:02,074 WARNING Escaneo fallido para vedcdnlb.com: No se pudo resolver DNS para vedcdnlb.com
 2026-02-04 11:19:26,640 INFO Listo. Escaneo completado: 70 exitosos, 30 fallidos (70.00% éxito)
 2026-02-04 11:19:26,640 INFO Resultados guardados en /home/diego-san-roman/TFG_Diego/resultados/resultados_sonda_base.json
+2026-02-11 23:47:17,417 INFO Se han cargado 1 hostnames desde /home/diego-san-roman/TFG_Diego/data/prueba.csv
+2026-02-11 23:47:17,419 INFO Iniciando escaneo concurrente con 50 hilos...
+2026-02-11 23:47:17,937 INFO Listo. Escaneo completado: 1 exitosos, 0 fallidos (100.00% éxito)
+2026-02-11 23:47:17,937 INFO Resultados guardados en /home/diego-san-roman/TFG_Diego/resultados/resultados_sonda_base.json
+2026-02-11 23:48:16,819 INFO Se han cargado 2 hostnames desde /home/diego-san-roman/TFG_Diego/data/prueba.csv
+2026-02-11 23:48:16,820 INFO Iniciando escaneo concurrente con 50 hilos...
+2026-02-11 23:48:18,139 INFO Listo. Escaneo completado: 2 exitosos, 0 fallidos (100.00% éxito)
+2026-02-11 23:48:18,139 INFO Resultados guardados en /home/diego-san-roman/TFG_Diego/resultados/resultados_sonda_base.json

@@ -34,10 +34,10 @@ logger = logging.getLogger(__name__)
 # ============================================
 # CONSTANTES DE RUTAS
 # ============================================
-BASE_DIR = Path(__file__).parent.parent  # Directorio raíz del proyecto
+BASE_DIR = Path(__file__).parent.parent.parent  # Directorio raíz del proyecto
 DATA_DIR = BASE_DIR / "data"
 RESULTADOS_DIR = BASE_DIR / "resultados"
-CSV_DEFECTO = DATA_DIR / "tranco.csv"
+CSV_DEFECTO = DATA_DIR / "prueba.csv"
 LOG_DEFECTO = RESULTADOS_DIR / "sonda_base.log"
 
 
