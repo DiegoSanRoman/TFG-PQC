@@ -27,6 +27,22 @@ from typing import List, Dict, Any, Optional                # Para type hints
 logger = logging.getLogger(__name__)
 
 # ============================================
+# CONSTANTES DE CLASIFICACIÓN
+# ============================================
+# Categorías de error normalizadas
+ERROR_DNS = "ERROR_DNS"                    # Fallo en resolución DNS
+ERROR_TCP_REFUSED = "ERROR_TCP_REFUSED"    # Puerto cerrado o conexión rechazada
+ERROR_TCP_TIMEOUT = "ERROR_TCP_TIMEOUT"    # Timeout en conexión TCP
+ERROR_TCP_OTHER = "ERROR_TCP_OTHER"        # Otros errores TCP/red
+ERROR_TLS_TIMEOUT = "ERROR_TLS_TIMEOUT"    # Timeout durante handshake TLS
+ERROR_TLS_ALERT = "ERROR_TLS_ALERT"        # Alert TLS recibido del servidor
+ERROR_UNKNOWN = "ERROR_UNKNOWN"            # Error desconocido o inesperado
+
+# Resultados de conexión
+CONNECTION_ACCEPTED = "ACEPTADO"           # Handshake TLS exitoso
+CONNECTION_REJECTED = "RECHAZADO"          # Servidor rechazó el handshake explícitamente
+
+# ============================================
 # CONSTANTES DE RUTAS
 # ============================================
 BASE_DIR = Path(__file__).parent.parent.parent         # Directorio raíz del proyecto
@@ -183,7 +199,8 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
         logger.warning("Conexión rechazada para %s:443", hostname)
         skip_precheck = False  # No omitir, es un error real
         return {
-            "status": "ERROR",
+            "error_category": ERROR_TCP_REFUSED,
+            "connection_result": None,
             "res": "Puerto 443 cerrado o rechazado",
             "tiempo_conexion_segundos": None,
             "dns_time_ms": dns_time_ms,
@@ -211,7 +228,8 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
     except socket.timeout:
         logger.warning("Timeout TCP para %s:443", hostname)
         return {
-            "status": "ERROR",
+            "error_category": ERROR_TCP_TIMEOUT,
+            "connection_result": None,
             "res": "Timeout TCP 443",
             "tiempo_conexion_segundos": None,
             "dns_time_ms": dns_time_ms,
@@ -239,7 +257,8 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
     except OSError as e:
         logger.warning("Error TCP para %s: %s", hostname, e)
         return {
-            "status": "ERROR",
+            "error_category": ERROR_TCP_OTHER,
+            "connection_result": None,
             "res": f"Error TCP: {e}",
             "tiempo_conexion_segundos": None,
             "dns_time_ms": dns_time_ms,
@@ -299,8 +318,9 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
                         continue
                     logger.warning("Timeout en %s con grupo %s", hostname, group if group else "Automático")
                     return {
-                        "status": "ERROR",
-                        "res": "Timeout en s_client",
+                        "error_category": ERROR_TLS_TIMEOUT,
+                        "connection_result": None,
+                        "res": "Timeout durante handshake TLS",
                         "tiempo_conexion_segundos": None,
                         "dns_time_ms": dns_time_ms,
                         "tcp_time_ms": tcp_time_ms,
@@ -442,7 +462,8 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
         if handshake_failed:
             logger.debug("Rechazado (handshake failed): %s - %s", hostname, group if group else "Automático")
             return {
-                "status": "RECHAZADO",
+                "error_category": ERROR_TLS_ALERT,
+                "connection_result": CONNECTION_REJECTED,
                 "res": tls_alert if tls_alert else "Handshake failed",
                 "tiempo_conexion_segundos": tiempo_conexion_segundos,
                 "dns_time_ms": dns_time_ms,
@@ -476,7 +497,8 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
         if negotiated_line and (cert_issuer or (cipher_suite and "(NONE)" not in cipher_suite)):
             logger.debug("Éxito: %s - %s - %s", hostname, group if group else "Automático", negotiated_line)
             return {
-                "status": "ACEPTADO",
+                "error_category": None,
+                "connection_result": CONNECTION_ACCEPTED,
                 "res": negotiated_line,
                 "tiempo_conexion_segundos": tiempo_conexion_segundos,
                 "dns_time_ms": dns_time_ms,
@@ -506,7 +528,8 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
         if cipher_suite and "(NONE)" not in cipher_suite and cert_issuer:
             logger.debug("Éxito: %s - %s - Conectado (TLS 1.3)", hostname, group if group else "Automático")
             return {
-                "status": "ACEPTADO",
+                "error_category": None,
+                "connection_result": CONNECTION_ACCEPTED,
                 "res": f"Conectado - {cipher_suite}",
                 "tiempo_conexion_segundos": tiempo_conexion_segundos,
                 "dns_time_ms": dns_time_ms,
@@ -535,7 +558,8 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
         # Si hay un error específico de incompatibilidad de protocolo/draft
         logger.debug("Rechazado: %s - %s - %s", hostname, group if group else "Automático", stderr.strip())
         return {
-            "status": "RECHAZADO",
+            "error_category": ERROR_TLS_ALERT,
+            "connection_result": CONNECTION_REJECTED,
             "res": "Incompatibilidad de protocolo/draft",
             "tiempo_conexion_segundos": tiempo_conexion_segundos,
             "dns_time_ms": dns_time_ms,
@@ -565,7 +589,8 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
     except Exception as e:
         logger.warning("Error en %s con grupo %s: %s", hostname, group if group else "Automático", str(e))
         return {
-            "status": "ERROR",
+            "error_category": ERROR_UNKNOWN,
+            "connection_result": None,
             "res": str(e),
             "tiempo_conexion_segundos": None,
             "dns_time_ms": dns_time_ms,
@@ -651,21 +676,27 @@ def calcular_promedio_repeticiones(intentos: List[Dict[str, Any]], grupo: str) -
         'handshake_overhead'
     ]
     
-    # Determinar el status más común (si todos son iguales, ese; si no, el más frecuente)
-    status_counts = {}
+    # Determinar la categoría de error y resultado de conexión más comunes
+    error_counts = {}
+    result_counts = {}
     for intento in intentos:
-        status = intento.get('status')
-        status_counts[status] = status_counts.get(status, 0) + 1
-    status_promedio = max(status_counts, key=status_counts.get)
+        error = intento.get('error_category')
+        result = intento.get('connection_result')
+        error_counts[error] = error_counts.get(error, 0) + 1
+        result_counts[result] = result_counts.get(result, 0) + 1
+    
+    error_category_promedio = max(error_counts, key=error_counts.get) if error_counts else None
+    connection_result_promedio = max(result_counts, key=result_counts.get) if result_counts else None
     
     # Tomar el primer intento exitoso como referencia para campos no numéricos
     # Si no hay exitosos, tomar el primero
-    referencia = next((i for i in intentos if i.get('status') == 'ACEPTADO'), intentos[0])
+    referencia = next((i for i in intentos if i.get('connection_result') == CONNECTION_ACCEPTED), intentos[0])
     
     # Construir resultado promedio
     resultado = {
         'grupo': grupo,
-        'status': status_promedio,
+        'error_category': error_category_promedio,
+        'connection_result': connection_result_promedio,
         'repeticiones': len(intentos),
         'res': referencia.get('res'),
         'tls_version': referencia.get('tls_version'),
@@ -814,7 +845,7 @@ if __name__ == "__main__":
                     lista_resultados.append(datos_host)
                     
                     # Contar cuántas pruebas fueron exitosas
-                    exitosos = sum(1 for prueba in datos_host["pruebas"] if prueba.get("status") == "ACEPTADO")
+                    exitosos = sum(1 for prueba in datos_host["pruebas"] if prueba.get("connection_result") == CONNECTION_ACCEPTED)
                     total_pruebas = len(datos_host["pruebas"])
                     
                     # Loguear el resultado del host
@@ -840,7 +871,7 @@ if __name__ == "__main__":
     for resultado in lista_resultados:
         pruebas = resultado.get("pruebas", [])
         total_pruebas += len(pruebas)
-        exitosos_host = sum(1 for p in pruebas if p.get("status") == "ACEPTADO")
+        exitosos_host = sum(1 for p in pruebas if p.get("connection_result") == CONNECTION_ACCEPTED)
         pruebas_exitosas += exitosos_host
         if exitosos_host > 0:
             hosts_con_exito += 1

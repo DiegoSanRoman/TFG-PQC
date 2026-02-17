@@ -372,3 +372,17 @@
 2026-02-17 16:35:30,967 INFO Pruebas exitosas: 14/84 (16.67%)
 2026-02-17 16:35:30,967 INFO Resultados guardados en /home/tfg/resultados/resultados_sonda_pqc.json
 2026-02-17 16:35:30,967 INFO ======================================================================
+2026-02-17 17:41:17,722 INFO Iniciando sonda PQC con OpenSSL personalizado
+2026-02-17 17:41:17,722 INFO Binario OpenSSL: /opt/openssl/bin/openssl
+2026-02-17 17:41:17,723 INFO Límite de procesos OpenSSL: 8
+2026-02-17 17:41:17,723 INFO Repeticiones por grupo: 3
+2026-02-17 17:41:17,724 INFO Se han cargado 6 hostnames desde /home/tfg/data/prueba.csv
+2026-02-17 17:41:17,725 INFO Grupos PQC a probar: Automático, X25519, X25519MLKEM768, x25519_kyber768, mlkem768, kyber768, p256_kyber768, SecP256r1MLKEM768, x25519_mlkem512, x25519_kyber512, frodo640aes, bikel1, x25519_bikel1, x25519_hqc128
+2026-02-17 17:41:17,725 INFO Iniciando escaneo concurrente con 20 hilos...
+2026-02-17 17:42:24,309 INFO ======================================================================
+2026-02-17 17:42:24,309 INFO Escaneo PQC completado
+2026-02-17 17:42:24,309 INFO Tiempo total: 66.57 segundos
+2026-02-17 17:42:24,310 INFO Hosts con al menos un éxito: 6/6 (100.00%)
+2026-02-17 17:42:24,310 INFO Pruebas exitosas: 14/84 (16.67%)
+2026-02-17 17:42:24,310 INFO Resultados guardados en /home/tfg/resultados/resultados_sonda_pqc.json
+2026-02-17 17:42:24,310 INFO ======================================================================
