@@ -11,7 +11,8 @@ import subprocess                                           # Para ejecutar coma
 import json                                                 # Para guardar resultados en JSON
 import os                                                   # Para operaciones del sistema  
 import time                                                 # Para medir tiempo de conexión
-import csv                                                  # Para leer archivos CSV
+import csv                                                  # Para leer y escribir archivos CSV
+import statistics                                           # Para cálculos estadísticos
 import logging                                              # Para logging
 import argparse                                             # Para argumentos CLI
 import socket                                               # Para pre-check TCP
@@ -654,6 +655,178 @@ def escanear_servidor_pqc(hostname: str, grupos: List[Optional[str]], openssl_bi
     return resultado_host
 
 
+def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupos: List[Optional[str]]) -> List[Dict[str, Any]]:
+    '''
+    Genera estadísticas agregadas por grupo de cifrado
+    :param lista_resultados: Lista de resultados de todos los hosts
+    :param grupos: Lista de grupos probados
+    :return: Lista de diccionarios con estadísticas por grupo
+    '''
+    estadisticas_grupos = []
+    
+    for grupo in grupos:
+        label = grupo if grupo else "Automático"
+        
+        # Recolectar todas las pruebas de este grupo
+        pruebas_grupo = []
+        for host_resultado in lista_resultados:
+            for prueba in host_resultado.get("pruebas", []):
+                if prueba.get("grupo") == label:
+                    pruebas_grupo.append(prueba)
+        
+        if not pruebas_grupo:
+            continue
+        
+        # Contar aceptados
+        total_pruebas = len(pruebas_grupo)
+        aceptados = sum(1 for p in pruebas_grupo if p.get("connection_result") == CONNECTION_ACCEPTED)
+        rechazados = sum(1 for p in pruebas_grupo if p.get("connection_result") == CONNECTION_REJECTED)
+        errores = total_pruebas - aceptados - rechazados
+        
+        porcentaje_aceptacion = round((aceptados / total_pruebas * 100) if total_pruebas else 0, 2)
+        porcentaje_rechazo = round((rechazados / total_pruebas * 100) if total_pruebas else 0, 2)
+        porcentaje_error = round((errores / total_pruebas * 100) if total_pruebas else 0, 2)
+        
+        # Recolectar métricas numéricas solo de conexiones exitosas
+        handshake_times = []
+        dns_times = []
+        tcp_times = []
+        bytes_sent_list = []
+        bytes_received_list = []
+        bytes_total_list = []
+        handshake_overhead_list = []
+        
+        for prueba in pruebas_grupo:
+            if prueba.get("connection_result") == CONNECTION_ACCEPTED:
+                if prueba.get("handshake_time_ms") is not None:
+                    handshake_times.append(prueba["handshake_time_ms"])
+                if prueba.get("dns_time_ms") is not None:
+                    dns_times.append(prueba["dns_time_ms"])
+                if prueba.get("tcp_time_ms") is not None:
+                    tcp_times.append(prueba["tcp_time_ms"])
+                if prueba.get("bytes_sent") is not None:
+                    bytes_sent_list.append(prueba["bytes_sent"])
+                if prueba.get("bytes_received") is not None:
+                    bytes_received_list.append(prueba["bytes_received"])
+                if prueba.get("response_size_bytes") is not None:
+                    bytes_total_list.append(prueba["response_size_bytes"])
+                if prueba.get("handshake_overhead") is not None:
+                    handshake_overhead_list.append(prueba["handshake_overhead"])
+        
+        # Calcular estadísticas
+        def calc_stats(valores):
+            if not valores:
+                return {"media": None, "mediana": None, "desv_std": None, "min": None, "max": None}
+            return {
+                "media": round(statistics.mean(valores), 2),
+                "mediana": round(statistics.median(valores), 2),
+                "desv_std": round(statistics.stdev(valores), 2) if len(valores) > 1 else 0,
+                "min": round(min(valores), 2),
+                "max": round(max(valores), 2)
+            }
+        
+        stats_handshake = calc_stats(handshake_times)
+        stats_dns = calc_stats(dns_times)
+        stats_tcp = calc_stats(tcp_times)
+        stats_bytes_sent = calc_stats(bytes_sent_list)
+        stats_bytes_received = calc_stats(bytes_received_list)
+        stats_bytes_total = calc_stats(bytes_total_list)
+        stats_handshake_overhead = calc_stats(handshake_overhead_list)
+        
+        # Contar categorías de error
+        error_categories = {}
+        for prueba in pruebas_grupo:
+            cat = prueba.get("error_category")
+            if cat:
+                error_categories[cat] = error_categories.get(cat, 0) + 1
+        
+        estadisticas_grupos.append({
+            "grupo": label,
+            "total_pruebas": total_pruebas,
+            "aceptados": aceptados,
+            "rechazados": rechazados,
+            "errores": errores,
+            "porcentaje_aceptacion": porcentaje_aceptacion,
+            "porcentaje_rechazo": porcentaje_rechazo,
+            "porcentaje_error": porcentaje_error,
+            "handshake_time_ms": stats_handshake,
+            "dns_time_ms": stats_dns,
+            "tcp_time_ms": stats_tcp,
+            "bytes_sent": stats_bytes_sent,
+            "bytes_received": stats_bytes_received,
+            "bytes_total": stats_bytes_total,
+            "handshake_overhead": stats_handshake_overhead,
+            "categorias_error": error_categories
+        })
+    
+    return estadisticas_grupos
+
+
+def exportar_estadisticas_csv(estadisticas_grupos: List[Dict[str, Any]], output_path: Path):
+    '''
+    Exporta estadísticas por grupo a un archivo CSV
+    :param estadisticas_grupos: Lista de estadísticas calculadas por grupo
+    :param output_path: Ruta donde guardar el CSV
+    '''
+    if not estadisticas_grupos:
+        logger.warning("No hay estadísticas para exportar a CSV")
+        return
+    
+    with output_path.open('w', newline='', encoding='utf-8') as csvfile:
+        writer = csv.writer(csvfile)
+        
+        # Encabezados
+        headers = [
+            'Grupo',
+            'Total Pruebas',
+            'Aceptados',
+            'Rechazados',
+            'Errores',
+            '% Aceptación',
+            '% Rechazo',
+            '% Error',
+            'Handshake Media (ms)',
+            'Handshake Mediana (ms)',
+            'Handshake Desv.Std (ms)',
+            'Handshake Min (ms)',
+            'Handshake Max (ms)',
+            'DNS Media (ms)',
+            'TCP Media (ms)',
+            'Bytes Enviados Media',
+            'Bytes Recibidos Media',
+            'Bytes Totales Media',
+            'Overhead Handshake Media'
+        ]
+        writer.writerow(headers)
+        
+        # Datos
+        for stats in estadisticas_grupos:
+            row = [
+                stats['grupo'],
+                stats['total_pruebas'],
+                stats['aceptados'],
+                stats['rechazados'],
+                stats['errores'],
+                stats['porcentaje_aceptacion'],
+                stats['porcentaje_rechazo'],
+                stats['porcentaje_error'],
+                stats['handshake_time_ms']['media'],
+                stats['handshake_time_ms']['mediana'],
+                stats['handshake_time_ms']['desv_std'],
+                stats['handshake_time_ms']['min'],
+                stats['handshake_time_ms']['max'],
+                stats['dns_time_ms']['media'],
+                stats['tcp_time_ms']['media'],
+                stats['bytes_sent']['media'],
+                stats['bytes_received']['media'],
+                stats['bytes_total']['media'],
+                stats['handshake_overhead']['media']
+            ]
+            writer.writerow(row)
+    
+    logger.info("Estadísticas por grupo exportadas a %s", output_path)
+
+
 def calcular_promedio_repeticiones(intentos: List[Dict[str, Any]], grupo: str) -> Dict[str, Any]:
     '''
     Calcula promedios de métricas numéricas a partir de múltiples repeticiones
@@ -891,9 +1064,13 @@ if __name__ == "__main__":
         }
     }
 
+    # Calcular estadísticas agregadas por grupo
+    estadisticas_grupos = generar_estadisticas_por_grupo(lista_resultados, grupos)
+    
     # Guardar resultados
     RESULTADOS_DIR.mkdir(parents=True, exist_ok=True)
     resultados_path = RESULTADOS_DIR / "resultados_sonda_pqc.json"
+    csv_path = RESULTADOS_DIR / "resumen_por_grupo.csv"
     
     datos_finales = {
         "resumen": resumen["estadisticas"],
@@ -902,6 +1079,9 @@ if __name__ == "__main__":
     
     with resultados_path.open("w", encoding="utf-8") as f:
         json.dump(datos_finales, f, indent=4, ensure_ascii=False)
+    
+    # Exportar estadísticas por grupo a CSV
+    exportar_estadisticas_csv(estadisticas_grupos, csv_path)
 
     logger.info("="*70)
     logger.info("Escaneo PQC completado")
@@ -911,4 +1091,5 @@ if __name__ == "__main__":
     logger.info("Pruebas exitosas: %d/%d (%.2f%%)", 
                 pruebas_exitosas, total_pruebas, resumen["estadisticas"]["tasa_exito_pruebas_percent"])
     logger.info("Resultados guardados en %s", resultados_path)
+    logger.info("Resumen CSV guardado en %s", csv_path)
     logger.info("="*70)
