@@ -418,3 +418,242 @@
 2026-02-17 17:57:11,705 INFO Resultados guardados en /home/tfg/resultados/resultados_sonda_pqc.json
 2026-02-17 17:57:11,705 INFO Resumen CSV guardado en /home/tfg/resultados/resumen_por_grupo.csv
 2026-02-17 17:57:11,706 INFO ======================================================================
+2026-02-17 18:06:21,432 INFO Iniciando sonda PQC con OpenSSL personalizado
+2026-02-17 18:06:21,433 INFO Binario OpenSSL: /opt/openssl/bin/openssl
+2026-02-17 18:06:21,433 INFO Límite de procesos OpenSSL: 8
+2026-02-17 18:06:21,433 INFO Repeticiones por grupo: 3
+2026-02-17 18:06:21,434 INFO Se han cargado 100 hostnames desde /home/tfg/data/tranco.csv
+2026-02-17 18:06:21,435 INFO Grupos PQC a probar: Automático, X25519, X25519MLKEM768, x25519_kyber768, mlkem768, kyber768, p256_kyber768, SecP256r1MLKEM768, x25519_mlkem512, x25519_kyber512, frodo640aes, bikel1, x25519_bikel1, x25519_hqc128
+2026-02-17 18:06:21,435 INFO Iniciando escaneo concurrente con 20 hilos...
+2026-02-17 18:06:24,090 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:06:26,721 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:06:34,957 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:06:37,568 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:06:37,688 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:06:40,311 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:06:40,479 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:06:40,680 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:06:40,790 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:06:40,897 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:06:41,026 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:06:41,142 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:06:43,764 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:06:46,378 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:06:49,007 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:06:51,628 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:06:54,242 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:06:56,870 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:06:59,514 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:07:13,131 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:07:23,411 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:07:26,020 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:07:33,951 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:07:34,076 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:07:36,686 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:07:36,806 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:07:39,428 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:07:39,541 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:07:42,158 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:07:42,270 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:07:42,431 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:07:42,636 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:07:42,841 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:07:43,045 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:07:43,250 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:07:43,455 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:07:43,660 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-17 18:07:43,661 WARNING Escaneo sin éxitos para amazonaws.com (0/14 pruebas exitosas)
+2026-02-17 18:08:41,586 WARNING Escaneo sin éxitos para office.com (0/14 pruebas exitosas)
+2026-02-17 18:08:46,689 WARNING Escaneo sin éxitos para linkedin.com (0/14 pruebas exitosas)
+2026-02-17 18:08:46,737 WARNING Escaneo sin éxitos para akamai.net (0/14 pruebas exitosas)
+2026-02-17 18:08:54,540 WARNING Escaneo sin éxitos para gtld-servers.net (0/14 pruebas exitosas)
+2026-02-17 18:08:57,378 WARNING Escaneo sin éxitos para microsoft.com (0/14 pruebas exitosas)
+2026-02-17 18:09:10,227 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:10,231 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:10,235 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:10,241 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:10,246 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:10,251 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:10,255 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:12,762 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:12,769 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:15,277 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:15,282 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:20,833 WARNING Escaneo sin éxitos para live.com (0/14 pruebas exitosas)
+2026-02-17 18:09:23,021 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:23,025 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:23,031 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:23,077 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:25,584 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:25,589 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:25,594 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:25,598 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:25,609 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:26,312 WARNING Escaneo sin éxitos para dzen.ru (0/14 pruebas exitosas)
+2026-02-17 18:09:28,118 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:28,123 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:28,129 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:28,133 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:28,138 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:28,146 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:28,151 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:28,156 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:28,160 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:28,163 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:28,167 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:28,171 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:30,679 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:30,684 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:30,689 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:30,695 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:30,700 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:30,704 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:30,709 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:30,713 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:30,719 WARNING Conexión rechazada para domaincontrol.com:443
+2026-02-17 18:09:30,720 WARNING Escaneo sin éxitos para domaincontrol.com (0/14 pruebas exitosas)
+2026-02-17 18:11:02,725 WARNING Escaneo sin éxitos para akadns.net (0/14 pruebas exitosas)
+2026-02-17 18:11:05,914 WARNING Escaneo sin éxitos para akamaiedge.net (0/14 pruebas exitosas)
+2026-02-17 18:11:19,099 WARNING Timeout en appsflyersdk.com con grupo Automático
+2026-02-17 18:11:26,720 WARNING Escaneo sin éxitos para windowsupdate.com (0/14 pruebas exitosas)
+2026-02-17 18:11:29,447 WARNING Escaneo sin éxitos para bing.com (0/14 pruebas exitosas)
+2026-02-17 18:11:42,730 WARNING Timeout en appsflyersdk.com con grupo Automático
+2026-02-17 18:11:42,920 WARNING Escaneo sin éxitos para microsoftonline.com (0/14 pruebas exitosas)
+2026-02-17 18:11:48,191 WARNING Escaneo sin éxitos para e2ro.com (0/14 pruebas exitosas)
+2026-02-17 18:11:48,699 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:11:51,708 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:11:54,715 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:11:58,972 WARNING Timeout en appsflyersdk.com con grupo Automático
+2026-02-17 18:12:00,225 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:12:03,250 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:12:06,304 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:12:09,315 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:12:12,326 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:12:17,836 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:12:20,844 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:12:22,961 WARNING Escaneo sin éxitos para apple-dns.net (0/14 pruebas exitosas)
+2026-02-17 18:12:23,855 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:12:26,867 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:12:29,876 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:12:32,887 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:12:33,394 WARNING Timeout en appsflyersdk.com con grupo x25519_kyber768
+2026-02-17 18:12:35,895 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:12:38,907 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:12:44,415 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:12:47,424 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:12:50,432 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:12:51,999 WARNING Timeout en appsflyersdk.com con grupo x25519_kyber768
+2026-02-17 18:12:53,443 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:12:56,453 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:12:59,465 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:12:59,658 WARNING Escaneo sin éxitos para aaplimg.com (0/14 pruebas exitosas)
+2026-02-17 18:13:02,475 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:13:05,483 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:13:08,494 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:13:10,439 WARNING Timeout en appsflyersdk.com con grupo x25519_kyber768
+2026-02-17 18:13:11,504 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:13:14,515 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:13:17,527 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:13:20,538 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:13:23,547 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:13:28,835 WARNING Timeout en appsflyersdk.com con grupo mlkem768
+2026-02-17 18:13:40,198 WARNING Escaneo sin éxitos para office.net (0/14 pruebas exitosas)
+2026-02-17 18:13:44,991 WARNING Timeout en ripn.net con grupo frodo640aes
+2026-02-17 18:13:45,526 WARNING Escaneo sin éxitos para sharepoint.com (0/14 pruebas exitosas)
+2026-02-17 18:13:46,575 WARNING Timeout en appsflyersdk.com con grupo mlkem768
+2026-02-17 18:13:47,999 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:13:51,008 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:13:54,016 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:13:57,023 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:13:58,106 WARNING Escaneo sin éxitos para trafficmanager.net (0/14 pruebas exitosas)
+2026-02-17 18:14:00,035 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:14:01,105 WARNING Escaneo sin éxitos para akam.net (0/14 pruebas exitosas)
+2026-02-17 18:14:03,045 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:14:03,383 WARNING Timeout en appsflyersdk.com con grupo mlkem768
+2026-02-17 18:14:06,057 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:14:09,068 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:14:14,577 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:14:19,743 WARNING Timeout en appsflyersdk.com con grupo kyber768
+2026-02-17 18:14:20,086 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:14:21,937 WARNING Escaneo sin éxitos para msn.com (0/14 pruebas exitosas)
+2026-02-17 18:14:25,595 WARNING Timeout TCP para ripn.net:443
+2026-02-17 18:14:25,596 WARNING Escaneo sin éxitos para ripn.net (0/14 pruebas exitosas)
+2026-02-17 18:14:27,652 WARNING Escaneo sin éxitos para cloudfront.net (0/14 pruebas exitosas)
+2026-02-17 18:14:38,556 WARNING Timeout en appsflyersdk.com con grupo kyber768
+2026-02-17 18:14:59,882 WARNING Timeout en appsflyersdk.com con grupo kyber768
+2026-02-17 18:15:18,262 WARNING Timeout en appsflyersdk.com con grupo p256_kyber768
+2026-02-17 18:15:39,123 WARNING Timeout en appsflyersdk.com con grupo p256_kyber768
+2026-02-17 18:15:40,244 WARNING Escaneo sin éxitos para ntp.org (0/14 pruebas exitosas)
+2026-02-17 18:15:57,730 WARNING Timeout en appsflyersdk.com con grupo p256_kyber768
+2026-02-17 18:15:58,338 WARNING Escaneo sin éxitos para pv-cdn.net (0/14 pruebas exitosas)
+2026-02-17 18:16:14,106 WARNING Escaneo sin éxitos para tiktokcdn.com (0/14 pruebas exitosas)
+2026-02-17 18:16:19,718 WARNING Escaneo sin éxitos para ax-msedge.net (0/14 pruebas exitosas)
+2026-02-17 18:16:30,167 WARNING Timeout en appsflyersdk.com con grupo x25519_mlkem512
+2026-02-17 18:16:48,610 WARNING Timeout en appsflyersdk.com con grupo x25519_mlkem512
+2026-02-17 18:16:49,111 WARNING Escaneo sin éxitos para ytimg.com (0/14 pruebas exitosas)
+2026-02-17 18:16:56,940 WARNING Escaneo sin éxitos para tiktokv.com (0/14 pruebas exitosas)
+2026-02-17 18:17:00,688 WARNING Escaneo sin éxitos para gvt1.com (0/14 pruebas exitosas)
+2026-02-17 18:17:05,088 WARNING Timeout en appsflyersdk.com con grupo x25519_mlkem512
+2026-02-17 18:17:06,751 WARNING Escaneo sin éxitos para gvt2.com (0/14 pruebas exitosas)
+2026-02-17 18:17:07,826 WARNING Escaneo sin éxitos para t-msedge.net (0/14 pruebas exitosas)
+2026-02-17 18:17:26,667 WARNING Timeout en appsflyersdk.com con grupo x25519_kyber512
+2026-02-17 18:17:38,688 WARNING Timeout en ui.com con grupo Automático
+2026-02-17 18:17:43,694 WARNING Timeout en appsflyersdk.com con grupo x25519_kyber512
+2026-02-17 18:17:56,523 WARNING Timeout en ui.com con grupo Automático
+2026-02-17 18:18:01,312 WARNING Timeout en appsflyersdk.com con grupo frodo640aes
+2026-02-17 18:18:13,222 WARNING Escaneo sin éxitos para nginx.org (0/14 pruebas exitosas)
+2026-02-17 18:18:17,691 WARNING Timeout en appsflyersdk.com con grupo frodo640aes
+2026-02-17 18:18:34,464 WARNING Timeout en appsflyersdk.com con grupo frodo640aes
+2026-02-17 18:18:42,543 WARNING Timeout en ui.com con grupo x25519_kyber768
+2026-02-17 18:18:42,574 WARNING Escaneo sin éxitos para edgekey.net (0/14 pruebas exitosas)
+2026-02-17 18:18:43,069 WARNING Escaneo sin éxitos para office365.com (0/14 pruebas exitosas)
+2026-02-17 18:18:51,072 WARNING Timeout en appsflyersdk.com con grupo bikel1
+2026-02-17 18:18:53,839 WARNING Escaneo sin éxitos para edgesuite.net (0/14 pruebas exitosas)
+2026-02-17 18:18:56,945 WARNING Escaneo sin éxitos para root-servers.net (0/14 pruebas exitosas)
+2026-02-17 18:18:58,929 WARNING Timeout en ui.com con grupo x25519_kyber768
+2026-02-17 18:19:01,714 WARNING Escaneo sin éxitos para vedcdnlb.com (0/14 pruebas exitosas)
+2026-02-17 18:19:07,142 WARNING Timeout en appsflyersdk.com con grupo bikel1
+2026-02-17 18:19:14,968 WARNING Timeout en ui.com con grupo x25519_kyber768
+2026-02-17 18:19:23,179 WARNING Timeout en appsflyersdk.com con grupo bikel1
+2026-02-17 18:19:31,009 WARNING Timeout en ui.com con grupo mlkem768
+2026-02-17 18:19:39,216 WARNING Timeout en appsflyersdk.com con grupo x25519_bikel1
+2026-02-17 18:19:47,046 WARNING Timeout en ui.com con grupo mlkem768
+2026-02-17 18:19:55,255 WARNING Timeout en appsflyersdk.com con grupo x25519_bikel1
+2026-02-17 18:20:03,084 WARNING Timeout en ui.com con grupo mlkem768
+2026-02-17 18:20:11,315 WARNING Timeout en appsflyersdk.com con grupo x25519_bikel1
+2026-02-17 18:20:19,153 WARNING Timeout en ui.com con grupo kyber768
+2026-02-17 18:20:27,362 WARNING Timeout en appsflyersdk.com con grupo x25519_hqc128
+2026-02-17 18:20:35,195 WARNING Timeout en ui.com con grupo kyber768
+2026-02-17 18:20:43,399 WARNING Timeout en appsflyersdk.com con grupo x25519_hqc128
+2026-02-17 18:20:51,281 WARNING Timeout en ui.com con grupo kyber768
+2026-02-17 18:20:59,438 WARNING Timeout en appsflyersdk.com con grupo x25519_hqc128
+2026-02-17 18:21:07,324 WARNING Timeout en ui.com con grupo p256_kyber768
+2026-02-17 18:21:23,365 WARNING Timeout en ui.com con grupo p256_kyber768
+2026-02-17 18:21:39,403 WARNING Timeout en ui.com con grupo p256_kyber768
+2026-02-17 18:21:55,903 WARNING Timeout en ui.com con grupo x25519_mlkem512
+2026-02-17 18:22:11,938 WARNING Timeout en ui.com con grupo x25519_mlkem512
+2026-02-17 18:22:27,977 WARNING Timeout en ui.com con grupo x25519_mlkem512
+2026-02-17 18:22:44,019 WARNING Timeout en ui.com con grupo x25519_kyber512
+2026-02-17 18:23:00,067 WARNING Timeout en ui.com con grupo x25519_kyber512
+2026-02-17 18:23:16,106 WARNING Timeout en ui.com con grupo x25519_kyber512
+2026-02-17 18:23:32,150 WARNING Timeout en ui.com con grupo frodo640aes
+2026-02-17 18:23:48,194 WARNING Timeout en ui.com con grupo frodo640aes
+2026-02-17 18:24:04,234 WARNING Timeout en ui.com con grupo frodo640aes
+2026-02-17 18:24:20,276 WARNING Timeout en ui.com con grupo bikel1
+2026-02-17 18:24:36,314 WARNING Timeout en ui.com con grupo bikel1
+2026-02-17 18:24:52,359 WARNING Timeout en ui.com con grupo bikel1
+2026-02-17 18:25:08,398 WARNING Timeout en ui.com con grupo x25519_bikel1
+2026-02-17 18:25:24,437 WARNING Timeout en ui.com con grupo x25519_bikel1
+2026-02-17 18:25:40,478 WARNING Timeout en ui.com con grupo x25519_bikel1
+2026-02-17 18:25:56,514 WARNING Timeout en ui.com con grupo x25519_hqc128
+2026-02-17 18:26:12,555 WARNING Timeout en ui.com con grupo x25519_hqc128
+2026-02-17 18:26:28,601 WARNING Timeout en ui.com con grupo x25519_hqc128
+2026-02-17 18:26:28,846 INFO Estadísticas por grupo exportadas a /home/tfg/resultados/resumen_por_grupo.csv
+2026-02-17 18:26:28,846 INFO ======================================================================
+2026-02-17 18:26:28,846 INFO Escaneo PQC completado
+2026-02-17 18:26:28,847 INFO Tiempo total: 1207.17 segundos
+2026-02-17 18:26:28,847 INFO Hosts con al menos un éxito: 61/100 (61.00%)
+2026-02-17 18:26:28,847 INFO Pruebas exitosas: 106/1400 (7.57%)
+2026-02-17 18:26:28,847 INFO Resultados guardados en /home/tfg/resultados/resultados_sonda_pqc.json
+2026-02-17 18:26:28,847 INFO Resumen CSV guardado en /home/tfg/resultados/resumen_por_grupo.csv
+2026-02-17 18:26:28,847 INFO ======================================================================

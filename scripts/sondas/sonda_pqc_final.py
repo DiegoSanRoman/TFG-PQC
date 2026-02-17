@@ -49,7 +49,7 @@ CONNECTION_REJECTED = "RECHAZADO"          # Servidor rechazó el handshake expl
 BASE_DIR = Path(__file__).parent.parent.parent         # Directorio raíz del proyecto
 DATA_DIR = BASE_DIR / "data"                    # Directorio de datos
 RESULTADOS_DIR = BASE_DIR / "resultados"        # Directorio de resultados
-CSV_DEFECTO = DATA_DIR / "prueba.csv"           # Archivo CSV de input por defecto
+CSV_DEFECTO = DATA_DIR / "tranco.csv"           # Archivo CSV de input por defecto
 LOG_DEFECTO = RESULTADOS_DIR / "sonda_pqc.log"  # Archivo de log por defecto
 
 
@@ -140,7 +140,7 @@ def parse_trace_bytes(trace_output: str) -> Dict[str, int]:
 
 
 # ============================================
-# FUNCION PRINCIPAL
+# FUNCIONES PRINCIPALES
 # ============================================
 
 def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
