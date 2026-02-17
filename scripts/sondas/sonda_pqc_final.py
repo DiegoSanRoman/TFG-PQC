@@ -65,6 +65,62 @@ def leer_hostnames_csv(ruta_csv: Path, longitud_max: int) -> List[str]:
     return hostnames
 
 
+def parse_trace_bytes(trace_output: str) -> Dict[str, int]:
+    '''
+    Parsea la salida de OpenSSL con -trace para extraer los bytes reales del handshake TLS.
+    Cuenta los bytes enviados y recibidos durante el handshake.
+    :param trace_output: Salida de stderr + stdout de OpenSSL con -trace
+    :return: Dict con bytes_sent, bytes_received, bytes_total, handshake_overhead
+    '''
+    bytes_sent = 0
+    bytes_received = 0
+    
+    # Cada registro TLS tiene un header de 5 bytes (Content Type (1) + Version (2) + Length (2))
+    TLS_RECORD_HEADER_SIZE = 5
+    
+    lines = trace_output.split('\n')
+    i = 0
+    
+    while i < len(lines):
+        line = lines[i].strip()
+        
+        # Buscar "Sent TLS Record" o "Sent Record" (dependiendo de la versión de OpenSSL)
+        if 'Sent TLS Record' in line or 'Sent Record' in line:
+            # Buscar la línea "Length = X" en las siguientes líneas (típicamente 2-5 líneas después)
+            for j in range(i + 1, min(i + 10, len(lines))):
+                next_line = lines[j].strip()
+                match = re.search(r'Length\s*=\s*(\d+)', next_line)
+                if match:
+                    length = int(match.group(1))
+                    # Sumar el contenido + el header del registro TLS
+                    bytes_sent += length + TLS_RECORD_HEADER_SIZE
+                    break
+        
+        # Buscar "Received TLS Record" o "Received Record"
+        elif 'Received TLS Record' in line or 'Received Record' in line:
+            # Buscar la línea "Length = X" en las siguientes líneas
+            for j in range(i + 1, min(i + 10, len(lines))):
+                next_line = lines[j].strip()
+                match = re.search(r'Length\s*=\s*(\d+)', next_line)
+                if match:
+                    length = int(match.group(1))
+                    # Sumar el contenido + el header del registro TLS
+                    bytes_received += length + TLS_RECORD_HEADER_SIZE
+                    break
+        
+        i += 1
+    
+    bytes_total = bytes_sent + bytes_received
+    
+    # El overhead del handshake es todo el tráfico TLS antes del HTTP payload
+    # (incluye ClientHello, ServerHello, Certificate, Key Exchange, Finished, etc.)
+    return {
+        'bytes_sent': bytes_sent,
+        'bytes_received': bytes_received,
+        'bytes_total': bytes_total,
+        'handshake_overhead': bytes_total  # En este contexto, todo es overhead del handshake
+    }
+
 
 # ============================================
 # FUNCION PRINCIPAL
@@ -81,8 +137,8 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
     # Ruta al binario de OpenSSL personalizado con soporte PQC
     openssl_bin = openssl_bin or "/opt/openssl/bin/openssl"
     
-    # Comando base
-    cmd = [openssl_bin, "s_client", "-connect", f"{hostname}:443", "-servername", hostname, "-ign_eof"]
+    # Comando base con -trace para capturar el tamaño real de los mensajes TLS
+    cmd = [openssl_bin, "s_client", "-connect", f"{hostname}:443", "-servername", hostname, "-ign_eof", "-trace"]
     
     # Si se especifica un grupo, forzamos TLS 1.3 y el grupo PQC
     # Si no, es una conexión normal (sin forzar TLS 1.3 ni grupos)
@@ -99,6 +155,7 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
     sni_usado = hostname
     sni_difiere = False
     retried = False
+    skip_precheck = False
 
     try:
         dns_inicio = time.time()
@@ -117,33 +174,14 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
             sock.settimeout(3)
             sock.connect(sockaddr)
         tcp_time_ms = round((time.time() - tcp_inicio) * 1000, 2)
-    except socket.gaierror:
-        logger.warning("DNS fallo para %s", hostname)
-        return {
-            "status": "ERROR",
-            "res": "DNS no resolvió",
-            "tiempo_conexion_segundos": None,
-            "dns_time_ms": dns_time_ms,
-            "tcp_time_ms": tcp_time_ms,
-            "handshake_time_ms": None,
-            "ip": ip_resuelta,
-            "ip_familia": ip_familia,
-            "tls_version": None,
-            "cipher_suite": None,
-            "alpn": None,
-            "tls_alert": None,
-            "cert_issuer": None,
-            "cert_not_before": None,
-            "cert_not_after": None,
-            "cert_san": None,
-            "cert_fingerprint_sha256": None,
-            "response_size_bytes": None,
-            "sni_usado": sni_usado,
-            "sni_difiere": sni_difiere,
-            "retry": retried
-        }
+    except socket.gaierror as e:
+        # En lugar de fallar, intentaremos conectar con OpenSSL directamente
+        # (OpenSSL tiene su propio resolver DNS que puede funcionar mejor en algunos ambientes)
+        logger.debug("Pre-check DNS falló para %s (omitiendo, OpenSSL lo intentará): %s", hostname, e)
+        skip_precheck = True
     except ConnectionRefusedError:
         logger.warning("Conexión rechazada para %s:443", hostname)
+        skip_precheck = False  # No omitir, es un error real
         return {
             "status": "ERROR",
             "res": "Puerto 443 cerrado o rechazado",
@@ -163,6 +201,9 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
             "cert_san": None,
             "cert_fingerprint_sha256": None,
             "response_size_bytes": None,
+            "bytes_sent": None,
+            "bytes_received": None,
+            "handshake_overhead": None,
             "sni_usado": sni_usado,
             "sni_difiere": sni_difiere,
             "retry": retried
@@ -188,6 +229,9 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
             "cert_san": None,
             "cert_fingerprint_sha256": None,
             "response_size_bytes": None,
+            "bytes_sent": None,
+            "bytes_received": None,
+            "handshake_overhead": None,
             "sni_usado": sni_usado,
             "sni_difiere": sni_difiere,
             "retry": retried
@@ -213,6 +257,9 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
             "cert_san": None,
             "cert_fingerprint_sha256": None,
             "response_size_bytes": None,
+            "bytes_sent": None,
+            "bytes_received": None,
+            "handshake_overhead": None,
             "sni_usado": sni_usado,
             "sni_difiere": sni_difiere,
             "retry": retried
@@ -270,6 +317,9 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
                         "cert_san": None,
                         "cert_fingerprint_sha256": None,
                         "response_size_bytes": None,
+                        "bytes_sent": None,
+                        "bytes_received": None,
+                        "handshake_overhead": None,
                         "sni_usado": sni_usado,
                         "sni_difiere": sni_difiere,
                         "retry": retried
@@ -287,7 +337,16 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
         # Decodificamos la salida
         stdout = stdout_bytes.decode(errors='ignore') if stdout_bytes else ""
         stderr = stderr_bytes.decode(errors='ignore') if stderr_bytes else ""
-        response_size_bytes = (len(stdout_bytes) if stdout_bytes else 0) + (len(stderr_bytes) if stderr_bytes else 0)
+        
+        # Parsear los bytes reales del handshake TLS desde la salida de -trace
+        trace_output = stdout + "\n" + stderr
+        trace_metrics = parse_trace_bytes(trace_output)
+        
+        # Métricas reales del tráfico de red
+        bytes_sent = trace_metrics['bytes_sent']
+        bytes_received = trace_metrics['bytes_received']
+        response_size_bytes = trace_metrics['bytes_total']
+        handshake_overhead = trace_metrics['handshake_overhead']
 
         # Parseo de TLS: versión, cipher y ALPN
         tls_version = None
@@ -435,6 +494,9 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
                 "cert_san": cert_san,
                 "cert_fingerprint_sha256": cert_fingerprint_sha256,
                 "response_size_bytes": response_size_bytes,
+                "bytes_sent": bytes_sent,
+                "bytes_received": bytes_received,
+                "handshake_overhead": handshake_overhead,
                 "sni_usado": sni_usado,
                 "sni_difiere": sni_difiere,
                 "retry": retried
@@ -462,6 +524,9 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
                 "cert_san": cert_san,
                 "cert_fingerprint_sha256": cert_fingerprint_sha256,
                 "response_size_bytes": response_size_bytes,
+                "bytes_sent": bytes_sent,
+                "bytes_received": bytes_received,
+                "handshake_overhead": handshake_overhead,
                 "sni_usado": sni_usado,
                 "sni_difiere": sni_difiere,
                 "retry": retried
@@ -488,6 +553,9 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
             "cert_san": cert_san,
             "cert_fingerprint_sha256": cert_fingerprint_sha256,
             "response_size_bytes": response_size_bytes,
+            "bytes_sent": bytes_sent,
+            "bytes_received": bytes_received,
+            "handshake_overhead": handshake_overhead,
             "sni_usado": sni_usado,
             "sni_difiere": sni_difiere,
             "retry": retried
@@ -515,17 +583,23 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
             "cert_san": None,
             "cert_fingerprint_sha256": None,
             "response_size_bytes": None,
+            "bytes_sent": None,
+            "bytes_received": None,
+            "handshake_overhead": None,
             "sni_usado": sni_usado,
             "sni_difiere": sni_difiere,
             "retry": retried
         }
 
 
-def escanear_servidor_pqc(hostname: str, grupos: List[Optional[str]], openssl_bin: str, proc_semaphore) -> Dict[str, Any]:
+def escanear_servidor_pqc(hostname: str, grupos: List[Optional[str]], openssl_bin: str, proc_semaphore, repeticiones: int = 3) -> Dict[str, Any]:
     '''
     Escanea un servidor con múltiples grupos PQC y retorna los resultados
     :param hostname: Nombre del host a escanear
     :param grupos: Lista de grupos a probar (None para automático)
+    :param openssl_bin: Ruta al binario de OpenSSL
+    :param proc_semaphore: Semáforo para controlar procesos concurrentes
+    :param repeticiones: Número de repeticiones por grupo (default: 3)
     :return: Diccionario con los resultados del escaneo
     '''
     # Diccionario para almacenar resultados por hostname
@@ -538,12 +612,94 @@ def escanear_servidor_pqc(hostname: str, grupos: List[Optional[str]], openssl_bi
     # Probar cada grupo
     for g in grupos:
         label = g if g else "Automático"
-        resultado = sonda_pqc(hostname, g, openssl_bin=openssl_bin, proc_semaphore=proc_semaphore)
-        resultado["grupo"] = label
-        resultado_host["pruebas"].append(resultado)
+        
+        # Realizar múltiples repeticiones
+        intentos = []
+        for i in range(repeticiones):
+            resultado = sonda_pqc(hostname, g, openssl_bin=openssl_bin, proc_semaphore=proc_semaphore)
+            resultado["grupo"] = label
+            resultado["repeticion"] = i + 1
+            intentos.append(resultado)
+        
+        # Calcular promedios de las métricas numéricas
+        resultado_promedio = calcular_promedio_repeticiones(intentos, label)
+        resultado_host["pruebas"].append(resultado_promedio)
     
     # Retornar resultados del host
     return resultado_host
+
+
+def calcular_promedio_repeticiones(intentos: List[Dict[str, Any]], grupo: str) -> Dict[str, Any]:
+    '''
+    Calcula promedios de métricas numéricas a partir de múltiples repeticiones
+    :param intentos: Lista de resultados de repeticiones
+    :param grupo: Nombre del grupo
+    :return: Diccionario con valores promediados
+    '''
+    if not intentos:
+        return {}
+    
+    # Campos numéricos a promediar
+    campos_numericos = [
+        'tiempo_conexion_segundos',
+        'dns_time_ms',
+        'tcp_time_ms',
+        'handshake_time_ms',
+        'response_size_bytes',
+        'bytes_sent',
+        'bytes_received',
+        'handshake_overhead'
+    ]
+    
+    # Determinar el status más común (si todos son iguales, ese; si no, el más frecuente)
+    status_counts = {}
+    for intento in intentos:
+        status = intento.get('status')
+        status_counts[status] = status_counts.get(status, 0) + 1
+    status_promedio = max(status_counts, key=status_counts.get)
+    
+    # Tomar el primer intento exitoso como referencia para campos no numéricos
+    # Si no hay exitosos, tomar el primero
+    referencia = next((i for i in intentos if i.get('status') == 'ACEPTADO'), intentos[0])
+    
+    # Construir resultado promedio
+    resultado = {
+        'grupo': grupo,
+        'status': status_promedio,
+        'repeticiones': len(intentos),
+        'res': referencia.get('res'),
+        'tls_version': referencia.get('tls_version'),
+        'cipher_suite': referencia.get('cipher_suite'),
+        'alpn': referencia.get('alpn'),
+        'tls_alert': referencia.get('tls_alert'),
+        'ip': referencia.get('ip'),
+        'ip_familia': referencia.get('ip_familia'),
+        'cert_issuer': referencia.get('cert_issuer'),
+        'cert_not_before': referencia.get('cert_not_before'),
+        'cert_not_after': referencia.get('cert_not_after'),
+        'cert_san': referencia.get('cert_san'),
+        'cert_fingerprint_sha256': referencia.get('cert_fingerprint_sha256'),
+        'sni_usado': referencia.get('sni_usado'),
+        'sni_difiere': referencia.get('sni_difiere'),
+        'retry': referencia.get('retry')
+    }
+    
+    # Calcular promedios para campos numéricos
+    for campo in campos_numericos:
+        valores = [intento.get(campo) for intento in intentos if intento.get(campo) is not None]
+        if valores:
+            promedio = sum(valores) / len(valores)
+            # Redondear según el tipo de métrica
+            if campo == 'tiempo_conexion_segundos':
+                resultado[campo] = round(promedio, 3)
+            elif campo in ['dns_time_ms', 'tcp_time_ms', 'handshake_time_ms']:
+                resultado[campo] = round(promedio, 2)
+            else:  # bytes
+                resultado[campo] = int(round(promedio))
+        else:
+            resultado[campo] = None
+    
+    return resultado
 
 
 
@@ -570,6 +726,12 @@ if __name__ == "__main__":
         default=min(8, os.cpu_count() or 1),
         help="Límite de procesos OpenSSL concurrentes"
     )
+    parser.add_argument(
+        "--repeticiones",
+        type=int,
+        default=3,
+        help="Número de repeticiones por grupo para promediar métricas (default: 3)"
+    )
     args = parser.parse_args()
 
     # Configurar logging
@@ -586,16 +748,31 @@ if __name__ == "__main__":
     logger.info("Iniciando sonda PQC con OpenSSL personalizado")
     logger.info("Binario OpenSSL: %s", args.openssl_bin)
     logger.info("Límite de procesos OpenSSL: %s", args.max_openssl_procs)
+    logger.info("Repeticiones por grupo: %s", args.repeticiones)
 
     # Probamos diferentes protocolos, desde automático (None) hasta algunos híbridos y algunos puros PQC
-    grupos = [None, "prime256v1", "x25519_mlkem768", "p256_kyber768", "kyber768", "frodo640aes", "sikep434"]
-    # - None representa el modo automático por defecto de OpenSSL
-    # - prime256v1 es un grupo ECDSA clásico
-    # - x25519_mlkem768 es un grupo híbrido X25519 + Kyber768
-    # - p256_kyber768 es un grupo híbrido P-256 + Kyber768
-    # - kyber768 es un grupo puro Kyber768
-    # - frodo640aes es un grupo puro FrodoKEM-640-AES
-    # - sikep434 es un grupo puro SIKEp434
+    grupos = [
+        # --- Automático y Clásico ---
+        None,                   # 1. Automático
+        "X25519",               # 2. Clásico (Control)
+        # --- Éxitos Casi Confirmados ---                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
+        "X25519MLKEM768",       # 3. Estándar NIST Híbrido 
+        "x25519_kyber768",      # 4. Estándar Previo Híbrido
+        # --- Puros ---
+        "mlkem768",             # 5. Puro Moderno
+        "kyber768",             # 6. Puro Viejo
+        # --- Variantes Híbridas (Para maximizar compatibilidad) ---
+        "p256_kyber768",        # 7. Híbrido con curva P-256
+        "SecP256r1MLKEM768",    # 8. [NUEVO] Versión P-256 del estándar moderno (Nombre exacto de tu lista)
+        # --- Variantes de Tamaño (Nivel 1 - Más rápidos) ---
+        "x25519_mlkem512",      # 9. [NUEVO] Híbrido Nivel 1 Moderno
+        "x25519_kyber512",      # 10. [NUEVO] Híbrido Nivel 1 Viejo (Cloudflare a veces usa este)
+        # --- Algoritmos Alternativos (Backups del NIST) ---
+        "frodo640aes",          # 11. Basado en retículos (Lento pero seguro)
+        "bikel1",               # 12. Code-based Puro
+        "x25519_bikel1",        # 13. [NUEVO] Híbrido BIKE (Más probable que conecte que el puro)
+        "x25519_hqc128"         # 14. [NUEVO] Híbrido HQC (Code-based, muy robusto)
+    ]
 
     # Leer hostnames desde el archivo CSV
     ruta_csv = args.input_csv
@@ -626,7 +803,7 @@ if __name__ == "__main__":
     # Usamos ThreadPoolExecutor para concurrencia
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         # Lanzamos todas las tareas
-        futuros = {executor.submit(escanear_servidor_pqc, host, grupos, args.openssl_bin, proc_semaphore): host for host in hostnames}
+        futuros = {executor.submit(escanear_servidor_pqc, host, grupos, args.openssl_bin, proc_semaphore, args.repeticiones): host for host in hostnames}
         
         # Conforme vayan terminando, recogemos los resultados con barra de progreso
         with tqdm(total=len(hostnames), desc="Escaneo PQC", unit="host") as pbar:
