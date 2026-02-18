@@ -1,18 +1,45 @@
-# Usamos la imagen base cuántica
+# 1. Usamos la imagen base con criptografía cuántica
 FROM openquantumsafe/openssl3
 
-# Instalamos Python, compiladores y dependencias necesarias
-RUN apk update && apk add \
-	python3 py3-pip \
-	build-base musl-dev python3-dev \
-	gfortran openblas-dev lapack-dev
-RUN pip3 install --no-cache-dir cryptography dnspython tqdm pandas numpy matplotlib seaborn scikit-learn --break-system-packages
+# Etiquetas
+LABEL maintainer="Diego TFG"
+LABEL description="Sonda PQC adaptada a estructura de proyecto"
 
-# Creamos la carpeta de trabajo
-WORKDIR /home/tfg
+# 2. Configurar variables de entorno para OpenSSL-OQS
+ENV OPENSSL_BIN="/opt/openssl/bin/openssl"
+ENV LD_LIBRARY_PATH="/opt/oqssa/lib:$LD_LIBRARY_PATH"
+ENV PATH="/opt/oqssa/bin:$PATH"
 
-# Exponemos las librerías cuánticas para que el sistema las vea
-ENV LD_LIBRARY_PATH="/opt/openssl/lib64:$LD_LIBRARY_PATH"
+# 3. Instalación de dependencias de sistema (Alpine Linux)
+RUN apk update && apk add --no-cache \
+    python3 \
+    py3-pip \
+    build-base \
+    musl-dev \
+    python3-dev \
+    git \
+    ca-certificates
 
-# Al arrancar, el contenedor nos dejará en la terminal
-CMD ["/bin/sh"]
+# 4. Instalación de librerías Python
+# Instalamos pandas y otras librerías científicas
+RUN pip3 install --no-cache-dir --break-system-packages \
+    tqdm \
+    requests \
+    pandas \
+    numpy \
+    matplotlib \
+    seaborn
+
+# 5. Preparar el entorno de trabajo
+WORKDIR /app
+
+# 6. Copiar TODO tu proyecto al contenedor
+# Gracias al .dockerignore, ignorará 'venv' y copiará 'scripts', 'data', etc.
+COPY . /app
+
+# 7. Crear directorios necesarios (por seguridad)
+RUN mkdir -p /app/resultados /app/logs
+
+# 8. Comando de arranque
+# OJO: Aquí indicamos la ruta exacta donde está tu script 
+ENTRYPOINT ["python3", "scripts/sondas/sonda_pqc_final.py"]

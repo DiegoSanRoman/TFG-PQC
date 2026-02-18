@@ -49,7 +49,7 @@ CONNECTION_REJECTED = "RECHAZADO"          # Servidor rechazó el handshake expl
 BASE_DIR = Path(__file__).parent.parent.parent         # Directorio raíz del proyecto
 DATA_DIR = BASE_DIR / "data"                    # Directorio de datos
 RESULTADOS_DIR = BASE_DIR / "resultados"        # Directorio de resultados
-CSV_DEFECTO = DATA_DIR / "tranco.csv"           # Archivo CSV de input por defecto
+CSV_DEFECTO = DATA_DIR / "majestic_million.csv"           # Archivo CSV de input por defecto
 LOG_DEFECTO = RESULTADOS_DIR / "sonda_pqc.log"  # Archivo de log por defecto
 
 
@@ -58,11 +58,12 @@ LOG_DEFECTO = RESULTADOS_DIR / "sonda_pqc.log"  # Archivo de log por defecto
 # FUNCIONES AUXILIARES
 # ============================================
 
-def leer_hostnames_csv(ruta_csv: Path, longitud_max: int) -> List[str]:
+def leer_hostnames_csv(ruta_csv: Path, longitud_max: int, domain_column: Optional[int] = None) -> List[str]:
     '''
-    Lee los hostnames desde un archivo CSV (columna B)
+    Lee los hostnames desde un archivo CSV con autodetección de columna
     :param ruta_csv: Ruta al archivo CSV (Path object)
     :param longitud_max: Número máximo de hostnames a leer
+    :param domain_column: Índice de columna explícito (None para autodetectar)
     :return: Lista de hostnames
     '''
     hostnames = []  # Lista para almacenar los hostnames
@@ -70,15 +71,55 @@ def leer_hostnames_csv(ruta_csv: Path, longitud_max: int) -> List[str]:
     try:
         with ruta_csv.open('r', encoding='utf-8') as archivo:
             lector = csv.reader(archivo)
+            primera_fila = next(lector, None)
+            
+            if not primera_fila:
+                logger.error("El archivo CSV está vacío: %s", ruta_csv)
+                return hostnames
+            
+            # Autodetección de columna si no se especifica
+            if domain_column is None:
+                # Verificar si la primera fila tiene encabezados conocidos
+                encabezados_lower = [col.lower() for col in primera_fila]
+                
+                if 'domain' in encabezados_lower:
+                    # Majestic Million: buscar columna "Domain"
+                    domain_column = encabezados_lower.index('domain')
+                    logger.info("Detectado formato Majestic Million (columna %d: %s)", domain_column, primera_fila[domain_column])
+                    # Saltar la fila de encabezados
+                elif primera_fila[0].isdigit() and len(primera_fila) >= 2:
+                    # Tranco: columna B (índice 1) sin encabezados
+                    domain_column = 1
+                    logger.info("Detectado formato Tranco (columna B, índice 1)")
+                    # La primera fila es dato, procesar
+                    if len(primera_fila) > domain_column and primera_fila[domain_column]:
+                        hostnames.append(primera_fila[domain_column])
+                else:
+                    # Default: columna B (compatibilidad con Tranco)
+                    domain_column = 1
+                    logger.warning("Formato desconocido, usando columna B por defecto")
+                    if len(primera_fila) > domain_column and primera_fila[domain_column]:
+                        hostnames.append(primera_fila[domain_column])
+            else:
+                # Columna especificada manualmente
+                logger.info("Usando columna especificada: %d", domain_column)
+                # Verificar si primera fila son encabezados
+                if not primera_fila[0].isdigit():
+                    logger.info("Saltando fila de encabezados")
+                else:
+                    if len(primera_fila) > domain_column and primera_fila[domain_column]:
+                        hostnames.append(primera_fila[domain_column])
+            
+            # Leer el resto de filas
             for fila in lector:
-                # La columna B es el índice 1 (columna A es índice 0)
-                if len(fila) >= 2 and fila[1]:  # Verificar que existe columna B y no está vacía
-                    hostnames.append(fila[1])
+                if len(fila) > domain_column and fila[domain_column]:
+                    hostnames.append(fila[domain_column])
                     # Detener si alcanzamos el límite
                     if len(hostnames) >= longitud_max:
                         break
     except Exception as e:
         logger.error("Error al leer el archivo CSV %s: %s", ruta_csv, e)
+    
     return hostnames
 
 
@@ -917,6 +958,7 @@ if __name__ == "__main__":
     parser.add_argument("--input-csv", type=Path, default=CSV_DEFECTO, help="Ruta del archivo CSV de entrada con hostnames")
     parser.add_argument("--max-hostnames", type=int, default=100, help="Número máximo de hostnames a escanear")
     parser.add_argument("--max-workers", type=int, default=20, help="Número de hilos en paralelo")
+    parser.add_argument("--domain-column", type=int, default=None, help="Índice de columna con dominios (None para autodetectar)")
     parser.add_argument("--log-level", default="INFO", help="Nivel de log: DEBUG, INFO, WARNING, ERROR (solo archivo)")
     parser.add_argument("--log-file", type=Path, default=LOG_DEFECTO, help="Ruta del archivo de log")
     parser.add_argument(
@@ -927,7 +969,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--max-openssl-procs",
         type=int,
-        default=min(8, os.cpu_count() or 1),
+        default=min(12, os.cpu_count() or 1),
         help="Límite de procesos OpenSSL concurrentes"
     )
     parser.add_argument(
@@ -980,7 +1022,7 @@ if __name__ == "__main__":
 
     # Leer hostnames desde el archivo CSV
     ruta_csv = args.input_csv
-    hostnames = leer_hostnames_csv(ruta_csv, args.max_hostnames)
+    hostnames = leer_hostnames_csv(ruta_csv, args.max_hostnames, args.domain_column)
     
     # Verificar que se han leído hostnames
     if not hostnames:
