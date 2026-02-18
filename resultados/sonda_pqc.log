@@ -2822,3 +2822,358 @@
 2026-02-17 23:58:28,427 INFO Resultados guardados en /app/resultados/resultados_sonda_pqc.json
 2026-02-17 23:58:28,427 INFO Resumen CSV guardado en /app/resultados/resumen_por_grupo.csv
 2026-02-17 23:58:28,427 INFO ======================================================================
+2026-02-18 21:41:53,148 INFO Iniciando sonda PQC con OpenSSL personalizado
+2026-02-18 21:41:53,149 INFO Binario OpenSSL: /opt/openssl/bin/openssl
+2026-02-18 21:41:53,150 INFO Límite de procesos OpenSSL: 12
+2026-02-18 21:41:53,150 INFO Repeticiones por grupo: 1
+2026-02-18 21:41:53,151 INFO Detectado formato Majestic Million (columna 2: Domain)
+2026-02-18 21:41:53,151 INFO Se han cargado 10 hostnames desde /app/data/majestic_million.csv
+2026-02-18 21:41:53,152 INFO Grupos PQC a probar: Automático, X25519, X25519MLKEM768, x25519_kyber768, mlkem768, kyber768, p256_kyber768, SecP256r1MLKEM768, x25519_mlkem512, x25519_kyber512, frodo640aes, bikel1, x25519_bikel1, x25519_hqc128
+2026-02-18 21:41:53,152 INFO Iniciando escaneo concurrente con 20 hilos...
+2026-02-18 21:42:14,267 WARNING Escaneo sin éxitos para linkedin.com (0/14 pruebas exitosas)
+2026-02-18 21:42:22,184 WARNING Escaneo sin éxitos para microsoft.com (0/14 pruebas exitosas)
+2026-02-18 21:42:27,767 INFO Estadísticas por grupo exportadas a /app/resultados/resumen_por_grupo.csv
+2026-02-18 21:42:27,768 INFO ======================================================================
+2026-02-18 21:42:27,768 INFO Escaneo PQC completado
+2026-02-18 21:42:27,768 INFO Tiempo total: 34.57 segundos
+2026-02-18 21:42:27,769 INFO Hosts con al menos un éxito: 8/10 (80.00%)
+2026-02-18 21:42:27,769 INFO Pruebas exitosas: 16/140 (11.43%)
+2026-02-18 21:42:27,769 INFO Resultados guardados en /app/resultados/resultados_sonda_pqc.json
+2026-02-18 21:42:27,769 INFO Resumen CSV guardado en /app/resultados/resumen_por_grupo.csv
+2026-02-18 21:42:27,770 INFO ======================================================================
+2026-02-18 22:12:37,501 INFO Iniciando sonda PQC con OpenSSL personalizado
+2026-02-18 22:12:37,501 INFO Binario OpenSSL: /opt/openssl/bin/openssl
+2026-02-18 22:12:37,501 INFO Límite de procesos OpenSSL: 12
+2026-02-18 22:12:37,502 INFO Repeticiones por grupo: 1
+2026-02-18 22:12:37,502 INFO Detectado formato Majestic Million (columna 2: Domain)
+2026-02-18 22:12:37,503 INFO Se han cargado 10 hostnames desde /app/data/majestic_million.csv
+2026-02-18 22:12:37,503 INFO Grupos PQC a probar: Automático, X25519, X25519MLKEM768, x25519_kyber768, mlkem768, kyber768, p256_kyber768, SecP256r1MLKEM768, x25519_mlkem512, x25519_kyber512, frodo640aes, bikel1, x25519_bikel1, x25519_hqc128
+2026-02-18 22:12:37,503 INFO Iniciando escaneo concurrente con 5 hilos...
+2026-02-18 22:12:53,195 WARNING Escaneo sin éxitos para linkedin.com (0/14 pruebas exitosas)
+2026-02-18 22:13:04,920 WARNING Escaneo sin éxitos para microsoft.com (0/14 pruebas exitosas)
+2026-02-18 22:13:06,518 INFO Estadísticas por grupo exportadas a /app/resultados/resumen_por_grupo.csv
+2026-02-18 22:13:06,519 INFO ======================================================================
+2026-02-18 22:13:06,519 INFO Escaneo PQC completado
+2026-02-18 22:13:06,519 INFO Tiempo total: 28.98 segundos
+2026-02-18 22:13:06,520 INFO Hosts con al menos un éxito: 8/10 (80.00%)
+2026-02-18 22:13:06,520 INFO Pruebas exitosas: 16/140 (11.43%)
+2026-02-18 22:13:06,520 INFO Resultados guardados en /app/resultados/resultados_sonda_pqc.json
+2026-02-18 22:13:06,520 INFO Resumen CSV guardado en /app/resultados/resumen_por_grupo.csv
+2026-02-18 22:13:06,521 INFO ======================================================================
+2026-02-18 22:13:45,288 INFO Iniciando sonda PQC con OpenSSL personalizado
+2026-02-18 22:13:45,289 INFO Binario OpenSSL: /opt/openssl/bin/openssl
+2026-02-18 22:13:45,289 INFO Límite de procesos OpenSSL: 12
+2026-02-18 22:13:45,290 INFO Repeticiones por grupo: 1
+2026-02-18 22:13:45,290 INFO Detectado formato Majestic Million (columna 2: Domain)
+2026-02-18 22:13:45,291 INFO Se han cargado 100 hostnames desde /app/data/majestic_million.csv
+2026-02-18 22:13:45,292 INFO Grupos PQC a probar: Automático, X25519, X25519MLKEM768, x25519_kyber768, mlkem768, kyber768, p256_kyber768, SecP256r1MLKEM768, x25519_mlkem512, x25519_kyber512, frodo640aes, bikel1, x25519_bikel1, x25519_hqc128
+2026-02-18 22:13:45,292 INFO Iniciando escaneo concurrente con 5 hilos...
+2026-02-18 22:13:58,612 WARNING Escaneo sin éxitos para linkedin.com (0/14 pruebas exitosas)
+2026-02-18 22:14:15,089 WARNING Escaneo sin éxitos para microsoft.com (0/14 pruebas exitosas)
+2026-02-18 22:15:07,434 WARNING Escaneo sin éxitos para nginx.org (0/14 pruebas exitosas)
+2026-02-18 22:16:12,752 WARNING Escaneo sin éxitos para miit.gov.cn (0/14 pruebas exitosas)
+2026-02-18 22:16:19,105 WARNING Escaneo sin éxitos para nih.gov (0/14 pruebas exitosas)
+2026-02-18 22:16:19,717 WARNING Timeout TCP para qq.com:443
+2026-02-18 22:16:22,116 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:16:23,919 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:16:24,032 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:16:24,144 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:16:24,259 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:16:24,376 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:16:24,490 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:16:24,614 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:16:24,731 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:16:24,848 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:16:25,050 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:16:25,124 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:16:25,162 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:16:25,281 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:16:25,401 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:16:25,523 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:16:25,525 WARNING Escaneo sin éxitos para amazonaws.com (0/14 pruebas exitosas)
+2026-02-18 22:16:30,633 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:16:33,640 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:16:36,647 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:16:39,656 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:16:42,663 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:16:45,671 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:16:46,767 WARNING Escaneo sin éxitos para office.com (0/14 pruebas exitosas)
+2026-02-18 22:16:48,681 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:16:49,616 WARNING Timeout en godaddy.com con grupo Automático
+2026-02-18 22:16:51,693 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:16:52,481 WARNING Timeout en flickr.com con grupo Automático
+2026-02-18 22:16:54,703 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:16:57,721 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:17:00,729 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:17:03,741 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:17:03,742 WARNING Escaneo sin éxitos para macromedia.com (0/14 pruebas exitosas)
+2026-02-18 22:17:06,437 WARNING Timeout en godaddy.com con grupo X25519MLKEM768
+2026-02-18 22:17:11,299 WARNING Timeout en flickr.com con grupo x25519_kyber768
+2026-02-18 22:17:15,951 WARNING Escaneo sin éxitos para live.com (0/14 pruebas exitosas)
+2026-02-18 22:17:19,167 WARNING Timeout en soundcloud.com con grupo Automático
+2026-02-18 22:17:22,651 WARNING Timeout en godaddy.com con grupo x25519_kyber768
+2026-02-18 22:17:23,690 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:17:23,876 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:17:27,357 WARNING Timeout en flickr.com con grupo mlkem768
+2026-02-18 22:17:35,483 WARNING Timeout en soundcloud.com con grupo x25519_kyber768
+2026-02-18 22:17:38,798 WARNING Timeout en godaddy.com con grupo mlkem768
+2026-02-18 22:17:43,395 WARNING Timeout en flickr.com con grupo kyber768
+2026-02-18 22:17:51,516 WARNING Timeout en soundcloud.com con grupo mlkem768
+2026-02-18 22:17:54,944 WARNING Timeout en godaddy.com con grupo kyber768
+2026-02-18 22:17:59,437 WARNING Timeout en flickr.com con grupo p256_kyber768
+2026-02-18 22:18:00,490 WARNING Escaneo sin éxitos para wixsite.com (0/14 pruebas exitosas)
+2026-02-18 22:18:07,567 WARNING Timeout en soundcloud.com con grupo kyber768
+2026-02-18 22:18:11,088 WARNING Timeout en godaddy.com con grupo p256_kyber768
+2026-02-18 22:18:15,629 WARNING Timeout en flickr.com con grupo x25519_mlkem512
+2026-02-18 22:18:23,605 WARNING Timeout en soundcloud.com con grupo p256_kyber768
+2026-02-18 22:18:27,261 WARNING Timeout en godaddy.com con grupo SecP256r1MLKEM768
+2026-02-18 22:18:34,164 WARNING Timeout en flickr.com con grupo x25519_kyber512
+2026-02-18 22:18:39,801 WARNING Timeout en soundcloud.com con grupo x25519_mlkem512
+2026-02-18 22:18:44,264 WARNING Timeout en godaddy.com con grupo frodo640aes
+2026-02-18 22:18:50,205 WARNING Timeout en flickr.com con grupo frodo640aes
+2026-02-18 22:18:55,837 WARNING Timeout en soundcloud.com con grupo x25519_kyber512
+2026-02-18 22:19:00,414 WARNING Timeout en godaddy.com con grupo bikel1
+2026-02-18 22:19:06,246 WARNING Timeout en flickr.com con grupo bikel1
+2026-02-18 22:19:11,875 WARNING Timeout en soundcloud.com con grupo frodo640aes
+2026-02-18 22:19:16,616 WARNING Timeout en godaddy.com con grupo x25519_bikel1
+2026-02-18 22:19:22,285 WARNING Timeout en flickr.com con grupo x25519_bikel1
+2026-02-18 22:19:27,913 WARNING Timeout en soundcloud.com con grupo bikel1
+2026-02-18 22:19:32,801 WARNING Timeout en godaddy.com con grupo x25519_hqc128
+2026-02-18 22:19:38,325 WARNING Timeout en flickr.com con grupo x25519_hqc128
+2026-02-18 22:19:43,953 WARNING Timeout en soundcloud.com con grupo x25519_bikel1
+2026-02-18 22:19:59,994 WARNING Timeout en soundcloud.com con grupo x25519_hqc128
+2026-02-18 22:20:00,301 INFO Estadísticas por grupo exportadas a /app/resultados/resumen_por_grupo.csv
+2026-02-18 22:20:00,302 INFO ======================================================================
+2026-02-18 22:20:00,302 INFO Escaneo PQC completado
+2026-02-18 22:20:00,302 INFO Tiempo total: 374.71 segundos
+2026-02-18 22:20:00,302 INFO Hosts con al menos un éxito: 90/100 (90.00%)
+2026-02-18 22:20:00,303 INFO Pruebas exitosas: 168/1400 (12.00%)
+2026-02-18 22:20:00,303 INFO Resultados guardados en /app/resultados/resultados_sonda_pqc.json
+2026-02-18 22:20:00,303 INFO Resumen CSV guardado en /app/resultados/resumen_por_grupo.csv
+2026-02-18 22:20:00,303 INFO ======================================================================
+2026-02-18 22:25:55,523 INFO Iniciando sonda PQC con OpenSSL personalizado
+2026-02-18 22:25:55,524 INFO Binario OpenSSL: /opt/openssl/bin/openssl
+2026-02-18 22:25:55,526 INFO Límite de procesos OpenSSL: 12
+2026-02-18 22:25:55,527 INFO Repeticiones por grupo: 3
+2026-02-18 22:25:55,528 INFO Detectado formato Majestic Million (columna 2: Domain)
+2026-02-18 22:25:55,529 INFO Se han cargado 100 hostnames desde /app/data/majestic_million.csv
+2026-02-18 22:25:55,529 INFO Grupos PQC a probar: Automático, X25519, X25519MLKEM768, x25519_kyber768, mlkem768, kyber768, p256_kyber768, SecP256r1MLKEM768, x25519_mlkem512, x25519_kyber512, frodo640aes, bikel1, x25519_bikel1, x25519_hqc128
+2026-02-18 22:25:55,529 INFO Iniciando escaneo concurrente con 20 hilos...
+2026-02-18 22:28:29,295 WARNING Escaneo sin éxitos para linkedin.com (0/14 pruebas exitosas)
+2026-02-18 22:28:55,146 WARNING Escaneo sin éxitos para microsoft.com (0/14 pruebas exitosas)
+2026-02-18 22:30:12,956 WARNING Escaneo sin éxitos para nginx.org (0/14 pruebas exitosas)
+2026-02-18 22:31:19,079 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:31:22,089 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:31:25,097 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:31:28,107 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:31:31,116 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:31:34,124 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:31:37,159 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:31:37,735 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:31:37,850 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:31:38,041 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:31:38,154 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:31:38,265 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:31:38,450 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:31:38,655 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:31:38,861 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:31:39,065 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:31:39,196 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:31:39,305 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:31:39,418 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:31:40,167 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:31:42,051 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:31:42,407 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:31:42,518 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:31:45,136 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:31:45,295 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:31:51,277 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:31:51,680 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:31:51,996 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:31:52,156 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:31:52,382 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:31:52,596 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:31:52,770 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:32:01,199 WARNING Timeout en macromedia.com con grupo X25519MLKEM768
+2026-02-18 22:32:02,959 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:32:04,217 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:32:07,227 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:32:10,235 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:32:11,140 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:32:11,252 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:32:11,368 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:32:11,486 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:32:11,629 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:32:11,744 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:32:11,851 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:32:13,273 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:32:14,553 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:32:14,693 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:32:14,848 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:32:14,989 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:32:16,282 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:32:16,339 WARNING Timeout en flickr.com con grupo Automático
+2026-02-18 22:32:17,067 WARNING Escaneo sin éxitos para nih.gov (0/14 pruebas exitosas)
+2026-02-18 22:32:17,602 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:32:19,291 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:32:20,218 WARNING Conexión rechazada para amazonaws.com:443
+2026-02-18 22:32:20,219 WARNING Escaneo sin éxitos para amazonaws.com (0/14 pruebas exitosas)
+2026-02-18 22:32:22,303 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:32:24,584 WARNING Timeout en godaddy.com con grupo Automático
+2026-02-18 22:32:25,310 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:32:28,333 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:32:30,011 WARNING Escaneo sin éxitos para miit.gov.cn (0/14 pruebas exitosas)
+2026-02-18 22:32:31,341 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:32:32,783 WARNING Timeout en flickr.com con grupo Automático
+2026-02-18 22:32:34,348 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:32:37,356 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:32:40,364 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:32:43,395 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:32:46,404 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:32:48,589 WARNING Timeout en godaddy.com con grupo X25519MLKEM768
+2026-02-18 22:32:48,854 WARNING Timeout en flickr.com con grupo Automático
+2026-02-18 22:32:52,089 WARNING Timeout en soundcloud.com con grupo Automático
+2026-02-18 22:33:04,761 WARNING Timeout en godaddy.com con grupo X25519MLKEM768
+2026-02-18 22:33:07,609 WARNING Timeout en macromedia.com con grupo x25519_mlkem512
+2026-02-18 22:33:08,547 WARNING Timeout en soundcloud.com con grupo Automático
+2026-02-18 22:33:11,512 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:33:11,720 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:33:16,199 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:33:16,437 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:33:16,658 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:33:16,818 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:33:17,008 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:33:17,177 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:33:17,335 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:33:20,116 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:33:20,666 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:33:21,371 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:33:23,675 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:33:23,679 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:33:23,934 WARNING Timeout en flickr.com con grupo x25519_kyber768
+2026-02-18 22:33:23,936 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:33:24,160 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:33:24,367 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:33:24,543 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:33:24,586 WARNING Timeout en soundcloud.com con grupo Automático
+2026-02-18 22:33:24,742 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:33:24,974 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:33:25,166 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:33:25,340 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:33:26,686 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:33:28,055 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:33:28,266 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:33:29,699 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:33:31,986 WARNING Timeout en godaddy.com con grupo x25519_kyber768
+2026-02-18 22:33:32,708 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:33:33,982 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:33:35,718 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:33:36,638 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:33:36,847 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:33:37,010 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:33:37,200 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:33:39,899 WARNING Conexión rechazada para web.archive.org:443
+2026-02-18 22:33:40,207 WARNING Timeout en flickr.com con grupo x25519_kyber768
+2026-02-18 22:33:41,228 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:33:44,238 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:33:47,246 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:33:48,131 WARNING Timeout en godaddy.com con grupo x25519_kyber768
+2026-02-18 22:33:50,257 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:33:53,268 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:33:56,277 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:33:56,656 WARNING Timeout en flickr.com con grupo x25519_kyber768
+2026-02-18 22:33:59,290 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:34:02,298 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:34:02,995 WARNING Timeout en soundcloud.com con grupo x25519_kyber768
+2026-02-18 22:34:05,306 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:34:06,793 WARNING Escaneo sin éxitos para office.com (0/14 pruebas exitosas)
+2026-02-18 22:34:08,315 WARNING Timeout TCP para macromedia.com:443
+2026-02-18 22:34:08,316 WARNING Escaneo sin éxitos para macromedia.com (0/14 pruebas exitosas)
+2026-02-18 22:34:12,730 WARNING Timeout en flickr.com con grupo mlkem768
+2026-02-18 22:34:17,788 WARNING Timeout en godaddy.com con grupo mlkem768
+2026-02-18 22:34:19,391 WARNING Timeout en soundcloud.com con grupo x25519_kyber768
+2026-02-18 22:34:28,780 WARNING Timeout en flickr.com con grupo mlkem768
+2026-02-18 22:34:34,095 WARNING Timeout en godaddy.com con grupo mlkem768
+2026-02-18 22:34:35,478 WARNING Timeout en soundcloud.com con grupo x25519_kyber768
+2026-02-18 22:34:45,127 WARNING Timeout en flickr.com con grupo mlkem768
+2026-02-18 22:34:45,639 WARNING Escaneo sin éxitos para live.com (0/14 pruebas exitosas)
+2026-02-18 22:34:50,239 WARNING Timeout en godaddy.com con grupo kyber768
+2026-02-18 22:34:56,764 WARNING Timeout en soundcloud.com con grupo mlkem768
+2026-02-18 22:35:01,168 WARNING Timeout en flickr.com con grupo kyber768
+2026-02-18 22:35:06,376 WARNING Timeout en godaddy.com con grupo kyber768
+2026-02-18 22:35:11,526 WARNING Escaneo sin éxitos para wixsite.com (0/14 pruebas exitosas)
+2026-02-18 22:35:12,802 WARNING Timeout en soundcloud.com con grupo mlkem768
+2026-02-18 22:35:22,432 WARNING Timeout en flickr.com con grupo kyber768
+2026-02-18 22:35:29,734 WARNING Timeout en soundcloud.com con grupo mlkem768
+2026-02-18 22:35:32,664 WARNING Timeout en godaddy.com con grupo p256_kyber768
+2026-02-18 22:35:41,684 WARNING Timeout en flickr.com con grupo p256_kyber768
+2026-02-18 22:35:45,833 WARNING Timeout en soundcloud.com con grupo kyber768
+2026-02-18 22:35:48,631 WARNING Escaneo sin éxitos para cpanel.net (0/14 pruebas exitosas)
+2026-02-18 22:35:49,142 WARNING Timeout en godaddy.com con grupo p256_kyber768
+2026-02-18 22:35:57,719 WARNING Timeout en flickr.com con grupo p256_kyber768
+2026-02-18 22:36:01,871 WARNING Timeout en soundcloud.com con grupo kyber768
+2026-02-18 22:36:05,287 WARNING Timeout en godaddy.com con grupo p256_kyber768
+2026-02-18 22:36:13,933 WARNING Timeout en flickr.com con grupo p256_kyber768
+2026-02-18 22:36:17,903 WARNING Timeout en soundcloud.com con grupo kyber768
+2026-02-18 22:36:21,660 WARNING Timeout en godaddy.com con grupo SecP256r1MLKEM768
+2026-02-18 22:36:33,943 WARNING Timeout en soundcloud.com con grupo p256_kyber768
+2026-02-18 22:36:47,854 WARNING Timeout en flickr.com con grupo x25519_mlkem512
+2026-02-18 22:36:49,983 WARNING Timeout en soundcloud.com con grupo p256_kyber768
+2026-02-18 22:36:50,373 WARNING Timeout en godaddy.com con grupo SecP256r1MLKEM768
+2026-02-18 22:37:03,998 WARNING Timeout en flickr.com con grupo x25519_mlkem512
+2026-02-18 22:37:06,018 WARNING Timeout en soundcloud.com con grupo p256_kyber768
+2026-02-18 22:37:11,774 WARNING Timeout en godaddy.com con grupo frodo640aes
+2026-02-18 22:37:20,092 WARNING Timeout en flickr.com con grupo x25519_mlkem512
+2026-02-18 22:37:22,542 WARNING Timeout en soundcloud.com con grupo x25519_mlkem512
+2026-02-18 22:37:27,910 WARNING Timeout en godaddy.com con grupo frodo640aes
+2026-02-18 22:37:36,127 WARNING Timeout en flickr.com con grupo x25519_kyber512
+2026-02-18 22:37:38,580 WARNING Timeout en soundcloud.com con grupo x25519_mlkem512
+2026-02-18 22:37:44,066 WARNING Timeout en godaddy.com con grupo frodo640aes
+2026-02-18 22:37:54,615 WARNING Timeout en soundcloud.com con grupo x25519_mlkem512
+2026-02-18 22:37:54,664 WARNING Timeout en flickr.com con grupo x25519_kyber512
+2026-02-18 22:38:00,357 WARNING Timeout en godaddy.com con grupo bikel1
+2026-02-18 22:38:10,657 WARNING Timeout en soundcloud.com con grupo x25519_kyber512
+2026-02-18 22:38:10,702 WARNING Timeout en flickr.com con grupo x25519_kyber512
+2026-02-18 22:38:16,537 WARNING Timeout en godaddy.com con grupo bikel1
+2026-02-18 22:38:26,697 WARNING Timeout en soundcloud.com con grupo x25519_kyber512
+2026-02-18 22:38:26,739 WARNING Timeout en flickr.com con grupo frodo640aes
+2026-02-18 22:38:32,715 WARNING Timeout en godaddy.com con grupo bikel1
+2026-02-18 22:38:42,735 WARNING Timeout en soundcloud.com con grupo x25519_kyber512
+2026-02-18 22:38:42,806 WARNING Timeout en flickr.com con grupo frodo640aes
+2026-02-18 22:38:48,895 WARNING Timeout en godaddy.com con grupo x25519_bikel1
+2026-02-18 22:38:58,772 WARNING Timeout en soundcloud.com con grupo frodo640aes
+2026-02-18 22:38:58,845 WARNING Timeout en flickr.com con grupo frodo640aes
+2026-02-18 22:39:05,078 WARNING Timeout en godaddy.com con grupo x25519_bikel1
+2026-02-18 22:39:14,809 WARNING Timeout en soundcloud.com con grupo frodo640aes
+2026-02-18 22:39:14,882 WARNING Timeout en flickr.com con grupo bikel1
+2026-02-18 22:39:21,254 WARNING Timeout en godaddy.com con grupo x25519_bikel1
+2026-02-18 22:39:30,850 WARNING Timeout en soundcloud.com con grupo frodo640aes
+2026-02-18 22:39:30,917 WARNING Timeout en flickr.com con grupo bikel1
+2026-02-18 22:39:37,405 WARNING Timeout en godaddy.com con grupo x25519_hqc128
+2026-02-18 22:39:46,887 WARNING Timeout en soundcloud.com con grupo bikel1
+2026-02-18 22:39:46,951 WARNING Timeout en flickr.com con grupo bikel1
+2026-02-18 22:39:53,613 WARNING Timeout en godaddy.com con grupo x25519_hqc128
+2026-02-18 22:40:02,922 WARNING Timeout en soundcloud.com con grupo bikel1
+2026-02-18 22:40:02,986 WARNING Timeout en flickr.com con grupo x25519_bikel1
+2026-02-18 22:40:09,762 WARNING Timeout en godaddy.com con grupo x25519_hqc128
+2026-02-18 22:40:18,960 WARNING Timeout en soundcloud.com con grupo bikel1
+2026-02-18 22:40:19,022 WARNING Timeout en flickr.com con grupo x25519_bikel1
+2026-02-18 22:40:34,998 WARNING Timeout en soundcloud.com con grupo x25519_bikel1
+2026-02-18 22:40:35,058 WARNING Timeout en flickr.com con grupo x25519_bikel1
+2026-02-18 22:40:51,033 WARNING Timeout en soundcloud.com con grupo x25519_bikel1
+2026-02-18 22:40:51,098 WARNING Timeout en flickr.com con grupo x25519_hqc128
+2026-02-18 22:41:07,073 WARNING Timeout en soundcloud.com con grupo x25519_bikel1
+2026-02-18 22:41:07,133 WARNING Timeout en flickr.com con grupo x25519_hqc128
+2026-02-18 22:41:23,116 WARNING Timeout en soundcloud.com con grupo x25519_hqc128
+2026-02-18 22:41:23,161 WARNING Timeout en flickr.com con grupo x25519_hqc128
+2026-02-18 22:41:39,154 WARNING Timeout en soundcloud.com con grupo x25519_hqc128
+2026-02-18 22:41:55,191 WARNING Timeout en soundcloud.com con grupo x25519_hqc128
+2026-02-18 22:41:55,492 INFO Estadísticas por grupo exportadas a /app/resultados/resumen_por_grupo.csv
+2026-02-18 22:41:55,493 INFO ======================================================================
+2026-02-18 22:41:55,493 INFO Escaneo PQC completado
+2026-02-18 22:41:55,493 INFO Tiempo total: 959.67 segundos
+2026-02-18 22:41:55,494 INFO Hosts con al menos un éxito: 89/100 (89.00%)
+2026-02-18 22:41:55,494 INFO Pruebas exitosas: 163/1400 (11.64%)
+2026-02-18 22:41:55,494 INFO Resultados guardados en /app/resultados/resultados_sonda_pqc.json
+2026-02-18 22:41:55,494 INFO Resumen CSV guardado en /app/resultados/resumen_por_grupo.csv
+2026-02-18 22:41:55,494 INFO ======================================================================

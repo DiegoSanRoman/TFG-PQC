@@ -1,0 +1,59 @@
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║           REPORTE DE ANÁLISIS DE SONDAS PQC (POST-QUANTUM)                ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+📊 ESTADÍSTICAS GENERALES
+─────────────────────────────────────────────────────────────────────────────
+  • Total de pruebas: 1400
+  • Pruebas exitosas: 163
+  • Tasa de éxito general: 11.64%
+  • Grupos criptográficos probados: 14
+  • Hostnames probados: 100
+  • Hostnames con al menos 1 éxito: 89
+
+🔐 RESUMEN POR GRUPO CRIPTOGRÁFICO
+─────────────────────────────────────────────────────────────────────────────
+                   total_pruebas  dns_time_ms_mean  dns_time_ms_std  dns_time_ms_min  dns_time_ms_max  tcp_time_ms_mean  tcp_time_ms_std  tcp_time_ms_min  tcp_time_ms_max  handshake_time_ms_mean  handshake_time_ms_std  handshake_time_ms_min  handshake_time_ms_max  tiempo_conexion_segundos_mean  tiempo_conexion_segundos_std  bytes_sent_mean  bytes_sent_sum  bytes_received_mean  bytes_received_sum  handshake_overhead_mean  handshake_overhead_std  response_size_bytes_mean  response_size_bytes_std
+grupo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
+X25519                        84            960.40           966.35             3.42          2517.55             30.39            53.98             3.63           324.74                 1826.34                1003.79                  82.29                3631.27                           1.83                          1.00           444.04         37299.0              4919.56            413243.0                  5363.55                 2332.76                   5363.55                  2332.76
+X25519MLKEM768                56           1259.50           960.59             3.58          2524.52             15.27            25.81             3.79           139.79                 1577.32                 883.02                 150.69                3447.25                           1.58                          0.88          1521.55         85207.0              6172.04            345634.0                  7693.59                 2701.91                   7693.59                  2701.91
+x25519_kyber768               17           1535.49           992.20             4.18          2508.82              8.51            11.48             4.38            49.71                 2033.90                 844.05                 453.85                3499.45                           2.03                          0.84          1468.35         24962.0              4062.12             69056.0                  5530.35                  964.04                   5530.35                   964.04
+Automático                     4           1272.87          1009.58            34.81          2507.63            168.63           121.92             4.52           294.62                 2515.36                 687.71                1825.18                3455.87                           2.52                          0.69          1851.75          7407.0              4145.25             16581.0                  5997.00                  958.83                   5997.00                   958.83
+SecP256r1MLKEM768              2           1262.45          1779.17             4.39          2520.51              5.08             0.25             4.90             5.25                 1341.99                1747.74                 106.15                2577.83                           1.34                          1.75          1402.00          2804.0              5029.50             10059.0                  6431.50                 1825.04                   6431.50                  1825.04
+
+⏱️  ANÁLISIS DE LATENCIA (Conexiones Exitosas)
+─────────────────────────────────────────────────────────────────────────────
+                  handshake_time_ms                   tiempo_conexion_segundos
+                               mean      min      max                     mean
+grupo                                                                         
+Automático                  2515.36  1825.18  3455.87                     2.52
+SecP256r1MLKEM768           1341.99   106.15  2577.83                     1.34
+X25519                      1826.34    82.29  3631.27                     1.83
+X25519MLKEM768              1577.32   150.69  3447.25                     1.58
+x25519_kyber768             2033.90   453.85  3499.45                     2.03
+
+📦 ANÁLISIS DE BYTES (Conexiones Exitosas)
+─────────────────────────────────────────────────────────────────────────────
+                   bytes_sent  bytes_received  handshake_overhead
+grupo                                                            
+Automático            1851.75         4145.25             5997.00
+SecP256r1MLKEM768     1402.00         5029.50             6431.50
+X25519                 444.04         4919.56             5363.55
+X25519MLKEM768        1521.55         6172.04             7693.59
+x25519_kyber768       1468.35         4062.12             5530.35
+
+🎯 INSIGHTS Y CONCLUSIONES
+─────────────────────────────────────────────────────────────────────────────
+
+  ⚡ Grupo más rápido: SecP256r1MLKEM768 (1341.99 ms)
+  🐢 Grupo más lento: Automático (2515.36 ms)
+  📉 Grupo con menor overhead: X25519 (5364 bytes)
+  📈 Grupo con mayor overhead: X25519MLKEM768 (7694 bytes)
+  
+  Ratio latencia: 1.87x (El más lento es 1.87 veces más lento)
+  Ratio overhead: 1.43x (El mayor tiene 1.43 veces más overhead)
+
+
+📅 Generado: 2026-02-18 23:42:42
+╚════════════════════════════════════════════════════════════════════════════╝
