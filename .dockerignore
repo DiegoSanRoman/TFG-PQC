@@ -4,3 +4,4 @@ __pycache__
 .vscode
 *.pyc
 ml_data
+scripts/calibracion/certs/server-key.pem

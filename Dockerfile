@@ -1,13 +1,14 @@
 # 1. Usamos la imagen base con criptografía cuántica
-FROM openquantumsafe/openssl3
+FROM openquantumsafe/openssl3:latest
 
 # Etiquetas
 LABEL maintainer="Diego TFG"
 LABEL description="Sonda PQC adaptada a estructura de proyecto"
 
-# 2. Configurar variables de entorno para OpenSSL-OQS
+# 2. Configurar variables de entorno para OpenSSL-OQS con soporte PQC
 ENV OPENSSL_BIN="/opt/openssl/bin/openssl"
-ENV LD_LIBRARY_PATH="/opt/oqssa/lib:$LD_LIBRARY_PATH"
+ENV OPENSSL_MODULES="/opt/openssl/lib64/ossl-modules"
+ENV LD_LIBRARY_PATH="/opt/openssl/lib64:/opt/oqssa/lib:$LD_LIBRARY_PATH"
 ENV PATH="/opt/oqssa/bin:$PATH"
 
 # 3. Instalación de dependencias de sistema (Alpine Linux)
@@ -37,9 +38,11 @@ WORKDIR /app
 # Gracias al .dockerignore, ignorará 'venv' y copiará 'scripts', 'data', etc.
 COPY . /app
 
+# 6.5. Hacer entry_pqc.sh ejecutable
+RUN chmod +x /app/entry_pqc.sh
+
 # 7. Crear directorios necesarios (por seguridad)
 RUN mkdir -p /app/resultados /app/logs
 
-# 8. Comando de arranque
-# OJO: Aquí indicamos la ruta exacta donde está tu script 
-ENTRYPOINT ["python3", "scripts/sondas/sonda_pqc_final.py"]
+# 8. Comando de arranque - Usar entry_pqc.sh wrapper que carga OQS provider
+ENTRYPOINT ["/app/entry_pqc.sh"]

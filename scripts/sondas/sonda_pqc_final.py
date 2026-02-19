@@ -205,7 +205,15 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
         puerto = "443"
     
     # Comando base con -trace para capturar el tamaño real de los mensajes TLS
-    cmd = [openssl_bin, "s_client", "-connect", f"{base_hostname}:{puerto}", "-servername", base_hostname, "-ign_eof", "-trace"]
+    # NOTA: Los providers OQS ya están activos por defecto en openquantumsafe/openssl3
+    cmd = [
+        openssl_bin,
+        "s_client",
+        "-connect", f"{base_hostname}:{puerto}",
+        "-servername", base_hostname,
+        "-ign_eof",
+        "-trace"
+    ]
     
     # Si se especifica un grupo, forzamos TLS 1.3 y el grupo PQC
     # Si no, es una conexión normal (sin forzar TLS 1.3 ni grupos)
