@@ -1,5 +1,4 @@
 venv/
 __pycache__/
 .DS_Storeresultados/calibracion/
-scripts/calibracion/
-test_calibracion_completa.sh
+scripts/calibracion
