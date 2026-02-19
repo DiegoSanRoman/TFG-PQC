@@ -206,16 +206,21 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
     
     # Comando base con -trace para capturar el tamaño real de los mensajes TLS
     # NOTA: Activamos explícitamente el provider OQS para compatibilidad
+    # Para localhost, desactivamos -trace porque produce demasiado output y llena el buffer
+    usar_trace = not ("localhost" in base_hostname or "127.0.0.1" in base_hostname)
+    
     cmd = [
         openssl_bin,
         "s_client",
         "-connect", f"{base_hostname}:{puerto}",
         "-servername", base_hostname,
         "-ign_eof",
-        "-trace",
         "-provider", "oqsprovider",
         "-provider", "default"
     ]
+    
+    if usar_trace:
+        cmd.insert(cmd.index("-ign_eof") + 1, "-trace")
     
     # Si se especifica un grupo, forzamos TLS 1.3 y el grupo PQC
     # Si no, es una conexión normal (sin forzar TLS 1.3 ni grupos)
@@ -369,7 +374,9 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
                 )
 
                 try:
-                    stdout_bytes, stderr_bytes = process.communicate(input=b"HEAD / HTTP/1.0\n\n", timeout=8)
+                    # Timeout más largo para localhost/calibración (30s) vs. Internet (8s)
+                    timeout_seconds = 30 if "localhost" in base_hostname or "127.0.0.1" in base_hostname else 8
+                    stdout_bytes, stderr_bytes = process.communicate(input=b"HEAD / HTTP/1.0\n\n", timeout=timeout_seconds)
                     break
                 except subprocess.TimeoutExpired:
                     process.kill()
