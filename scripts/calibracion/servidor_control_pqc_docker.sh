@@ -109,7 +109,7 @@ echo ""
 # --network host permite que el servidor escuche en localhost
 # -it mantiene el terminal interactivo
 # --entrypoint sobrescribe el ENTRYPOINT del Dockerfile
-# NOTA: Los providers OQS ya están activos por defecto en openquantumsafe/openssl3
+# NOTA: Activamos explícitamente el provider OQS con -provider
 docker run --rm \
     --network host \
     --entrypoint /opt/openssl/bin/openssl \
@@ -120,5 +120,7 @@ docker run --rm \
         -key /certs/server-key.pem \
         -accept "$PUERTO" \
         -www \
+        -provider oqsprovider \
+        -provider default \
         -groups X25519:X25519MLKEM768:mlkem768:kyber768:prime256v1:x448:ffdhe2048 \
         -tls1_3

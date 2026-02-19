@@ -5,14 +5,10 @@ FROM openquantumsafe/openssl3:latest
 LABEL maintainer="Diego TFG"
 LABEL description="Sonda PQC adaptada a estructura de proyecto"
 
-# 2. Configurar variables de entorno para OpenSSL-OQS con soporte PQC
-ENV OPENSSL_BIN="/opt/openssl/bin/openssl"
-ENV OPENSSL_MODULES="/opt/openssl/lib64/ossl-modules"
-ENV LD_LIBRARY_PATH="/opt/openssl/lib64:/opt/oqssa/lib:$LD_LIBRARY_PATH"
-ENV PATH="/opt/oqssa/bin:$PATH"
-
-# 3. Instalación de dependencias de sistema (Alpine Linux)
-RUN apk update && apk add --no-cache \
+# 2. Instalar dependencias de sistema usando el OpenSSL del sistema Alpine
+# Usamos env -u para temporalmente desactivar LD_LIBRARY_PATH durante apk
+RUN env -u LD_LIBRARY_PATH apk update && \
+    env -u LD_LIBRARY_PATH apk add --no-cache \
     python3 \
     py3-pip \
     build-base \
@@ -21,9 +17,16 @@ RUN apk update && apk add --no-cache \
     git \
     ca-certificates
 
+# 3. Configurar variables de entorno para OpenSSL-OQS con soporte PQC
+ENV OPENSSL_BIN="/opt/openssl/bin/openssl"
+ENV OPENSSL_MODULES="/opt/openssl/lib64/ossl-modules"
+ENV LD_LIBRARY_PATH="/opt/openssl/lib64:/opt/oqssa/lib:$LD_LIBRARY_PATH"
+ENV PATH="/opt/oqssa/bin:$PATH"
+
 # 4. Instalación de librerías Python
 # Instalamos pandas y otras librerías científicas
-RUN pip3 install --no-cache-dir --break-system-packages \
+# También desactivamos LD_LIBRARY_PATH para que pip use OpenSSL estándar
+RUN env -u LD_LIBRARY_PATH pip3 install --no-cache-dir --break-system-packages \
     tqdm \
     requests \
     pandas \
@@ -38,11 +41,8 @@ WORKDIR /app
 # Gracias al .dockerignore, ignorará 'venv' y copiará 'scripts', 'data', etc.
 COPY . /app
 
-# 6.5. Hacer entry_pqc.sh ejecutable
-RUN chmod +x /app/entry_pqc.sh
-
 # 7. Crear directorios necesarios (por seguridad)
 RUN mkdir -p /app/resultados /app/logs
 
-# 8. Comando de arranque - Usar entry_pqc.sh wrapper que carga OQS provider
-ENTRYPOINT ["/app/entry_pqc.sh"]
+# 8. Comando de arranque - Ejecutar la sonda directamente
+ENTRYPOINT ["python3", "/app/scripts/sondas/sonda_pqc_final.py"]
