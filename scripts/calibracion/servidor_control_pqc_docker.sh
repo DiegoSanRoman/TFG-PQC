@@ -16,6 +16,7 @@ PUERTO="${1:-4433}"
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CERTS_DIR="${PROJECT_DIR}/scripts/calibracion/certs"
 DOCKER_IMAGE="tfg-sonda"
+CONTAINER_NAME="servidor-pqc-control"
 
 is_port_in_use() {
     ss -ltn 2>/dev/null | awk '{print $4}' | grep -q ":$1$"
@@ -24,7 +25,8 @@ is_port_in_use() {
 cleanup_port() {
     local port="$1"
     pkill -f "s_server.*${port}" >/dev/null 2>&1 || true
-    docker ps -q --filter "ancestor=${DOCKER_IMAGE}" --filter "expose=${port}" | xargs -r docker stop >/dev/null 2>&1 || true
+    docker stop "$CONTAINER_NAME" >/dev/null 2>&1 || true
+    docker rm "$CONTAINER_NAME" >/dev/null 2>&1 || true
 }
 
 echo -e "${BLUE}"
@@ -58,19 +60,23 @@ CERT_FILE="${CERTS_DIR}/server-cert.pem"
 KEY_FILE="${CERTS_DIR}/server-key.pem"
 
 if [ -f "$CERT_FILE" ]; then
-    # Verificar validez del certificado
-    if openssl x509 -in "$CERT_FILE" -noout -checkend 86400 2>/dev/null; then
+    # Verificar validez del certificado usando el OpenSSL del contenedor Docker
+    if docker run --rm \
+        --entrypoint /bin/sh \
+        -v "${CERTS_DIR}:/certs:ro" \
+        "$DOCKER_IMAGE" \
+        -c "/opt/openssl/bin/openssl x509 -in /certs/server-cert.pem -noout -checkend 86400" \
+        2>/dev/null; then
         echo -e "${GREEN}✓ Certificado existente válido${NC}"
     else
-        echo -e "${YELLOW}⚠️  Certificado expirado, regenerando...${NC}"
+        echo -e "${YELLOW}⚠️  Certificado expirado o inválido, regenerando...${NC}"
         rm -f "$CERT_FILE" "$KEY_FILE"
     fi
 fi
 
 if [ ! -f "$CERT_FILE" ]; then
     echo -e "${YELLOW}🔐 Generando certificado self-signed...${NC}"
-    
-    # Generar usando el OpenSSL del contenedor Docker (Alpine usa /bin/sh)
+
     docker run --rm \
         --entrypoint /bin/sh \
         -v "${CERTS_DIR}:/certs" \
@@ -80,7 +86,7 @@ if [ ! -f "$CERT_FILE" ]; then
             -out /certs/server-cert.pem \
             -days 365 \
             -subj '/CN=localhost/O=TFG-PQC-Calibration/C=ES'"
-    
+
     echo -e "${GREEN}✓ Certificado generado${NC}"
 fi
 
@@ -89,7 +95,8 @@ cleanup_port "$PUERTO"
 sleep 1
 
 if is_port_in_use "$PUERTO"; then
-    echo -e "${RED}❌ Error: el puerto ${PUERTO} sigue en uso${NC}"
+    echo -e "${RED}❌ Error: el puerto ${PUERTO} sigue en uso por otro proceso${NC}"
+    echo "Identifica qué lo ocupa con: ss -ltnp | grep :${PUERTO}"
     echo "Prueba con otro puerto: ./servidor_control_pqc_docker.sh 4443"
     exit 1
 fi
@@ -98,20 +105,15 @@ echo ""
 echo -e "${BLUE}📋 Configuración:${NC}"
 echo "  Puerto: ${PUERTO}"
 echo "  Certificado: ${CERT_FILE}"
-echo "  Algoritmos PQC: X25519, Kyber, MLKEM, Frodo, etc."
+echo "  Algoritmos PQC: X25519, Kyber, MLKEM, Frodo, BIKE, HQC, etc."
 echo ""
 
 echo -e "${GREEN}🚀 Iniciando servidor de control en Docker...${NC}"
 echo -e "${YELLOW}Presiona CTRL+C para detener${NC}"
 echo ""
 
-# Ejecutar servidor s_server en Docker
-# --network host permite que el servidor escuche en localhost
-# -it mantiene el terminal interactivo
-# --entrypoint sobrescribe el ENTRYPOINT del Dockerfile
-# NOTA: Activamos explícitamente el provider OQS con -provider
-# Los grupos disponibles se listan con nombres válidos en minúsculas
 docker run --rm \
+    --name "$CONTAINER_NAME" \
     --network host \
     --entrypoint /opt/openssl/bin/openssl \
     -v "${CERTS_DIR}:/certs:ro" \
@@ -120,7 +122,7 @@ docker run --rm \
         -cert /certs/server-cert.pem \
         -key /certs/server-key.pem \
         -accept "$PUERTO" \
-        -www \
+        -HTTP \
         -provider oqsprovider \
         -provider default \
         -groups x25519:mlkem768:kyber768:x25519_kyber768:x25519_mlkem512:p256_kyber768:frodo640aes:bikel1:x25519_bikel1:x25519_hqc128 \
