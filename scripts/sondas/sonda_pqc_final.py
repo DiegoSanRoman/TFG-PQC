@@ -187,7 +187,7 @@ def parse_trace_bytes(trace_output: str) -> Dict[str, int]:
 def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
     '''
     Función que intenta conectarse a un servidor HTTPS usando OpenSSL con soporte para cifrados post-cuánticos (híbridos y puros).
-    :param hostname: El nombre del host o dominio del servidor HTTPS a escanear
+    :param hostname: El nombre del host o dominio del servidor HTTPS a escanear (puede incluir puerto: "hostname:puerto")
     :param group: El grupo de cifrado a usar (None para automático)
     :return: Diccionario con el resultado de la conexión
     '''
@@ -195,8 +195,17 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
     # Ruta al binario de OpenSSL personalizado con soporte PQC
     openssl_bin = openssl_bin or "/opt/openssl/bin/openssl"
     
+    # Parsear hostname y puerto (formato: "hostname:puerto" o "hostname")
+    if ':' in hostname and not hostname.startswith('['):  # No confundir con IPv6
+        parts = hostname.rsplit(':', 1)
+        base_hostname = parts[0]
+        puerto = parts[1]
+    else:
+        base_hostname = hostname
+        puerto = "443"
+    
     # Comando base con -trace para capturar el tamaño real de los mensajes TLS
-    cmd = [openssl_bin, "s_client", "-connect", f"{hostname}:443", "-servername", hostname, "-ign_eof", "-trace"]
+    cmd = [openssl_bin, "s_client", "-connect", f"{base_hostname}:{puerto}", "-servername", base_hostname, "-ign_eof", "-trace"]
     
     # Si se especifica un grupo, forzamos TLS 1.3 y el grupo PQC
     # Si no, es una conexión normal (sin forzar TLS 1.3 ni grupos)
@@ -210,14 +219,14 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
     tcp_time_ms = None
     ip_resuelta = None
     ip_familia = None
-    sni_usado = hostname
+    sni_usado = base_hostname
     sni_difiere = False
     retried = False
     skip_precheck = False
 
     try:
         dns_inicio = time.time()
-        addrinfos = socket.getaddrinfo(hostname, 443, type=socket.SOCK_STREAM)
+        addrinfos = socket.getaddrinfo(base_hostname, int(puerto), type=socket.SOCK_STREAM)
         dns_time_ms = round((time.time() - dns_inicio) * 1000, 2)
 
         if not addrinfos:
@@ -238,12 +247,12 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
         logger.debug("Pre-check DNS falló para %s (omitiendo, OpenSSL lo intentará): %s", hostname, e)
         skip_precheck = True
     except ConnectionRefusedError:
-        logger.warning("Conexión rechazada para %s:443", hostname)
+        logger.warning("Conexión rechazada para %s:%s", base_hostname, puerto)
         skip_precheck = False  # No omitir, es un error real
         return {
             "error_category": ERROR_TCP_REFUSED,
             "connection_result": None,
-            "res": "Puerto 443 cerrado o rechazado",
+            "res": f"Puerto {puerto} cerrado o rechazado",
             "tiempo_conexion_segundos": None,
             "dns_time_ms": dns_time_ms,
             "tcp_time_ms": tcp_time_ms,
@@ -268,11 +277,11 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
             "retry": retried
         }
     except socket.timeout:
-        logger.warning("Timeout TCP para %s:443", hostname)
+        logger.warning("Timeout TCP para %s:%s", base_hostname, puerto)
         return {
             "error_category": ERROR_TCP_TIMEOUT,
             "connection_result": None,
-            "res": "Timeout TCP 443",
+            "res": f"Timeout TCP {puerto}",
             "tiempo_conexion_segundos": None,
             "dns_time_ms": dns_time_ms,
             "tcp_time_ms": tcp_time_ms,
