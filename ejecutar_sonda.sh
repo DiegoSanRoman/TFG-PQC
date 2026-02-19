@@ -1,7 +1,7 @@
 #!/bin/bash
 # ejecutar_sonda.sh
 # Script auxiliar para ejecutar la sonda PQC dentro de Docker
-# Uso: ./ejecutar_sonda.sh [max_hostnames] [repeticiones] [max_workers]
+# Uso: ./ejecutar_sonda.sh --input-csv ARCHIVO.csv [--max-hostnames N] [--repeticiones N] [--max-workers N]
 
 set -e
 
@@ -16,11 +16,38 @@ NC='\033[0m' # No Color
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Valores por defecto
-MAX_HOSTNAMES="${1:-100}"
-REPETICIONES="${2:-3}"
-MAX_WORKERS="${3:-20}"
+MAX_HOSTNAMES="100"
+REPETICIONES="3"
+MAX_WORKERS="20"
 DOCKER_IMAGE="tfg-sonda"
 DATASET_CSV="majestic_million.csv"
+
+# Parsear argumentos
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --input-csv)
+            DATASET_CSV="$2"
+            shift 2
+            ;;
+        --max-hostnames)
+            MAX_HOSTNAMES="$2"
+            shift 2
+            ;;
+        --repeticiones)
+            REPETICIONES="$2"
+            shift 2
+            ;;
+        --max-workers)
+            MAX_WORKERS="$2"
+            shift 2
+            ;;
+        *)
+            echo -e "${RED}❌ Argumento desconocido: $1${NC}"
+            echo "Uso: $0 --input-csv ARCHIVO.csv [--max-hostnames N] [--repeticiones N] [--max-workers N]"
+            exit 1
+            ;;
+    esac
+done
 
 echo -e "${BLUE}"
 echo "╔════════════════════════════════════════════════════════════════╗"

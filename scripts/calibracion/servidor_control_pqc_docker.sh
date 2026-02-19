@@ -110,6 +110,7 @@ echo ""
 # -it mantiene el terminal interactivo
 # --entrypoint sobrescribe el ENTRYPOINT del Dockerfile
 # NOTA: Activamos explícitamente el provider OQS con -provider
+# Los grupos disponibles se listan con nombres válidos en minúsculas
 docker run --rm \
     --network host \
     --entrypoint /opt/openssl/bin/openssl \
@@ -122,5 +123,5 @@ docker run --rm \
         -www \
         -provider oqsprovider \
         -provider default \
-        -groups X25519:X25519MLKEM768:mlkem768:kyber768:prime256v1:x448:ffdhe2048 \
+        -groups x25519:mlkem768:kyber768:x25519_kyber768:x25519_mlkem512:p256_kyber768:frodo640aes:bikel1:x25519_bikel1:x25519_hqc128 \
         -tls1_3
