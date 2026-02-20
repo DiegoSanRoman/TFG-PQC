@@ -10,18 +10,18 @@
 
 ### 1️⃣ Validar Instalación (2 minutos)
 ```bash
-# Calibrar sonda contra servidor local
-./test_calibracion_completa.sh
+# Calibración completa: levanta servidor + ejecuta sonda
+./calibration.sh
 ```
 ✅ **Esperar:** Latencias ~0-10 ms, éxito >95%
 
 ### 2️⃣ Escanear Servidores Reales
 ```bash
 # Test rápido (10 hostnames) - ~5 minutos
-./ejecutar_sonda.sh 10 1 5
+./ejecutar_sonda.sh --input-csv prueba.csv --max-hostnames 10 --repeticiones 1 --max-workers 5
 
 # Producción (100 hostnames) - ~30 minutos
-./ejecutar_sonda.sh 100 3 20
+./ejecutar_sonda.sh --input-csv majestic_million.csv --max-hostnames 100 --repeticiones 3 --max-workers 20
 ```
 
 ### 3️⃣ Generar Gráficas (30 segundos)
@@ -79,9 +79,18 @@ Evaluar la capacidad de los servidores actuales para negociar intercambios de cl
 
 ## 🎬 Scripts Automatizados
 
+### Scripts de Calibración
+
 | Script | Propósito | Duración |
 |--------|-----------|----------|
-| [test_calibracion_completa.sh](test_calibracion_completa.sh) | 🧪 Calibración automática (servidor + sonda + análisis) | ~2 min |
+| [calibration.sh](calibration.sh) | 🧪 **Orquestador principal** - Levanta servidor + ejecuta sonda | ~3-5 min |
+| [docker_server_run.sh](docker_server_run.sh) | 🚀 Levanta servidor HTTPS con soporte PQC en Docker | ~5s |
+| [docker_probe_run.sh](docker_probe_run.sh) | 📡 Ejecuta sonda contra servidor de calibración | ~2-5 min |
+
+### Scripts de Análisis
+
+| Script | Propósito | Duración |
+|--------|-----------|----------|
 | [ejecutar_sonda.sh](ejecutar_sonda.sh) | 🌐 Escaneo Internet con Docker | Variable |
 | [ejecutar_analisis.sh](ejecutar_analisis.sh) | 📊 Generar 7 gráficas profesionales | ~30s |
 | [test_pipeline.sh](test_pipeline.sh) | 🔄 Pipeline completo (sonda + análisis) | Variable |
@@ -140,38 +149,33 @@ TFG_Diego/
 ├── Dockerfile                                 # Configuración Docker con OpenSSL-PQC
 ├── requirements.txt                           # Dependencias Python
 │
-├── test_calibracion_completa.sh              # ⭐ Script calibración automática
-├── ejecutar_sonda.sh                         # 🌐 Escaneo Internet
-├── ejecutar_analisis.sh                      # 📊 Generar gráficas
-├── test_pipeline.sh                          # 🔄 Pipeline completo
+├── calibration.sh                             # ⭐ Orquestador: levanta servidor + ejecuta sonda
+├── docker_server_run.sh                       # 🚀 Levanta servidor PQC en Docker
+├── docker_probe_run.sh                        # 📡 Ejecuta sonda contra servidor de calibración
+├── ejecutar_sonda.sh                          # 🌐 Escaneo Internet
+├── ejecutar_analisis.sh                       # 📊 Generar gráficas
+├── test_pipeline.sh                           # 🔄 Pipeline completo
 │
 ├── data/
-│   ├── majestic_million.csv                  # Dataset principal (1M dominios)
-│   ├── tranco.csv                            # Dataset alternativo
-│   └── prueba.csv                            # Dataset de prueba
+│   ├── majestic_million.csv                   # Dataset principal (1M dominios)
+│   ├── tranco.csv                             # Dataset alternativo
+│   └── prueba.csv                             # Dataset de prueba
 │
 ├── scripts/
 │   ├── sondas/
-│   │   └── sonda_pqc_final.py                # Motor principal de escaneo
-│   ├── calibracion/
-│   │   ├── servidor_control_pqc_docker.sh    # Servidor Docker con PQC
-│   │   ├── servidor_control_pqc.sh           # Servidor local con PQC
-│   │   ├── calibrar_sonda.sh                 # Ejecutor de calibración
-│   │   └── certs/                            # Certificados para el servidor
+│   │   └── sonda_pqc_final.py                 # Motor principal de escaneo
 │   ├── ml/
-│   │   └── analizar_resultados.py            # Generador de gráficas
+│   │   └── analizar_resultados.py             # Generador de gráficas
 │   └── individuales/
-│       └── hostname_conexion.py              # Análisis individual
+│       └── hostname_conexion.py               # Análisis individual
 │
 ├── resultados/
-│   ├── resultados_sonda_pqc.json             # Resultados Internet
-│   ├── resumen_por_grupo.csv                 # Resumen estadístico
-│   └── calibracion/                          # Resultados de calibración
-│       ├── calibracion_TIMESTAMP.json
-│       ├── calibracion_resumen_TIMESTAMP.csv
-│       └── imagenes_TIMESTAMP/               # Gráficas de calibración (7)
+│   ├── resultados_sonda_pqc.json              # Resultados Internet
+│   ├── resumen_por_grupo.csv                  # Resumen estadístico
+│   ├── calibration.csv                        # CSV de calibración (generado)
+│   └── sonda_pqc.log                          # Log de ejecución
 │
-└── imagenes/                                 # Gráficas finales (para TFG)
+└── imagenes/                                  # Gráficas finales (para TFG)
     ├── 1_latencia_por_grupo.png
     ├── 2_overhead_bytes.png
     ├── 3_latencia_vs_bytes.png
@@ -190,45 +194,66 @@ TFG_Diego/
 
 La calibración valida que tu sonda funciona correctamente contra un servidor local de control.
 
-#### Opción A: Automática (Recomendada)
+#### Modo Automático (Recomendado) ⭐
 
 ```bash
-./test_calibracion_completa.sh
+./calibration.sh
+```
+
+**Parámetros opcionales:**
+```bash
+# Usar puerto diferente
+./calibration.sh --port 9443
+
+# Personalizar repeticiones y workers
+./calibration.sh --repeticiones 5 --max-workers 10
+
+# Mantener el servidor corriendo (no limpiar)
+./calibration.sh --no-cleanup
 ```
 
 **Lo que hace:**
-- ✅ Levanta servidor PQC en Docker (puerto 4433)
-- ✅ Espera que esté listo
-- ✅ Ejecuta sonda contra localhost (15 algoritmos × 3 repeticiones)
-- ✅ Genera JSON y CSV con resultados
-- ✅ Genera 7 gráficas en `resultados/calibracion/imagenes_TIMESTAMP/`
-- ✅ Detiene servidor automáticamente
+1. ✅ Levanta servidor HTTPS con soporte PQC en Docker
+2. ✅ Espera a que esté listo (validación de puerto)
+3. ✅ Ejecuta sonda contra `localhost:puerto` (14 algoritmos × 3 repeticiones)
+4. ✅ Genera JSON y CSV con resultados
+5. ✅ Detiene servidor automáticamente (a menos que uses `--no-cleanup`)
+
+**Archivos generados:**
+```
+resultados/
+├── resultados_sonda_pqc.json       # Resultados detallados
+├── resumen_por_grupo.csv            # Resumen estadístico
+├── calibration.csv                  # CSV utilizado (localhost:puerto)
+└── sonda_pqc.log                    # Log detallado
+```
 
 **Salida esperada:**
 ```
-✅ Calibración completada: 45/45 pruebas exitosas (100.0%)
-
-📁 Archivos generados:
-  JSON: calibracion_20260219_143022.json
-  CSV:  calibracion_resumen_20260219_143022.csv
-  Imágenes: imagenes_20260219_143022/
+✅ CALIBRACIÓN COMPLETADA EXITOSAMENTE
+📊 Resultados disponibles en:
+  • JSON: /path/to/resultados/resultados_sonda_pqc.json
+  • CSV:  /path/to/resultados/resumen_por_grupo.csv
 ```
 
 **Criterios de éxito:**
-- ✅ Latencias: ~0-10 ms (sin red)
-- ✅ Tasa de éxito: >95%
-- ✅ Baja dispersión: σ < 5 ms
+- ✅ Latencias totales: 0-10 ms (compara calibración vs Internet)
+- ✅ Tasa de éxito: >95% (todos los algoritmos aceptados)
+- ✅ Baja dispersión: σ < 5 ms (bajo ruido)
+- ✅ Overhead consistente (diferencias estables entre grupos)
 
-#### Opción B: Manual (2 Terminales)
+#### Modo Manual (Debug/Desarrollo)
 
-**Terminal 1:**
+Si necesitas control granular, ejecuta los scripts por separado:
+
+**Terminal 1 - Levanta servidor:**
 ```bash
-./scripts/calibracion/servidor_control_pqc_docker.sh
+./docker_server_run.sh --port 8443
 ```
 
-**Terminal 2:**
+**Terminal 2 - Ejecuta sonda:**
 ```bash
-./scripts/calibracion/calibrar_sonda.sh 4433 5
+./docker_probe_run.sh --hostname localhost --port 8443 --repeticiones 3 --max-workers 5
 ```
 
 ---
@@ -239,34 +264,44 @@ Una vez validada la calibración, escanea servidores reales:
 
 ```bash
 # Sintaxis
-./ejecutar_sonda.sh [hostnames] [repeticiones] [workers]
+./ejecutar_sonda.sh --input-csv ARCHIVO.csv [--max-hostnames N] [--repeticiones N] [--max-workers N]
 
 # Ejemplos
-./ejecutar_sonda.sh 10 1 5      # Test rápido (~5 min)
-./ejecutar_sonda.sh 100 3 20    # Producción (~30 min)
-./ejecutar_sonda.sh 500 3 20    # Full scan (~2 horas)
+./ejecutar_sonda.sh --input-csv prueba.csv --max-hostnames 10 --repeticiones 1 --max-workers 5      # Test rápido (~5 min)
+./ejecutar_sonda.sh --input-csv majestic_million.csv --max-hostnames 100 --repeticiones 3 --max-workers 20    # Producción (~30 min)
+./ejecutar_sonda.sh --input-csv majestic_million.csv --max-hostnames 500 --repeticiones 3 --max-workers 20    # Full scan (~2 horas)
 ```
 
 **Parámetros:**
-- `hostnames`: Número de dominios a escanear (default: 100)
-- `repeticiones`: Repeticiones por grupo PQC (default: 3)
-- `workers`: Hilos paralelos (default: 20)
+- `--input-csv ARCHIVO.csv`: Archivo CSV con dominios (default: `majestic_million.csv`)
+- `--max-hostnames N`: Número de dominios a escanear (default: 100)
+- `--repeticiones N`: Repeticiones por grupo PQC (default: 3)
+- `--max-workers N`: Hilos paralelos (default: 20)
 
-**Algoritmos probados:**
-- `Automático`: Negociación por defecto
-- `prime256v1`: ECDSA clásico (baseline)
-- `x25519_mlkem768`: Híbrido X25519 + Kyber768
-- `p256_kyber768`: Híbrido P-256 + Kyber768
-- `kyber768`: Puro Kyber768 (NIST)
-- `frodo640aes`: Puro FrodoKEM
-- Y otros...
+**Algoritmos probados (14 total):**
+```
+1. Automático         - Negociación por defecto
+2. X25519             - Clásico curva elíptica (baseline)
+3. X25519MLKEM768     - Híbrido X25519 + Kyber768 (NIST)
+4. x25519_kyber768    - Híbrido X25519 + Kyber768 (viejo)
+5. mlkem768           - Puro Kyber768 (NIST)
+6. kyber768           - Puro Kyber768 (antiguo)
+7. p256_kyber768      - Híbrido P-256 + Kyber768
+8. SecP256r1MLKEM768  - Híbrido P-256 + Kyber768 (NIST)
+9. x25519_mlkem512    - Híbrido X25519 + Kyber512 (Nivel 1)
+10. x25519_kyber512   - Híbrido X25519 + Kyber512 (Nivel 1)
+11. frodo640aes       - Puro FrodoKEM (retículos)
+12. bikel1            - Code-based puro
+13. x25519_bikel1     - Híbrido X25519 + BIKE
+14. x25519_hqc128     - Híbrido X25519 + HQC
+```
 
 **Archivos generados:**
 ```
 resultados/
-├── resultados_sonda_pqc.json     # JSON completo
-├── resumen_por_grupo.csv          # Resumen estadístico
-└── sonda_pqc.log                  # Log detallado
+├── resultados_sonda_pqc.json     # JSON completo (una entrada por algoritmo/hostname)
+├── resumen_por_grupo.csv          # Resumen estadístico (agregado por algoritmo)
+└── sonda_pqc.log                  # Log detallado de ejecución
 ```
 
 ---

@@ -3,5 +3,3 @@ __pycache__
 .git
 .vscode
 *.pyc
-ml_data
-scripts/calibracion/certs/server-key.pem
