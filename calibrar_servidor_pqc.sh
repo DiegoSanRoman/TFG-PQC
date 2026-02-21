@@ -45,8 +45,7 @@ echo ""
 cleanup() {
     echo ""
     echo -e "${YELLOW}🧹 Limpiando recursos...${NC}"
-    "${SCRIPTS_DIR}/detener_servidor_legacy.sh"
-    "${SCRIPTS_DIR}/detener_servidor_moderno.sh"
+    "${SCRIPTS_DIR}/detener_servidores.sh"
     exit 1
 }
 
@@ -55,10 +54,8 @@ trap cleanup SIGINT SIGTERM EXIT
 
 # Verificar que los scripts existen y son ejecutables
 REQUIRED_SCRIPTS=(
-    "levantar_servidor_legacy.sh"
-    "levantar_servidor_moderno.sh"
-    "detener_servidor_legacy.sh"
-    "detener_servidor_moderno.sh"
+    "levantar_servidores.sh"
+    "detener_servidores.sh"
 )
 
 for script in "${REQUIRED_SCRIPTS[@]}"; do
@@ -71,28 +68,14 @@ done
 
 echo ""
 echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
-echo -e "${BLUE}  Fase 1/5: Levantar Servidor PQC LEGACY${NC}"
+echo -e "${BLUE}  Fase 1/4: Levantar Servidores PQC (Legacy + Moderno)${NC}"
 echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
 echo ""
 
-# Paso 1: Levantar el servidor LEGACY
-if ! "${SCRIPTS_DIR}/levantar_servidor_legacy.sh"; then
-    echo -e "${RED}❌ Error al levantar el servidor LEGACY${NC}"
+# Paso 1: Levantar ambos servidores
+if ! "${SCRIPTS_DIR}/levantar_servidores.sh"; then
+    echo -e "${RED}❌ Error al levantar los servidores${NC}"
     trap - EXIT
-    exit 1
-fi
-
-echo ""
-echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
-echo -e "${BLUE}  Fase 2/5: Levantar Servidor PQC MODERNO${NC}"
-echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
-echo ""
-
-# Paso 2: Levantar el servidor MODERNO
-if ! "${SCRIPTS_DIR}/levantar_servidor_moderno.sh"; then
-    echo -e "${RED}❌ Error al levantar el servidor MODERNO${NC}"
-    trap - EXIT
-    "${SCRIPTS_DIR}/detener_servidor_legacy.sh"
     exit 1
 fi
 
@@ -102,7 +85,7 @@ sleep 5
 
 echo ""
 echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
-echo -e "${BLUE}  Fase 3/5: Ejecutar Pruebas contra Servidor LEGACY${NC}"
+echo -e "${BLUE}  Fase 2/4: Ejecutar Pruebas contra Servidor LEGACY${NC}"
 echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
 echo ""
 
@@ -130,8 +113,7 @@ if ! docker run --rm \
     --log-level "INFO"; then
     echo -e "${RED}❌ Error al ejecutar pruebas LEGACY${NC}"
     trap - EXIT
-    "${SCRIPTS_DIR}/detener_servidor_legacy.sh"
-    "${SCRIPTS_DIR}/detener_servidor_moderno.sh"
+    "${SCRIPTS_DIR}/detener_servidores.sh"
     exit 1
 fi
 
@@ -145,7 +127,7 @@ fi
 
 echo ""
 echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
-echo -e "${BLUE}  Fase 4/5: Ejecutar Pruebas contra Servidor MODERNO${NC}"
+echo -e "${BLUE}  Fase 3/4: Ejecutar Pruebas contra Servidor MODERNO${NC}"
 echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
 echo ""
 
@@ -166,8 +148,7 @@ if ! docker run --rm \
     --log-level "INFO"; then
     echo -e "${RED}❌ Error al ejecutar pruebas MODERNO${NC}"
     trap - EXIT
-    "${SCRIPTS_DIR}/detener_servidor_legacy.sh"
-    "${SCRIPTS_DIR}/detener_servidor_moderno.sh"
+    "${SCRIPTS_DIR}/detener_servidores.sh"
     exit 1
 fi
 
@@ -184,16 +165,15 @@ DURACION=$((FIN_TIEMPO - INICIO_TIEMPO))
 
 echo ""
 echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
-echo -e "${BLUE}  Fase 5/5: Detener Servidores${NC}"
+echo -e "${BLUE}  Fase 4/4: Detener Servidores${NC}"
 echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
 echo ""
 
 # Desactivar trap para limpieza manual controlada
 trap - EXIT
 
-# Paso 5: Detener ambos servidores
-"${SCRIPTS_DIR}/detener_servidor_legacy.sh"
-"${SCRIPTS_DIR}/detener_servidor_moderno.sh"
+# Paso 4: Detener ambos servidores
+"${SCRIPTS_DIR}/detener_servidores.sh"
 
 echo ""
 echo -e "${GREEN}"

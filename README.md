@@ -89,10 +89,8 @@ Evaluar la capacidad de los servidores actuales para negociar intercambios de cl
 
 | Script | Propósito |
 |--------|-----------|
-| [scripts/calibracion/levantar_servidor_legacy.sh](scripts/calibracion/levantar_servidor_legacy.sh) | 🚀 Levanta servidor LEGACY (nginx 0.10.1: kyber*, frodo*, bikel1, hqc128) en puerto 4433 |
-| [scripts/calibracion/levantar_servidor_moderno.sh](scripts/calibracion/levantar_servidor_moderno.sh) | 🚀 Levanta servidor MODERNO (nginx latest: mlkem*, x25519_mlkem*, secp256r1_mlkem*) en puerto 4434 |
-| [scripts/calibracion/detener_servidor_legacy.sh](scripts/calibracion/detener_servidor_legacy.sh) | 🛑 Detiene servidor LEGACY |
-| [scripts/calibracion/detener_servidor_moderno.sh](scripts/calibracion/detener_servidor_moderno.sh) | 🛑 Detiene servidor MODERNO |
+| [scripts/calibracion/levantar_servidores.sh](scripts/calibracion/levantar_servidores.sh) | 🚀 Levanta ambos servidores: LEGACY (4433: kyber*, frodo*, bikel1, hqc128) y MODERNO (4434: mlkem*) |
+| [scripts/calibracion/detener_servidores.sh](scripts/calibracion/detener_servidores.sh) | 🛑 Detiene ambos servidores (legacy + moderno) |
 
 ### Scripts de Análisis
 
@@ -172,10 +170,8 @@ TFG_Diego/
 │   ├── ml/
 │   │   └── analizar_resultados.py             # Generador de gráficas
 │   ├── calibracion/
-│   │   ├── levantar_servidor_legacy.sh       # Levanta servidor LEGACY (4433)
-│   │   ├── levantar_servidor_moderno.sh      # Levanta servidor MODERNO (4434)
-│   │   ├── detener_servidor_legacy.sh        # Detiene servidor LEGACY
-│   │   └── detener_servidor_moderno.sh       # Detiene servidor MODERNO
+│   │   ├── levantar_servidores.sh            # Levanta ambos servidores (LEGACY + MODERNO)
+│   │   └── detener_servidores.sh             # Detiene ambos servidores
 │   └── individuales/
 │       └── hostname_conexion.py               # Análisis individual
 │
