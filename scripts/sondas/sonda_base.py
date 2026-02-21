@@ -99,6 +99,9 @@ class DatosExito:
     protocolo: Protocolo
     certificado: Certificado
     seguridad_avanzada: AnálisisSeguridadAvanzado
+    http_status: Optional[int] = None
+    bytes_enviados: int = 0
+    bytes_recibidos: int = 0
 
 @dataclass
 class Entorno:
@@ -575,7 +578,7 @@ def crear_contexto_ssl(modo_compatible=False):
 
 def conectar_y_extraer(hostname: str, ip: str, ctx, latencia_dns: Optional[float]) -> Optional[DatosExito]:
     '''
-    Conecta a un servidor y extrae datos del certificado
+    Conecta a un servidor, realiza handshake TLS y envía solicitud HTTP real
     :param hostname: Nombre del host
     :param ip: IP del servidor
     :param ctx: Contexto SSL
@@ -585,6 +588,9 @@ def conectar_y_extraer(hostname: str, ip: str, ctx, latencia_dns: Optional[float
 
     # --- MEDICIÓN DE TIEMPO ---
     tiempo_inicio = time.perf_counter()
+    bytes_enviados = 0
+    bytes_recibidos = 0
+    http_status = None
 
     try:
         # --- ESTABLECIMIENTO DE LA CONEXIÓN ---
@@ -593,7 +599,39 @@ def conectar_y_extraer(hostname: str, ip: str, ctx, latencia_dns: Optional[float
                 # Obtenemos el certificado del servidor en formato binario (DER)
                 cert_der = ssock.getpeercert(binary_form=True)
 
-                # Registramos el momento final después de completar la conexión y obtener el certificado
+                # --- SOLICITUD HTTP REAL DESPUÉS DEL HANDSHAKE TLS ---
+                # Construimos una solicitud HTTP/1.1 simple
+                http_request = f"GET / HTTP/1.1\r\nHost: {hostname}\r\nConnection: close\r\nUser-Agent: PQC-Sonda\r\n\r\n"
+                bytes_enviados = len(http_request.encode())
+                
+                # Enviamos la solicitud HTTP
+                ssock.sendall(http_request.encode())
+                
+                # Recibimos la respuesta HTTP
+                http_response = b""
+                while True:
+                    try:
+                        chunk = ssock.recv(4096)
+                        if not chunk:
+                            break
+                        http_response += chunk
+                    except socket.timeout:
+                        break
+                
+                bytes_recibidos = len(http_response)
+                
+                # Parseamos la línea de estado HTTP (ej: "HTTP/1.1 200 OK")
+                try:
+                    response_str = http_response.decode('utf-8', errors='ignore')
+                    status_line = response_str.split('\r\n')[0]
+                    if status_line.startswith('HTTP/'):
+                        parts = status_line.split(' ')
+                        if len(parts) >= 2:
+                            http_status = int(parts[1])
+                except (ValueError, IndexError):
+                    http_status = None
+
+                # Registramos el momento final después de completar la transacción HTTP
                 tiempo_fin = time.perf_counter()
                 tiempo_conexion = tiempo_fin - tiempo_inicio
 
@@ -601,18 +639,17 @@ def conectar_y_extraer(hostname: str, ip: str, ctx, latencia_dns: Optional[float
                 analyzer = CertificateAnalyzer(cert_der, hostname, ip, ssock, latencia_dns)
                 datos = analyzer.analizar(tiempo_conexion)
                 
+                # Actualizamos los datos con información de la transferencia HTTP
+                datos.http_status = http_status
+                datos.bytes_enviados = bytes_enviados
+                datos.bytes_recibidos = bytes_recibidos
+                
                 return datos
 
     except socket.timeout:
         raise RuntimeError(f"Timeout conectando a {ip}:443 para {hostname}")
     except ConnectionRefusedError:
         raise RuntimeError(f"Conexión rechazada por {ip}:443")
-    except (socket.error, OSError) as e:
-        raise RuntimeError(f"Error de conexión de red a {ip}:443 - {type(e).__name__}: {e}")
-    except ssl.SSLError as e:
-        raise  # Re-raise SSL errors para que sean manejados arriba
-    except Exception as e:
-        raise RuntimeError(f"Error inesperado en conexión: {type(e).__name__}: {e}")
     except (socket.error, OSError) as e:
         raise RuntimeError(f"Error de conexión de red a {ip}:443 - {type(e).__name__}: {e}")
     except ssl.SSLError as e:

@@ -1,8 +1,8 @@
 #!/bin/bash
-# calibrar_servidor_pqc.sh
-# Script orquestador para calibración completa de servidor PQC local
-# Levanta servidor → Ejecuta pruebas → Detiene servidor
-# Uso: ./calibrar_servidor_pqc.sh [repeticiones]
+# calibrar_servidor_pqc_dual.sh
+# Script orquestador para calibración DUAL de servidores PQC
+# Levanta AMBOS servidores (legacy + moderno) → Ejecuta pruebas → Detiene servidores
+# Uso: ./calibrar_servidor_pqc_dual.sh [repeticiones]
 
 set -e
 
@@ -26,25 +26,27 @@ echo ""
 echo -e "${MAGENTA}"
 echo "╔════════════════════════════════════════════════════════════════╗"
 echo "║                                                                ║"
-echo "║        🔬 CALIBRACIÓN SERVIDOR PQC LOCAL 🔬                    ║"
+echo "║        🔬 CALIBRACIÓN DUAL: SERVIDORES PQC 🔬                  ║"
 echo "║                                                                ║"
-echo "║  Prueba todos los grupos de criptografía post-cuántica        ║"
-echo "║  contra un servidor HTTPS local con soporte PQC               ║"
+echo "║  Prueba algoritmos LEGACY (kyber*) y MODERNOS (mlkem*)        ║"
+echo "║  contra dos servidores HTTPS locales con soporte PQC          ║"
 echo "║                                                                ║"
 echo "╚════════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
-echo -e "${CYAN}⚙️  Configuración de calibración:${NC}"
+echo -e "${CYAN}⚙️  Configuración de calibración DUAL:${NC}"
 echo "  • Repeticiones por grupo: ${REPETICIONES}"
-echo "  • Servidor: localhost:4433 (nginx con OQS)"
-echo "  • Grupos a probar: 14 algoritmos PQC"
+echo "  • Servidor LEGACY: localhost:4433 (nginx 0.10.1 con kyber*, frodo*, bikel1, hqc128)"
+echo "  • Servidor MODERNO: localhost:4434 (nginx latest con mlkem*)"
+echo "  • Total de algoritmos probados: 14"
 echo ""
 
 # Función de limpieza en caso de error o interrupción
 cleanup() {
     echo ""
     echo -e "${YELLOW}🧹 Limpiando recursos...${NC}"
-    "${SCRIPTS_DIR}/detener_servidor.sh"
+    "${SCRIPTS_DIR}/detener_servidor_legacy.sh"
+    "${SCRIPTS_DIR}/detener_servidor_moderno.sh"
     exit 1
 }
 
@@ -52,58 +54,129 @@ cleanup() {
 trap cleanup SIGINT SIGTERM EXIT
 
 # Verificar que los scripts existen y son ejecutables
-if [ ! -f "${SCRIPTS_DIR}/levantar_servidor.sh" ]; then
-    echo -e "${RED}❌ Error: Script no encontrado: ${SCRIPTS_DIR}/levantar_servidor.sh${NC}"
-    exit 1
-fi
+REQUIRED_SCRIPTS=(
+    "levantar_servidor_legacy.sh"
+    "levantar_servidor_moderno.sh"
+    "detener_servidor_legacy.sh"
+    "detener_servidor_moderno.sh"
+)
 
-if [ ! -f "${SCRIPTS_DIR}/ejecutar_pruebas_calibracion.sh" ]; then
-    echo -e "${RED}❌ Error: Script no encontrado: ${SCRIPTS_DIR}/ejecutar_pruebas_calibracion.sh${NC}"
-    exit 1
-fi
-
-if [ ! -f "${SCRIPTS_DIR}/detener_servidor.sh" ]; then
-    echo -e "${RED}❌ Error: Script no encontrado: ${SCRIPTS_DIR}/detener_servidor.sh${NC}"
-    exit 1
-fi
-
-# Dar permisos de ejecución a los scripts
-chmod +x "${SCRIPTS_DIR}/levantar_servidor.sh"
-chmod +x "${SCRIPTS_DIR}/ejecutar_pruebas_calibracion.sh"
-chmod +x "${SCRIPTS_DIR}/detener_servidor.sh"
+for script in "${REQUIRED_SCRIPTS[@]}"; do
+    if [ ! -f "${SCRIPTS_DIR}/${script}" ]; then
+        echo -e "${RED}❌ Error: Script no encontrado: ${SCRIPTS_DIR}/${script}${NC}"
+        exit 1
+    fi
+    chmod +x "${SCRIPTS_DIR}/${script}"
+done
 
 echo ""
 echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
-echo -e "${BLUE}  Fase 1/3: Levantar Servidor PQC${NC}"
+echo -e "${BLUE}  Fase 1/5: Levantar Servidor PQC LEGACY${NC}"
 echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
 echo ""
 
-# Paso 1: Levantar el servidor
-if ! "${SCRIPTS_DIR}/levantar_servidor.sh"; then
-    echo -e "${RED}❌ Error al levantar el servidor${NC}"
-    trap - EXIT  # Desactivar trap para evitar doble ejecución
+# Paso 1: Levantar el servidor LEGACY
+if ! "${SCRIPTS_DIR}/levantar_servidor_legacy.sh"; then
+    echo -e "${RED}❌ Error al levantar el servidor LEGACY${NC}"
+    trap - EXIT
     exit 1
 fi
 
-# Esperar a que el servidor esté completamente listo
-echo -e "${YELLOW}⏳ Esperando 5 segundos para que el servidor esté listo...${NC}"
+echo ""
+echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
+echo -e "${BLUE}  Fase 2/5: Levantar Servidor PQC MODERNO${NC}"
+echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
+echo ""
+
+# Paso 2: Levantar el servidor MODERNO
+if ! "${SCRIPTS_DIR}/levantar_servidor_moderno.sh"; then
+    echo -e "${RED}❌ Error al levantar el servidor MODERNO${NC}"
+    trap - EXIT
+    "${SCRIPTS_DIR}/detener_servidor_legacy.sh"
+    exit 1
+fi
+
+# Esperar a que ambos servidores estén completamente listos
+echo -e "${YELLOW}⏳ Esperando 5 segundos para que los servidores estén listos...${NC}"
 sleep 5
 
 echo ""
 echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
-echo -e "${BLUE}  Fase 2/3: Ejecutar Pruebas de Calibración${NC}"
+echo -e "${BLUE}  Fase 3/5: Ejecutar Pruebas contra Servidor LEGACY${NC}"
 echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
 echo ""
 
-# Paso 2: Ejecutar las pruebas
+# Paso 3: Ejecutar pruebas contra el servidor LEGACY
 INICIO_TIEMPO=$(date +%s)
 
-if ! "${SCRIPTS_DIR}/ejecutar_pruebas_calibracion.sh" "${REPETICIONES}"; then
-    echo ""
-    echo -e "${RED}❌ Error durante las pruebas de calibración${NC}"
-    trap - EXIT  # Desactivar trap para que ejecute limpieza manual
-    "${SCRIPTS_DIR}/detener_servidor.sh"
+# Ejecutar pruebas contra LEGACY usando su CSV
+DOCKER_IMAGE="tfg-sonda"
+DATASET_CSV="calibracion_legacy.csv"
+MAX_HOSTNAMES="1"
+MAX_WORKERS="1"
+CONTAINER_NAME="pqc-legacy-server"
+
+echo -e "${CYAN}🧪 Probando algoritmos LEGACY (kyber*, x25519_kyber*, p256_kyber*, frodo*, bikel1, hqc128)${NC}"
+
+if ! docker run --rm \
+    --network="host" \
+    -v "${PROJECT_DIR}/data:/app/data:ro" \
+    -v "${PROJECT_DIR}/resultados:/app/resultados" \
+    "${DOCKER_IMAGE}" \
+    --input-csv "data/${DATASET_CSV}" \
+    --max-hostnames "${MAX_HOSTNAMES}" \
+    --repeticiones "${REPETICIONES}" \
+    --max-workers "${MAX_WORKERS}" \
+    --log-level "INFO"; then
+    echo -e "${RED}❌ Error al ejecutar pruebas LEGACY${NC}"
+    trap - EXIT
+    "${SCRIPTS_DIR}/detener_servidor_legacy.sh"
+    "${SCRIPTS_DIR}/detener_servidor_moderno.sh"
     exit 1
+fi
+
+# Copiar resultados del legacy
+if [ -f "${PROJECT_DIR}/resultados/resultados_sonda_pqc.json" ]; then
+    cp "${PROJECT_DIR}/resultados/resultados_sonda_pqc.json" \
+       "${PROJECT_DIR}/resultados/resultados_calibracion_legacy.json"
+    cp "${PROJECT_DIR}/resultados/resumen_por_grupo.csv" \
+       "${PROJECT_DIR}/resultados/resumen_calibracion_legacy.csv" 2>/dev/null || true
+fi
+
+echo ""
+echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
+echo -e "${BLUE}  Fase 4/5: Ejecutar Pruebas contra Servidor MODERNO${NC}"
+echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
+echo ""
+
+# Paso 4: Ejecutar pruebas contra el servidor MODERNO
+DATASET_CSV="calibracion_moderno.csv"
+
+echo -e "${CYAN}🧪 Probando algoritmos MODERNOS (mlkem768, x25519_mlkem768, x25519_mlkem512, secp256r1_mlkem768)${NC}"
+
+if ! docker run --rm \
+    --network="host" \
+    -v "${PROJECT_DIR}/data:/app/data:ro" \
+    -v "${PROJECT_DIR}/resultados:/app/resultados" \
+    "${DOCKER_IMAGE}" \
+    --input-csv "data/${DATASET_CSV}" \
+    --max-hostnames "${MAX_HOSTNAMES}" \
+    --repeticiones "${REPETICIONES}" \
+    --max-workers "${MAX_WORKERS}" \
+    --log-level "INFO"; then
+    echo -e "${RED}❌ Error al ejecutar pruebas MODERNO${NC}"
+    trap - EXIT
+    "${SCRIPTS_DIR}/detener_servidor_legacy.sh"
+    "${SCRIPTS_DIR}/detener_servidor_moderno.sh"
+    exit 1
+fi
+
+# Copiar resultados del moderno
+if [ -f "${PROJECT_DIR}/resultados/resultados_sonda_pqc.json" ]; then
+    cp "${PROJECT_DIR}/resultados/resultados_sonda_pqc.json" \
+       "${PROJECT_DIR}/resultados/resultados_calibracion_moderno.json"
+    cp "${PROJECT_DIR}/resultados/resumen_por_grupo.csv" \
+       "${PROJECT_DIR}/resultados/resumen_calibracion_moderno.csv" 2>/dev/null || true
 fi
 
 FIN_TIEMPO=$(date +%s)
@@ -111,21 +184,22 @@ DURACION=$((FIN_TIEMPO - INICIO_TIEMPO))
 
 echo ""
 echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
-echo -e "${BLUE}  Fase 3/3: Detener Servidor${NC}"
+echo -e "${BLUE}  Fase 5/5: Detener Servidores${NC}"
 echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
 echo ""
 
 # Desactivar trap para limpieza manual controlada
 trap - EXIT
 
-# Paso 3: Detener el servidor
-"${SCRIPTS_DIR}/detener_servidor.sh"
+# Paso 5: Detener ambos servidores
+"${SCRIPTS_DIR}/detener_servidor_legacy.sh"
+"${SCRIPTS_DIR}/detener_servidor_moderno.sh"
 
 echo ""
 echo -e "${GREEN}"
 echo "╔════════════════════════════════════════════════════════════════╗"
 echo "║                                                                ║"
-echo "║              ✅ CALIBRACIÓN COMPLETADA ✅                      ║"
+echo "║           ✅ CALIBRACIÓN DUAL COMPLETADA ✅                    ║"
 echo "║                                                                ║"
 echo "╚════════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
@@ -133,21 +207,27 @@ echo -e "${NC}"
 echo -e "${CYAN}📊 Resumen de ejecución:${NC}"
 echo "  • Tiempo total: ${DURACION} segundos"
 echo "  • Repeticiones por grupo: ${REPETICIONES}"
-echo "  • Resultados: ${PROJECT_DIR}/resultados/resultados_sonda_pqc.json"
-echo "  • Resumen CSV: ${PROJECT_DIR}/resultados/resumen_por_grupo.csv"
+echo "  • Resultados LEGACY: ${PROJECT_DIR}/resultados/resultados_calibracion_legacy.json"
+echo "  • Resultados MODERNO: ${PROJECT_DIR}/resultados/resultados_calibracion_moderno.json"
+echo "  • Resumen CSV LEGACY: ${PROJECT_DIR}/resultados/resumen_calibracion_legacy.csv"
+echo "  • Resumen CSV MODERNO: ${PROJECT_DIR}/resultados/resumen_calibracion_moderno.csv"
 echo ""
 
-# Mostrar estadísticas detalladas si jq está disponible
-if command -v jq &> /dev/null && [ -f "${PROJECT_DIR}/resultados/resultados_sonda_pqc.json" ]; then
-    echo -e "${CYAN}📈 Estadísticas de calibración:${NC}"
-    jq -r '.resumen | "  • Total de pruebas: \(.total_pruebas)\n  • Pruebas exitosas: \(.pruebas_exitosas)\n  • Tasa de éxito: \(.tasa_exito_pruebas_percent)%\n  • Grupos probados: \(.grupos_probados | length)"' \
-        "${PROJECT_DIR}/resultados/resultados_sonda_pqc.json"
+# Mostrar estadísticas combinadas si jq está disponible
+if command -v jq &> /dev/null; then
+    echo -e "${CYAN}📈 Estadísticas de calibración LEGACY:${NC}"
+    if [ -f "${PROJECT_DIR}/resultados/resultados_calibracion_legacy.json" ]; then
+        jq -r '.resumen | "  • Total de pruebas: \(.total_pruebas)\n  • Pruebas exitosas: \(.pruebas_exitosas)\n  • Tasa de éxito: \(.tasa_exito_pruebas_percent)%"' \
+            "${PROJECT_DIR}/resultados/resultados_calibracion_legacy.json"
+    fi
     echo ""
-    echo -e "${YELLOW}💡 Grupos probados:${NC}"
-    jq -r '.resumen.grupos_probados | .[] | "     - \(.)"' \
-        "${PROJECT_DIR}/resultados/resultados_sonda_pqc.json"
+    echo -e "${CYAN}📈 Estadísticas de calibración MODERNO:${NC}"
+    if [ -f "${PROJECT_DIR}/resultados/resultados_calibracion_moderno.json" ]; then
+        jq -r '.resumen | "  • Total de pruebas: \(.total_pruebas)\n  • Pruebas exitosas: \(.pruebas_exitosas)\n  • Tasa de éxito: \(.tasa_exito_pruebas_percent)%"' \
+            "${PROJECT_DIR}/resultados/resultados_calibracion_moderno.json"
+    fi
 fi
 
 echo ""
-echo -e "${GREEN}🎯 Usa estos resultados para entender qué algoritmos PQC soporta tu servidor${NC}"
+echo -e "${GREEN}🎯 Ahora tienes cobertura completa de algoritmos PQC (LEGACY + MODERNO)${NC}"
 echo ""

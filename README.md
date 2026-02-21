@@ -79,14 +79,20 @@ Evaluar la capacidad de los servidores actuales para negociar intercambios de cl
 
 ## 🎬 Scripts Automatizados
 
-### Scripts de Calibración
+### Script Principal de Calibración
 
 | Script | Propósito | Duración |
 |--------|-----------|----------|
-| [calibrar_servidor_pqc.sh](calibrar_servidor_pqc.sh) | 🧪 **Orquestador principal** - Levanta servidor + ejecuta sonda | ~3-5 min |
-| [scripts/calibracion/levantar_servidor.sh](scripts/calibracion/levantar_servidor.sh) | 🚀 Levanta servidor HTTPS con soporte PQC (nginx OQS) | ~5s |
-| [scripts/calibracion/ejecutar_pruebas_calibracion.sh](scripts/calibracion/ejecutar_pruebas_calibracion.sh) | 📡 Ejecuta sonda contra servidor de calibración | ~2-5 min |
-| [scripts/calibracion/detener_servidor.sh](scripts/calibracion/detener_servidor.sh) | 🛑 Detiene el servidor de calibración | ~1s |
+| [calibrar_servidor_pqc.sh](calibrar_servidor_pqc.sh) | 🧪 **Calibración Dual Completa** - Levanta 2 servidores (legacy + moderno), ejecuta pruebas contra ambos, genera resultados | ~10-15 min |
+
+#### Scripts Auxiliares (llamados automáticamente)
+
+| Script | Propósito |
+|--------|-----------|
+| [scripts/calibracion/levantar_servidor_legacy.sh](scripts/calibracion/levantar_servidor_legacy.sh) | 🚀 Levanta servidor LEGACY (nginx 0.10.1: kyber*, frodo*, bikel1, hqc128) en puerto 4433 |
+| [scripts/calibracion/levantar_servidor_moderno.sh](scripts/calibracion/levantar_servidor_moderno.sh) | 🚀 Levanta servidor MODERNO (nginx latest: mlkem*, x25519_mlkem*, secp256r1_mlkem*) en puerto 4434 |
+| [scripts/calibracion/detener_servidor_legacy.sh](scripts/calibracion/detener_servidor_legacy.sh) | 🛑 Detiene servidor LEGACY |
+| [scripts/calibracion/detener_servidor_moderno.sh](scripts/calibracion/detener_servidor_moderno.sh) | 🛑 Detiene servidor MODERNO |
 
 ### Scripts de Análisis
 
@@ -166,15 +172,19 @@ TFG_Diego/
 │   ├── ml/
 │   │   └── analizar_resultados.py             # Generador de gráficas
 │   ├── calibracion/
-│   │   ├── levantar_servidor.sh              # Levanta servidor PQC
-│   │   ├── ejecutar_pruebas_calibracion.sh   # Ejecuta pruebas
-│   │   └── detener_servidor.sh               # Detiene servidor
+│   │   ├── levantar_servidor_legacy.sh       # Levanta servidor LEGACY (4433)
+│   │   ├── levantar_servidor_moderno.sh      # Levanta servidor MODERNO (4434)
+│   │   ├── detener_servidor_legacy.sh        # Detiene servidor LEGACY
+│   │   └── detener_servidor_moderno.sh       # Detiene servidor MODERNO
 │   └── individuales/
 │       └── hostname_conexion.py               # Análisis individual
 │
 ├── resultados/
-│   ├── resultados_sonda_pqc.json              # Resultados Internet
-│   ├── resumen_por_grupo.csv                  # Resumen estadístico
+│   ├── resultados_calibracion_legacy.json     # Resultados servidor LEGACY
+│   ├── resultados_calibracion_moderno.json    # Resultados servidor MODERNO
+│   ├── resumen_calibracion_legacy.csv         # Resumen estadístico LEGACY
+│   ├── resumen_calibracion_moderno.csv        # Resumen estadístico MODERNO
+│   ├── resultados_sonda_pqc.json              # Resultados escaneo Internet
 │   └── sonda_pqc.log                          # Log de ejecución
 │
 └── imagenes/                                  # Gráficas finales (para TFG)
@@ -194,7 +204,7 @@ TFG_Diego/
 
 ### 1. Calibración (Validar Sonda)
 
-La calibración valida que tu sonda funciona correctamente contra un servidor local de control.
+La calibración valida que tu sonda funciona correctamente contra dos servidores locales de control (legacy y moderno).
 
 #### Modo Automático (Recomendado) ⭐
 
@@ -205,67 +215,55 @@ La calibración valida que tu sonda funciona correctamente contra un servidor lo
 **Parámetros opcionales:**
 ```bash
 # Personalizar número de repeticiones por grupo (default: 5)
-./calibrar_servidor_pqc.sh 10
+./calibrar_servidor_pqc.sh 20
 ```
 
 **Lo que hace:**
-1. ✅ Levanta servidor HTTPS con soporte PQC en Docker (nginx OQS)
-2. ✅ Espera a que esté listo (5 segundos)
-3. ✅ Ejecuta sonda contra `localhost:4433` (14 algoritmos × N repeticiones)
-4. ✅ Genera JSON y CSV con resultados
-5. ✅ Detiene servidor automáticamente al finalizar
+1. ✅ Levanta servidor LEGACY (nginx 0.10.1) en puerto 4433: kyber*, frodo*, bikel1, hqc128
+2. ✅ Levanta servidor MODERNO (nginx latest) en puerto 4434: mlkem*, x25519_mlkem*, secp256r1_mlkem*
+3. ✅ Ejecuta sonda contra servidor LEGACY (14 algoritmos × N repeticiones)
+4. ✅ Ejecuta sonda contra servidor MODERNO (14 algoritmos × N repeticiones)
+5. ✅ Genera JSON y CSV separados para cada servidor
+6. ✅ Detiene ambos servidores automáticamente al finalizar
 
 **Archivos generados:**
 ```
 resultados/
-├── resultados_sonda_pqc.json       # Resultados detallados
-├── resumen_por_grupo.csv            # Resumen estadístico por grupo
-└── sonda_pqc.log                    # Log detallado de ejecución
+├── resultados_calibracion_legacy.json       # Resultados servidor LEGACY
+├── resultados_calibracion_moderno.json      # Resultados servidor MODERNO
+├── resumen_calibracion_legacy.csv           # Resumen estadístico LEGACY
+├── resumen_calibracion_moderno.csv          # Resumen estadístico MODERNO
+└── sonda_pqc.log                            # Log detallado de ejecución
 ```
 
 **Salida esperada:**
 ```
 ╔════════════════════════════════════════════════════════════════╗
-║              ✅ CALIBRACIÓN COMPLETADA ✅                      ║
+║           ✅ CALIBRACIÓN DUAL COMPLETADA ✅                    ║
 ╚════════════════════════════════════════════════════════════════╝
 
 📊 Resumen de ejecución:
   • Tiempo total: X segundos
   • Repeticiones por grupo: 5
-  • Resultados: /path/to/resultados/resultados_sonda_pqc.json
-  • Resumen CSV: /path/to/resultados/resumen_por_grupo.csv
+  • Resultados LEGACY: resultados_calibracion_legacy.json
+  • Resultados MODERNO: resultados_calibracion_moderno.json
 
-📈 Estadísticas de calibración:
-  • Total de pruebas: 70 (14 grupos × 5 repeticiones)
-  • Pruebas exitosas: XX
-  • Tasa de éxito: XX%
-  • Grupos probados: 14
+📈 Estadísticas de calibración LEGACY:
+  • Total de pruebas: 14
+  • Pruebas exitosas: 3 (21.43%)
+
+📈 Estadísticas de calibración MODERNO:
+  • Total de pruebas: 14
+  • Pruebas exitosas: 4 (28.57%)
 ```
 
 **Criterios de éxito:**
-- ✅ Latencias totales: 0-10 ms (bajo overhead en conexión local)
-- ✅ Tasa de éxito: >95% (servidor PQC acepta la mayoría de algoritmos)
-- ✅ Baja dispersión: σ < 5 ms (bajo ruido en mediciones)
-- ✅ Overhead consistente (diferencias estables entre grupos)
+- ✅ Latencias totales: 40-120 ms (handshake TLS 1.3 completo)
+- ✅ Bytes transferidos: 1500-2000 bytes típicos (handshake + GET request)
+- ✅ Algoritmos aceptados: 3 legacy + 4 modernos = 7 únicos
+- ✅ Baja dispersión: σ < 10 ms por grupo
 
-#### Modo Manual (Debug/Desarrollo)
-
-Si necesitas control granular, ejecuta los scripts por separado:
-
-**Terminal 1 - Levanta servidor:**
-```bash
-./scripts/calibracion/levantar_servidor.sh
-```
-
-**Terminal 2 - Ejecuta pruebas:**
-```bash
-./scripts/calibracion/ejecutar_pruebas_calibracion.sh 5  # 5 repeticiones
-```
-
-**Terminal 1 - Detiene servidor:**
-```bash
-./scripts/calibracion/detener_servidor.sh
-```
+#### Modo Manual (No disponible - usar script principal)
 
 ---
 
