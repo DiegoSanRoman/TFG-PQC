@@ -11,7 +11,7 @@
 ### 1️⃣ Validar Instalación (2 minutos)
 ```bash
 # Calibración completa: levanta servidor + ejecuta sonda
-./calibration.sh
+./calibrar_servidor_pqc.sh
 ```
 ✅ **Esperar:** Latencias ~0-10 ms, éxito >95%
 
@@ -83,9 +83,10 @@ Evaluar la capacidad de los servidores actuales para negociar intercambios de cl
 
 | Script | Propósito | Duración |
 |--------|-----------|----------|
-| [calibration.sh](calibration.sh) | 🧪 **Orquestador principal** - Levanta servidor + ejecuta sonda | ~3-5 min |
-| [docker_server_run.sh](docker_server_run.sh) | 🚀 Levanta servidor HTTPS con soporte PQC en Docker | ~5s |
-| [docker_probe_run.sh](docker_probe_run.sh) | 📡 Ejecuta sonda contra servidor de calibración | ~2-5 min |
+| [calibrar_servidor_pqc.sh](calibrar_servidor_pqc.sh) | 🧪 **Orquestador principal** - Levanta servidor + ejecuta sonda | ~3-5 min |
+| [scripts/calibracion/levantar_servidor.sh](scripts/calibracion/levantar_servidor.sh) | 🚀 Levanta servidor HTTPS con soporte PQC (nginx OQS) | ~5s |
+| [scripts/calibracion/ejecutar_pruebas_calibracion.sh](scripts/calibracion/ejecutar_pruebas_calibracion.sh) | 📡 Ejecuta sonda contra servidor de calibración | ~2-5 min |
+| [scripts/calibracion/detener_servidor.sh](scripts/calibracion/detener_servidor.sh) | 🛑 Detiene el servidor de calibración | ~1s |
 
 ### Scripts de Análisis
 
@@ -149,9 +150,7 @@ TFG_Diego/
 ├── Dockerfile                                 # Configuración Docker con OpenSSL-PQC
 ├── requirements.txt                           # Dependencias Python
 │
-├── calibration.sh                             # ⭐ Orquestador: levanta servidor + ejecuta sonda
-├── docker_server_run.sh                       # 🚀 Levanta servidor PQC en Docker
-├── docker_probe_run.sh                        # 📡 Ejecuta sonda contra servidor de calibración
+├── calibrar_servidor_pqc.sh                   # ⭐ Orquestador: levanta servidor + ejecuta sonda
 ├── ejecutar_sonda.sh                          # 🌐 Escaneo Internet
 ├── ejecutar_analisis.sh                       # 📊 Generar gráficas
 ├── test_pipeline.sh                           # 🔄 Pipeline completo
@@ -166,13 +165,16 @@ TFG_Diego/
 │   │   └── sonda_pqc_final.py                 # Motor principal de escaneo
 │   ├── ml/
 │   │   └── analizar_resultados.py             # Generador de gráficas
+│   ├── calibracion/
+│   │   ├── levantar_servidor.sh              # Levanta servidor PQC
+│   │   ├── ejecutar_pruebas_calibracion.sh   # Ejecuta pruebas
+│   │   └── detener_servidor.sh               # Detiene servidor
 │   └── individuales/
 │       └── hostname_conexion.py               # Análisis individual
 │
 ├── resultados/
 │   ├── resultados_sonda_pqc.json              # Resultados Internet
 │   ├── resumen_por_grupo.csv                  # Resumen estadístico
-│   ├── calibration.csv                        # CSV de calibración (generado)
 │   └── sonda_pqc.log                          # Log de ejecución
 │
 └── imagenes/                                  # Gráficas finales (para TFG)
@@ -197,49 +199,53 @@ La calibración valida que tu sonda funciona correctamente contra un servidor lo
 #### Modo Automático (Recomendado) ⭐
 
 ```bash
-./calibration.sh
+./calibrar_servidor_pqc.sh
 ```
 
 **Parámetros opcionales:**
 ```bash
-# Usar puerto diferente
-./calibration.sh --port 9443
-
-# Personalizar repeticiones y workers
-./calibration.sh --repeticiones 5 --max-workers 10
-
-# Mantener el servidor corriendo (no limpiar)
-./calibration.sh --no-cleanup
+# Personalizar número de repeticiones por grupo (default: 5)
+./calibrar_servidor_pqc.sh 10
 ```
 
 **Lo que hace:**
-1. ✅ Levanta servidor HTTPS con soporte PQC en Docker
-2. ✅ Espera a que esté listo (validación de puerto)
-3. ✅ Ejecuta sonda contra `localhost:puerto` (14 algoritmos × 3 repeticiones)
+1. ✅ Levanta servidor HTTPS con soporte PQC en Docker (nginx OQS)
+2. ✅ Espera a que esté listo (5 segundos)
+3. ✅ Ejecuta sonda contra `localhost:4433` (14 algoritmos × N repeticiones)
 4. ✅ Genera JSON y CSV con resultados
-5. ✅ Detiene servidor automáticamente (a menos que uses `--no-cleanup`)
+5. ✅ Detiene servidor automáticamente al finalizar
 
 **Archivos generados:**
 ```
 resultados/
 ├── resultados_sonda_pqc.json       # Resultados detallados
-├── resumen_por_grupo.csv            # Resumen estadístico
-├── calibration.csv                  # CSV utilizado (localhost:puerto)
-└── sonda_pqc.log                    # Log detallado
+├── resumen_por_grupo.csv            # Resumen estadístico por grupo
+└── sonda_pqc.log                    # Log detallado de ejecución
 ```
 
 **Salida esperada:**
 ```
-✅ CALIBRACIÓN COMPLETADA EXITOSAMENTE
-📊 Resultados disponibles en:
-  • JSON: /path/to/resultados/resultados_sonda_pqc.json
-  • CSV:  /path/to/resultados/resumen_por_grupo.csv
+╔════════════════════════════════════════════════════════════════╗
+║              ✅ CALIBRACIÓN COMPLETADA ✅                      ║
+╚════════════════════════════════════════════════════════════════╝
+
+📊 Resumen de ejecución:
+  • Tiempo total: X segundos
+  • Repeticiones por grupo: 5
+  • Resultados: /path/to/resultados/resultados_sonda_pqc.json
+  • Resumen CSV: /path/to/resultados/resumen_por_grupo.csv
+
+📈 Estadísticas de calibración:
+  • Total de pruebas: 70 (14 grupos × 5 repeticiones)
+  • Pruebas exitosas: XX
+  • Tasa de éxito: XX%
+  • Grupos probados: 14
 ```
 
 **Criterios de éxito:**
-- ✅ Latencias totales: 0-10 ms (compara calibración vs Internet)
-- ✅ Tasa de éxito: >95% (todos los algoritmos aceptados)
-- ✅ Baja dispersión: σ < 5 ms (bajo ruido)
+- ✅ Latencias totales: 0-10 ms (bajo overhead en conexión local)
+- ✅ Tasa de éxito: >95% (servidor PQC acepta la mayoría de algoritmos)
+- ✅ Baja dispersión: σ < 5 ms (bajo ruido en mediciones)
 - ✅ Overhead consistente (diferencias estables entre grupos)
 
 #### Modo Manual (Debug/Desarrollo)
@@ -248,12 +254,17 @@ Si necesitas control granular, ejecuta los scripts por separado:
 
 **Terminal 1 - Levanta servidor:**
 ```bash
-./docker_server_run.sh --port 8443
+./scripts/calibracion/levantar_servidor.sh
 ```
 
-**Terminal 2 - Ejecuta sonda:**
+**Terminal 2 - Ejecuta pruebas:**
 ```bash
-./docker_probe_run.sh --hostname localhost --port 8443 --repeticiones 3 --max-workers 5
+./scripts/calibracion/ejecutar_pruebas_calibracion.sh 5  # 5 repeticiones
+```
+
+**Terminal 1 - Detiene servidor:**
+```bash
+./scripts/calibracion/detener_servidor.sh
 ```
 
 ---
