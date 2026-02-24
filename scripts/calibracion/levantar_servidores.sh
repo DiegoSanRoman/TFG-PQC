@@ -5,28 +5,14 @@
 # Para asegurar que el script falle si algún comando falla y no haya resultados inconsistentes
 set -e
 
-# Colores para output
-# \033 es el caracter ESC (escape).
-# [ inicia la secuencia de control ANSI.
-# 0;31m, 0;32m, etc. son codigos de color.
-# La m indica "cambio de estilo".
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-NC='\033[0m' # No Color
-
-echo -e "${BLUE}"
-echo "╔════════════════════════════════════════════════════════════════╗"
-echo "║     Levantar Servidores HTTPS con Soporte PQC (Dual)         ║"
-echo "║            LEGACY (4433) + MODERNO (4434)                     ║"
-echo "╚════════════════════════════════════════════════════════════════╝"
-echo -e "${NC}"
+echo "====================================================================="
+echo "     Levantar Servidores HTTPS con Soporte PQC (Dual)"
+echo "            LEGACY (4433) + MODERNO (4434)"
+echo "====================================================================="
 
 # Verificar que Docker esté disponible (command -v busca docker en el PATH)
 if ! command -v docker &> /dev/null; then
-    echo -e "${RED}❌ Error: Docker no encontrado${NC}"
+    echo "ERROR - Docker no encontrado"
     exit 1
 fi
 
@@ -37,10 +23,10 @@ LEGACY_CONTAINER="pqc-legacy-server"
 LEGACY_IMAGE="openquantumsafe/nginx:0.10.1" # Esta versión es la última que incluye soporte para los algoritmos "legacy" (kyber*, frodo*, bikel1, hqc128). Las versiones posteriores solo incluyen los modernos (mlkem*).
 LEGACY_PORT="4433"
 
-echo -e "${CYAN}🚀 Levantando servidor LEGACY...${NC}"
-echo -e "  • Imagen: ${LEGACY_IMAGE}"
-echo -e "  • Puerto: localhost:${LEGACY_PORT}"
-echo -e "  • Algoritmos: kyber*, x25519_kyber*, p256_kyber*, frodo*, bikel1, hqc128"
+echo "--- Levantando servidor LEGACY..."
+echo "  - Imagen: ${LEGACY_IMAGE}"
+echo "  - Puerto: localhost:${LEGACY_PORT}"
+echo "  - Algoritmos: kyber*, x25519_kyber*, p256_kyber*, frodo*, bikel1, hqc128"
 echo ""
 
 # Detener contenedor anterior si existe 
@@ -52,7 +38,7 @@ fi
 # Verificar si el puerto está ocupado
 # lsof -Pi busca procesos en el puerto, -sTCP:LISTEN filtra por conexiones escuchando, -t muestra solo PIDs
 if lsof -Pi :${LEGACY_PORT} -sTCP:LISTEN -t >/dev/null 2>&1; then
-    echo -e "${RED}❌ Error: Puerto ${LEGACY_PORT} ya está en uso${NC}"
+    echo "ERROR - Puerto ${LEGACY_PORT} ya está en uso"
     exit 1
 fi
 
@@ -65,9 +51,9 @@ docker run -d \
     "${LEGACY_IMAGE}" > /dev/null
 
 if [ $? -eq 0 ]; then # $? contiene el código de salida del docker run (0 = éxito)
-    echo -e "${GREEN}✅ Servidor LEGACY levantado (${LEGACY_CONTAINER})${NC}"
+    echo "OK - Servidor LEGACY levantado (${LEGACY_CONTAINER})"
 else
-    echo -e "${RED}❌ Error al levantar servidor LEGACY${NC}"
+    echo "ERROR - Error al levantar servidor LEGACY"
     exit 1
 fi
 
@@ -79,10 +65,10 @@ MODERN_IMAGE="openquantumsafe/nginx:latest"
 MODERN_PORT="4434"
 
 echo ""
-echo -e "${CYAN}🚀 Levantando servidor MODERNO...${NC}"
-echo -e "  • Imagen: ${MODERN_IMAGE}"
-echo -e "  • Puerto: localhost:${MODERN_PORT}"
-echo -e "  • Algoritmos: mlkem*, x25519_mlkem*, secp256r1_mlkem*"
+echo "--- Levantando servidor MODERNO..."
+echo "  - Imagen: ${MODERN_IMAGE}"
+echo "  - Puerto: localhost:${MODERN_PORT}"
+echo "  - Algoritmos: mlkem*, x25519_mlkem*, secp256r1_mlkem*"
 echo ""
 
 # Detener contenedor anterior si existe
@@ -94,7 +80,7 @@ fi
 # Verificar si el puerto está ocupado
 # lsof -Pi busca procesos en el puerto, -sTCP:LISTEN filtra por conexiones escuchando, -t muestra solo PIDs
 if lsof -Pi :${MODERN_PORT} -sTCP:LISTEN -t >/dev/null 2>&1; then
-    echo -e "${RED}❌ Error: Puerto ${MODERN_PORT} ya está en uso${NC}"
+    echo "ERROR - Puerto ${MODERN_PORT} ya está en uso"
     # Limpiar servidor legacy
     docker rm -f "${LEGACY_CONTAINER}" > /dev/null 2>&1
     exit 1
@@ -109,9 +95,9 @@ docker run -d \
     "${MODERN_IMAGE}" > /dev/null
 
 if [ $? -eq 0 ]; then # $? contiene el código de salida del docker run (0 = éxito)
-    echo -e "${GREEN}✅ Servidor MODERNO levantado (${MODERN_CONTAINER})${NC}"
+    echo "OK - Servidor MODERNO levantado (${MODERN_CONTAINER})"
 else
-    echo -e "${RED}❌ Error al levantar servidor MODERNO${NC}"
+    echo "ERROR - Error al levantar servidor MODERNO"
     # Limpiar servidor legacy -rm elimina el contenedor, -f fuerza la eliminación incluso si está corriendo
     docker rm -f "${LEGACY_CONTAINER}" > /dev/null 2>&1
     exit 1
@@ -121,12 +107,12 @@ fi
 # RESUMEN FINAL
 # ============================================================
 echo ""
-echo -e "${GREEN}╔════════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║            ✅ AMBOS SERVIDORES LEVANTADOS ✅                   ║${NC}"
-echo -e "${GREEN}╚════════════════════════════════════════════════════════════════╝${NC}"
+echo "====================================================================="
+echo "            OK - AMBOS SERVIDORES LEVANTADOS"
+echo "====================================================================="
 echo ""
-echo -e "${CYAN}📊 Servidores en ejecución:${NC}"
-echo -e "  • LEGACY:  https://localhost:${LEGACY_PORT} (${LEGACY_CONTAINER})"
-echo -e "  • MODERNO: https://localhost:${MODERN_PORT} (${MODERN_CONTAINER})"
+echo "--- Servidores en ejecucion:"
+echo "  - LEGACY:  https://localhost:${LEGACY_PORT} (${LEGACY_CONTAINER})"
+echo "  - MODERNO: https://localhost:${MODERN_PORT} (${MODERN_CONTAINER})"
 echo ""
-echo -e "${YELLOW}💡 Para detenerlos: ./scripts/calibracion/detener_servidores.sh${NC}"
+echo "--- Para detenerlos: ./scripts/calibracion/detener_servidores.sh"

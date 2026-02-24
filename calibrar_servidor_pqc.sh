@@ -6,16 +6,8 @@
 
 set -e
 
-# Colores para output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-MAGENTA='\033[0;35m'
-NC='\033[0m' # No Color
-
-# Directorio base del proyecto
+echo ""
+echo "====================================================================="
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Configuración
@@ -23,18 +15,16 @@ REPETICIONES="${1:-5}"  # Por defecto 5 repeticiones
 SCRIPTS_DIR="${PROJECT_DIR}/scripts/calibracion"
 
 echo ""
-echo -e "${MAGENTA}"
-echo "╔════════════════════════════════════════════════════════════════╗"
-echo "║                                                                ║"
-echo "║        🔬 CALIBRACIÓN DUAL: SERVIDORES PQC 🔬                  ║"
-echo "║                                                                ║"
-echo "║  Prueba algoritmos LEGACY (kyber*) y MODERNOS (mlkem*)        ║"
-echo "║  contra dos servidores HTTPS locales con soporte PQC          ║"
-echo "║                                                                ║"
-echo "╚════════════════════════════════════════════════════════════════╝"
-echo -e "${NC}"
+echo "====================================================================="
+echo ""
+echo "        CALIBRACIÓN DUAL: SERVIDORES PQC"
+echo ""
+echo "  Prueba algoritmos LEGACY (kyber*) y MODERNOS (mlkem*)"
+echo "  contra dos servidores HTTPS locales con soporte PQC"
+echo ""
+echo "====================================================================="
 
-echo -e "${CYAN}⚙️  Configuración de calibración DUAL:${NC}"
+echo "--- Configuración de calibración DUAL:"
 echo "  • Repeticiones por grupo: ${REPETICIONES}"
 echo "  • Servidor LEGACY: localhost:4433 (nginx 0.10.1 con kyber*, frodo*, bikel1, hqc128)"
 echo "  • Servidor MODERNO: localhost:4434 (nginx latest con mlkem*)"
@@ -44,7 +34,7 @@ echo ""
 # Función de limpieza en caso de error o interrupción
 cleanup() {
     echo ""
-    echo -e "${YELLOW}🧹 Limpiando recursos...${NC}"
+    echo "--- Limpiando recursos..."
     "${SCRIPTS_DIR}/detener_servidores.sh"
     exit 1
 }
@@ -60,7 +50,7 @@ REQUIRED_SCRIPTS=(
 
 for script in "${REQUIRED_SCRIPTS[@]}"; do
     if [ ! -f "${SCRIPTS_DIR}/${script}" ]; then    # -f comprueba si el archivo existe y es un archivo regular
-        echo -e "${RED}❌ Error: Script no encontrado: ${SCRIPTS_DIR}/${script}${NC}"
+        echo "ERROR - Script no encontrado: ${SCRIPTS_DIR}/${script}"
         exit 1
     fi
     # Hacer ejecutable el script
@@ -68,26 +58,26 @@ for script in "${REQUIRED_SCRIPTS[@]}"; do
 done
 
 echo ""
-echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
-echo -e "${BLUE}  Fase 1/4: Levantar Servidores PQC (Legacy + Moderno)${NC}"
-echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
+echo "========================================================================"
+echo "  Fase 1/4: Levantar Servidores PQC (Legacy + Moderno)"
+echo "========================================================================"
 echo ""
 
 # Paso 1: Levantar ambos servidores
 if ! "${SCRIPTS_DIR}/levantar_servidores.sh"; then
-    echo -e "${RED}❌ Error al levantar los servidores${NC}"
+    echo "ERROR - Error al levantar los servidores"
     trap - EXIT
     exit 1
 fi
 
 # Esperar a que ambos servidores estén completamente listos
-echo -e "${YELLOW}⏳ Esperando 5 segundos para que los servidores estén listos...${NC}"
+echo "--- Esperando 5 segundos para que los servidores esten listos..."
 sleep 5
 
 echo ""
-echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
-echo -e "${BLUE}  Fase 2/4: Ejecutar Pruebas contra Servidor LEGACY${NC}"
-echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
+echo "========================================================================"
+echo "  Fase 2/4: Ejecutar Pruebas contra Servidor LEGACY"
+echo "========================================================================"
 echo ""
 
 # Paso 3: Ejecutar pruebas contra el servidor LEGACY
@@ -100,7 +90,7 @@ MAX_HOSTNAMES="1"
 MAX_WORKERS="1"
 CONTAINER_NAME="pqc-legacy-server"
 
-echo -e "${CYAN}🧪 Probando algoritmos LEGACY (kyber*, x25519_kyber*, p256_kyber*, frodo*, bikel1, hqc128)${NC}"
+echo "--- Probando algoritmos LEGACY (kyber*, x25519_kyber*, p256_kyber*, frodo*, bikel1, hqc128)"
 
 # Ejecutar contenedor Docker con la sonda PQC contra el servidor LEGACY
 # --rm: elimina el contenedor al terminar, --network="host": usa la red del host para conectarse a localhost:4433
@@ -116,7 +106,7 @@ if ! docker run --rm \
     --repeticiones "${REPETICIONES}" \
     --max-workers "${MAX_WORKERS}" \
     --log-level "INFO"; then
-    echo -e "${RED}❌ Error al ejecutar pruebas LEGACY${NC}"
+    echo "ERROR - Error al ejecutar pruebas LEGACY"
     trap - EXIT # Desactiva el trap para evitar limpieza no controlada
     "${SCRIPTS_DIR}/detener_servidores.sh"
     exit 1
@@ -134,15 +124,15 @@ if [ -f "${PROJECT_DIR}/resultados/resultados_sonda_pqc.json" ]; then
 fi
 
 echo ""
-echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
-echo -e "${BLUE}  Fase 3/4: Ejecutar Pruebas contra Servidor MODERNO${NC}"
-echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
+echo "========================================================================"
+echo "  Fase 3/4: Ejecutar Pruebas contra Servidor MODERNO"
+echo "========================================================================"
 echo ""
 
 # Paso 4: Ejecutar pruebas contra el servidor MODERNO
 DATASET_CSV="calibracion_moderno.csv"
 
-echo -e "${CYAN}🧪 Probando algoritmos MODERNOS (mlkem768, x25519_mlkem768, x25519_mlkem512, secp256r1_mlkem768)${NC}"
+echo "--- Probando algoritmos MODERNOS (mlkem768, x25519_mlkem768, x25519_mlkem512, secp256r1_mlkem768)"
 
 # Ejecutar contenedor Docker con la sonda PQC contra el servidor MODERNO
 # --rm: elimina el contenedor al terminar, --network="host": usa la red del host para conectarse a localhost:4434
@@ -158,7 +148,7 @@ if ! docker run --rm \
     --repeticiones "${REPETICIONES}" \
     --max-workers "${MAX_WORKERS}" \
     --log-level "INFO"; then
-    echo -e "${RED}❌ Error al ejecutar pruebas MODERNO${NC}"
+    echo "ERROR - Error al ejecutar pruebas MODERNO"
     trap - EXIT # Desactiva el trap para evitar limpieza no controlada
     "${SCRIPTS_DIR}/detener_servidores.sh"
     exit 1
@@ -177,9 +167,9 @@ FIN_TIEMPO=$(date +%s)
 DURACION=$((FIN_TIEMPO - INICIO_TIEMPO))
 
 echo ""
-echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
-echo -e "${BLUE}  Fase 4/4: Detener Servidores${NC}"
-echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
+echo "========================================================================"
+echo "  Fase 4/4: Detener Servidores"
+echo "========================================================================"
 echo ""
 
 # Antes de detener los servidores, desactivamos el trap para evitar que se ejecute la función de limpieza nuevamente
@@ -189,15 +179,13 @@ trap - EXIT
 "${SCRIPTS_DIR}/detener_servidores.sh"
 
 echo ""
-echo -e "${GREEN}"
-echo "╔════════════════════════════════════════════════════════════════╗"
-echo "║                                                                ║"
-echo "║           ✅ CALIBRACIÓN DUAL COMPLETADA ✅                    ║"
-echo "║                                                                ║"
-echo "╚════════════════════════════════════════════════════════════════╝"
-echo -e "${NC}"
+echo "====================================================================="
+echo ""
+echo "           OK - CALIBRACION DUAL COMPLETADA"
+echo ""
+echo "====================================================================="
 
-echo -e "${CYAN}📊 Resumen de ejecución:${NC}"
+echo "--- Resumen de ejecucion:"
 echo "  • Tiempo total: ${DURACION} segundos"
 echo "  • Repeticiones por grupo: ${REPETICIONES}"
 echo "  • Resultados LEGACY: ${PROJECT_DIR}/resultados/resultados_calibracion_legacy.json"
@@ -210,7 +198,7 @@ echo ""
 # jq es una herramienta para procesar JSON desde línea de comandos (command -v busca jq en el PATH)
 # -r: output raw (sin comillas), '.resumen': accede al objeto resumen del JSON
 if command -v jq &> /dev/null; then
-    echo -e "${CYAN}📈 Estadísticas de calibración LEGACY:${NC}"
+    echo "--- Estadisticas de calibracion LEGACY:"
     # -f comprueba si el archivo existe antes de procesarlo con jq
     if [ -f "${PROJECT_DIR}/resultados/resultados_calibracion_legacy.json" ]; then
         # jq extrae total_pruebas, pruebas_exitosas y tasa_exito_pruebas_percent del JSON
@@ -219,7 +207,7 @@ if command -v jq &> /dev/null; then
             "${PROJECT_DIR}/resultados/resultados_calibracion_legacy.json"
     fi
     echo ""
-    echo -e "${CYAN}📈 Estadísticas de calibración MODERNO:${NC}"
+    echo "--- Estadisticas de calibracion MODERNO:"
     # -f comprueba si el archivo existe antes de procesarlo con jq
     if [ -f "${PROJECT_DIR}/resultados/resultados_calibracion_moderno.json" ]; then
         # jq extrae total_pruebas, pruebas_exitosas y tasa_exito_pruebas_percent del JSON
@@ -230,5 +218,5 @@ if command -v jq &> /dev/null; then
 fi
 
 echo ""
-echo -e "${GREEN}🎯 Ahora tienes cobertura completa de algoritmos PQC (LEGACY + MODERNO)${NC}"
+echo "Ahora tienes cobertura completa de algoritmos PQC (LEGACY + MODERNO)"
 echo ""

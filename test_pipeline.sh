@@ -36,7 +36,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         *)
-            echo "❌ Argumento desconocido: $1"
+            echo "ERROR - Argumento desconocido: $1"
             echo "Uso: ./test_pipeline.sh [--input-csv ARCHIVO.csv] [--max-hostnames N] [--repeticiones N] [--max-workers N]"
             exit 1
             ;;
@@ -44,12 +44,12 @@ while [[ $# -gt 0 ]]; do
 done 
 
 echo ""
-echo "╔════════════════════════════════════════════════════════════════╗"
-echo "║            Test Pipeline: Sonda + Análisis                    ║"
-echo "╚════════════════════════════════════════════════════════════════╝"
+echo "====================================================================="
+echo "            Test Pipeline: Sonda + Análisis"
+echo "====================================================================="
 echo ""
 
-echo "Paso 1️⃣  - Ejecutar sonda PQC..."
+echo "Paso 1 - Ejecutar sonda PQC..."
 echo "  Comando: ./ejecutar_sonda.sh --input-csv ${INPUT_CSV} --max-hostnames ${MAX_HOSTNAMES} --repeticiones ${REPETICIONES} --max-workers ${MAX_WORKERS}"
 echo ""
 
@@ -57,11 +57,11 @@ cd "${PROJECT_DIR}"
 ./ejecutar_sonda.sh --input-csv "${INPUT_CSV}" --max-hostnames "${MAX_HOSTNAMES}" --repeticiones "${REPETICIONES}" --max-workers "${MAX_WORKERS}"
 
 echo ""
-echo "Paso 2️⃣  - Ejecutar análisis..."
+echo "Paso 2 - Ejecutar análisis..."
 echo ""
 
 ./ejecutar_analisis.sh
 
 echo ""
-echo "✅ Pipeline completado"
+echo "OK - Pipeline completado"
 echo ""
