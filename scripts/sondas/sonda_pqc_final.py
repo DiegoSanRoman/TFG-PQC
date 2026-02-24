@@ -73,6 +73,7 @@ def leer_hostnames_csv(ruta_csv: Path, longitud_max: int, domain_column: Optiona
             lector = csv.reader(archivo)
             primera_fila = next(lector, None)
             
+            # Verificar si el archivo está vacío
             if not primera_fila:
                 logger.error("El archivo CSV está vacío: %s", ruta_csv)
                 return hostnames
@@ -134,7 +135,9 @@ def parse_trace_bytes(trace_output: str) -> Dict[str, int]:
     bytes_received = 0
     
     # Intentar parsear desde -trace (buscando patrones más flexibles)
+    # Buscamos líneas que indiquen "Sent" o "Received" y luego buscamos líneas cercanas que indiquen "length = N"
     lines = trace_output.split('\n')
+    # Heurística: buscar en las siguientes 15 líneas después de cada "Sent" o "Received" para encontrar un patrón de "length = N"
     for i, line in enumerate(lines):
         # Buscar patrones de Sent/Received con longitud
         if 'Sent' in line and 'Record' in line:
@@ -169,7 +172,7 @@ def parse_trace_bytes(trace_output: str) -> Dict[str, int]:
         
         # Si hay cualquiera de estos indicadores, es probable que el handshake haya sido exitoso
         if has_server_key or (has_cipher and has_cert):
-            # Valores típicos para un handshake TLS 1.3 exitoso (con PQC)
+            # Valores típicos para un handshake TLS 1.3 exitoso (con PQC) - sacados de IA
             # ClientHello: ~250 bytes (incluye grupos soportados)
             # Finished message: ~32 bytes
             # ServerHello + Encrypted Extensions: ~100 bytes
@@ -202,6 +205,8 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
     Función que intenta conectarse a un servidor HTTPS usando OpenSSL con soporte para cifrados post-cuánticos (híbridos y puros).
     :param hostname: El nombre del host o dominio del servidor HTTPS a escanear (puede incluir puerto: "hostname:puerto")
     :param group: El grupo de cifrado a usar (None para automático)
+    :param openssl_bin: Ruta al binario de OpenSSL personalizado con soporte PQC (opcional)
+    :param proc_semaphore: Semáforo para limitar concurrencia de procesos (opcional)
     :return: Diccionario con el resultado de la conexión
     '''
 
@@ -218,17 +223,17 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
         puerto = "443"
     
     # Comando base con -trace para capturar el tamaño real de los mensajes TLS
-    # NOTA: Activamos explícitamente el provider OQS para compatibilidad
+    # Activamos explícitamente el provider OQS para compatibilidad
     # Habilitamos -trace para todas las conexiones incluyendo localhost
     cmd = [
-        openssl_bin,
-        "s_client",
-        "-connect", f"{base_hostname}:{puerto}",
-        "-servername", base_hostname,
-        "-ign_eof",
-        "-trace",
-        "-provider", "oqsprovider",
-        "-provider", "default"
+        openssl_bin,                                # Ruta al binario de OpenSSL personalizado con soporte PQC
+        "s_client",                                 # Modo cliente para probar conexiones TLS
+        "-connect", f"{base_hostname}:{puerto}",    # Host y puerto a conectar
+        "-servername", base_hostname,               # SNI para el hostname (importante para servidores con múltiples certificados)
+        "-ign_eof",                                 # Ignorar EOF inesperados para evitar errores en conexiones que cierran rápido
+        "-trace",                                   # Habilitar trace para capturar detalles de bytes enviados/recibidos
+        "-provider", "oqsprovider",                 # Usar el provider OQS para soporte PQC
+        "-provider", "default"                      # Incluir el provider default para compatibilidad con grupos tradicionales
     ]
     
     # Si se especifica un grupo, forzamos TLS 1.3 y el grupo PQC
@@ -248,18 +253,22 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
     retried = False
     skip_precheck = False
 
+    # Intentamos resolver el hostname y conectar al puerto antes de ejecutar OpenSSL para detectar fallos de DNS o TCP que no estén relacionados con el handshake TLS/PQC
     try:
-        dns_inicio = time.time()
+        dns_inicio = time.time()    # Medir tiempo de resolución DNS
+        # getaddrinfo devuelve una lista de tuplas con información de cada dirección resuelta (familia, tipo, protocolo, nombre canónico, sockaddr)
         addrinfos = socket.getaddrinfo(base_hostname, int(puerto), type=socket.SOCK_STREAM)
         dns_time_ms = round((time.time() - dns_inicio) * 1000, 2)
 
         if not addrinfos:
             raise socket.gaierror("Sin resultados de DNS")
 
+        # Tomamos la primera dirección resuelta para el pre-check TCP
         family, socktype, proto, canonname, sockaddr = addrinfos[0]
         ip_resuelta = sockaddr[0]
         ip_familia = "IPv6" if family == socket.AF_INET6 else "IPv4"
 
+        # TCP pre-check: intentamos conectar al puerto para detectar fallos de red o puertos cerrados antes de ejecutar OpenSSL
         tcp_inicio = time.time()
         with socket.socket(family, socktype, proto) as sock:
             sock.settimeout(3)
@@ -359,12 +368,13 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
             "retry": retried
         }
 
+    # Si el pre-check TCP fue exitoso, procedemos a ejecutar OpenSSL para probar el handshake TLS/PQC
     # Ejecutamos el comando y capturamos la salida
     try:
         # Medimos el tiempo de conexión
         tiempo_inicio = time.time()
 
-        # Ejecutamos con Popen para controlar mejor timeouts y limpieza
+        # Ejecutamos con Popen (Process open) para controlar mejor timeouts y limpieza
         stdout_bytes = b""
         stderr_bytes = b""
         handshake_inicio = time.time()
@@ -424,6 +434,7 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
                         "retry": retried
                     }
             finally:
+                # Liberar el semáforo si se adquirió, para permitir que otros procesos continúen
                 if proc_semaphore:
                     proc_semaphore.release()
 
@@ -452,6 +463,7 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
         cipher_suite = None
         alpn = None
 
+        # Buscar la versión TLS en la salida (puede variar según la versión de OpenSSL y el formato de salida)
         match_protocol = re.search(r"^\s*Protocol\s*:\s*(.+)$", stdout, re.MULTILINE)
         if match_protocol:
             tls_version = match_protocol.group(1).strip()
@@ -464,6 +476,7 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
             if match_cipher:
                 cipher_suite = match_cipher.group(1).strip()
 
+        # Buscar ALPN (Application Layer Protocol Negotiation) negociado (puede aparecer como "ALPN protocol" o "ALPN selected" dependiendo de la versión de OpenSSL)
         match_alpn = re.search(r"^\s*ALPN[\s,]+protocol[:\s]+(.+)$", stdout, re.MULTILINE | re.IGNORECASE)
         if not match_alpn:
             match_alpn = re.search(r"ALPN[\s,]+selected[:\s]+(.+)$", stdout, re.MULTILINE | re.IGNORECASE)
@@ -498,6 +511,7 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
             if cert_match:
                 cert_pem = cert_match.group(0)
 
+        # Si tenemos el certificado en PEM, extraemos información relevante usando OpenSSL x509
         cert_issuer = None
         cert_not_before = None
         cert_not_after = None
@@ -505,6 +519,7 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
         cert_fingerprint_sha256 = None
 
         if cert_pem:
+            # Usamos OpenSSL x509 para extraer información del certificado (emisor, fechas, SAN, fingerprint)
             x509 = subprocess.run(
                 [openssl_bin, "x509", "-noout", "-issuer", "-dates", "-ext", "subjectAltName", "-fingerprint", "-sha256"],
                 input=cert_pem.encode(),
@@ -747,8 +762,10 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
     :param grupos: Lista de grupos probados
     :return: Lista de diccionarios con estadísticas por grupo
     '''
+    # Agrupar resultados por grupo y calcular estadísticas
     estadisticas_grupos = []
     
+    # Para cada grupo, recolectar todas las pruebas y calcular métricas
     for grupo in grupos:
         label = grupo if grupo else "Automático"
         
@@ -768,11 +785,13 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
         rechazados = sum(1 for p in pruebas_grupo if p.get("connection_result") == CONNECTION_REJECTED)
         errores = total_pruebas - aceptados - rechazados
         
+        # Calcular porcentajes
         porcentaje_aceptacion = round((aceptados / total_pruebas * 100) if total_pruebas else 0, 2)
         porcentaje_rechazo = round((rechazados / total_pruebas * 100) if total_pruebas else 0, 2)
         porcentaje_error = round((errores / total_pruebas * 100) if total_pruebas else 0, 2)
         
         # Recolectar métricas numéricas solo de conexiones exitosas
+        # Creamos las listas para cada métrica que queremos analizar
         handshake_times = []
         dns_times = []
         tcp_times = []
@@ -800,6 +819,10 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
         
         # Calcular estadísticas
         def calc_stats(valores):
+            """
+            Calcula estadísticas básicas de una lista de valores numéricos.
+            Si la lista está vacía, devuelve un diccionario con valores None.
+            """
             if not valores:
                 return {"media": None, "mediana": None, "desv_std": None, "min": None, "max": None}
             return {
@@ -823,7 +846,7 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
         for prueba in pruebas_grupo:
             cat = prueba.get("error_category")
             if cat:
-                error_categories[cat] = error_categories.get(cat, 0) + 1
+                error_categories[cat] = error_categories.get(cat, 0) + 1    # Contar cada categoría de error
         
         estadisticas_grupos.append({
             "grupo": label,
@@ -853,10 +876,12 @@ def exportar_estadisticas_csv(estadisticas_grupos: List[Dict[str, Any]], output_
     :param estadisticas_grupos: Lista de estadísticas calculadas por grupo
     :param output_path: Ruta donde guardar el CSV
     '''
+    # Si no hay estadísticas, no crear el archivo
     if not estadisticas_grupos:
         logger.warning("No hay estadísticas para exportar a CSV")
         return
     
+    # Crear el archivo CSV y escribir los datos
     with output_path.open('w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
         
@@ -919,6 +944,7 @@ def calcular_promedio_repeticiones(intentos: List[Dict[str, Any]], grupo: str) -
     :param grupo: Nombre del grupo
     :return: Diccionario con valores promediados
     '''
+    # Si no hay intentos, retornar un diccionario vacío
     if not intentos:
         return {}
     
@@ -1034,7 +1060,8 @@ if __name__ == "__main__":
             logging.FileHandler(log_path, encoding="utf-8")
         ]
     )
-
+    
+    # Loguear configuración inicial
     logger.info("Iniciando sonda PQC con OpenSSL personalizado")
     logger.info("Binario OpenSSL: %s", args.openssl_bin)
     logger.info("Límite de procesos OpenSSL: %s", args.max_openssl_procs)

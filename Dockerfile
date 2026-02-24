@@ -1,11 +1,11 @@
-# 1. Usamos la imagen base con criptografía cuántica
+# 1. Usamos la imagen base con criptografía cuántica (latest para que siempre tenga las últimas mejoras)
 FROM openquantumsafe/openssl3:latest
 
-# Etiquetas
+# Etiquetas para el contenedor
 LABEL maintainer="Diego TFG"
 LABEL description="Sonda PQC adaptada a estructura de proyecto"
 
-# 2. Instalar dependencias de sistema usando el OpenSSL del sistema Alpine
+# 2. Instalar dependencias de sistema usando el OpenSSL con soporte PQC
 # Usamos env -u para temporalmente desactivar LD_LIBRARY_PATH durante apk
 RUN env -u LD_LIBRARY_PATH apk update && \
     env -u LD_LIBRARY_PATH apk add --no-cache \
@@ -23,8 +23,7 @@ ENV OPENSSL_MODULES="/opt/openssl/lib64/ossl-modules"
 ENV LD_LIBRARY_PATH="/opt/openssl/lib64:/opt/oqssa/lib:$LD_LIBRARY_PATH"
 ENV PATH="/opt/oqssa/bin:$PATH"
 
-# 4. Instalación de librerías Python
-# Instalamos pandas y otras librerías científicas
+# 4. Instalación de librerías Python necesarias para el proyecto
 # También desactivamos LD_LIBRARY_PATH para que pip use OpenSSL estándar
 RUN env -u LD_LIBRARY_PATH pip3 install --no-cache-dir --break-system-packages \
     tqdm \
@@ -37,12 +36,13 @@ RUN env -u LD_LIBRARY_PATH pip3 install --no-cache-dir --break-system-packages \
 # 5. Preparar el entorno de trabajo
 WORKDIR /app
 
-# 6. Copiar TODO tu proyecto al contenedor
-# Gracias al .dockerignore, ignorará 'venv' y copiará 'scripts', 'data', etc.
+# 6. Copiar TODO el proyecto al contenedor
+# Gracias al .dockerignore, ignorará 'venv' y copiará 'scripts', 'data', etc, ignorando
+# la carpeta de resultados e imágenes.
 COPY . /app
 
 # 7. Crear directorios necesarios (por seguridad)
 RUN mkdir -p /app/resultados /app/logs
 
-# 8. Comando de arranque - Ejecutar la sonda directamente
+# 8. Comando de arranque --> Ejecutar la sonda directamente
 ENTRYPOINT ["python3", "/app/scripts/sondas/sonda_pqc_final.py"]

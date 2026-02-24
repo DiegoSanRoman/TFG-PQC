@@ -2,9 +2,14 @@
 # levantar_servidores.sh
 # Script para levantar AMBOS servidores PQC (legacy + moderno) simultáneamente
 
+# Para asegurar que el script falle si algún comando falla y no haya resultados inconsistentes
 set -e
 
 # Colores para output
+# \033 es el caracter ESC (escape).
+# [ inicia la secuencia de control ANSI.
+# 0;31m, 0;32m, etc. son codigos de color.
+# La m indica "cambio de estilo".
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -19,17 +24,17 @@ echo "║            LEGACY (4433) + MODERNO (4434)                     ║"
 echo "╚════════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
-# Verificar que Docker esté disponible
+# Verificar que Docker esté disponible (command -v busca docker en el PATH)
 if ! command -v docker &> /dev/null; then
     echo -e "${RED}❌ Error: Docker no encontrado${NC}"
     exit 1
 fi
 
 # ============================================================
-# SERVIDOR LEGACY (kyber*, frodo*, bikel1, hqc128)
+# SERVIDOR LEGACY (kyber*, frodo*, bikel1, hqc128) (nginx con Open Quantum Safe - legacy significa que antiguo)
 # ============================================================
 LEGACY_CONTAINER="pqc-legacy-server"
-LEGACY_IMAGE="openquantumsafe/nginx:0.10.1"
+LEGACY_IMAGE="openquantumsafe/nginx:0.10.1" # Esta versión es la última que incluye soporte para los algoritmos "legacy" (kyber*, frodo*, bikel1, hqc128). Las versiones posteriores solo incluyen los modernos (mlkem*).
 LEGACY_PORT="4433"
 
 echo -e "${CYAN}🚀 Levantando servidor LEGACY...${NC}"
@@ -38,24 +43,28 @@ echo -e "  • Puerto: localhost:${LEGACY_PORT}"
 echo -e "  • Algoritmos: kyber*, x25519_kyber*, p256_kyber*, frodo*, bikel1, hqc128"
 echo ""
 
-# Detener contenedor anterior si existe
+# Detener contenedor anterior si existe 
+# docker ps -a lista todos los contenedores, --format muestra solo nombres, grep -q busca el nombre exacto
 if docker ps -a --format '{{.Names}}' | grep -q "^${LEGACY_CONTAINER}$"; then
-    docker rm -f "${LEGACY_CONTAINER}" > /dev/null 2>&1
+    docker rm -f "${LEGACY_CONTAINER}" > /dev/null 2>&1 # -f fuerza la eliminación incluso si está corriendo
 fi
 
 # Verificar si el puerto está ocupado
+# lsof -Pi busca procesos en el puerto, -sTCP:LISTEN filtra por conexiones escuchando, -t muestra solo PIDs
 if lsof -Pi :${LEGACY_PORT} -sTCP:LISTEN -t >/dev/null 2>&1; then
     echo -e "${RED}❌ Error: Puerto ${LEGACY_PORT} ya está en uso${NC}"
     exit 1
 fi
 
 # Levantar servidor LEGACY
+# -d: modo detached (background), --name: nombre del contenedor
+# -p puerto_host:puerto_contenedor mapea puertos entre host y contenedor
 docker run -d \
     --name "${LEGACY_CONTAINER}" \
     -p "${LEGACY_PORT}:4433" \
     "${LEGACY_IMAGE}" > /dev/null
 
-if [ $? -eq 0 ]; then
+if [ $? -eq 0 ]; then # $? contiene el código de salida del docker run (0 = éxito)
     echo -e "${GREEN}✅ Servidor LEGACY levantado (${LEGACY_CONTAINER})${NC}"
 else
     echo -e "${RED}❌ Error al levantar servidor LEGACY${NC}"
@@ -77,11 +86,13 @@ echo -e "  • Algoritmos: mlkem*, x25519_mlkem*, secp256r1_mlkem*"
 echo ""
 
 # Detener contenedor anterior si existe
+# docker ps -a lista todos los contenedores, --format muestra solo nombres, grep -q busca el nombre exacto
 if docker ps -a --format '{{.Names}}' | grep -q "^${MODERN_CONTAINER}$"; then
-    docker rm -f "${MODERN_CONTAINER}" > /dev/null 2>&1
+    docker rm -f "${MODERN_CONTAINER}" > /dev/null 2>&1 # -f fuerza la eliminación incluso si está corriendo
 fi
 
 # Verificar si el puerto está ocupado
+# lsof -Pi busca procesos en el puerto, -sTCP:LISTEN filtra por conexiones escuchando, -t muestra solo PIDs
 if lsof -Pi :${MODERN_PORT} -sTCP:LISTEN -t >/dev/null 2>&1; then
     echo -e "${RED}❌ Error: Puerto ${MODERN_PORT} ya está en uso${NC}"
     # Limpiar servidor legacy
@@ -90,16 +101,18 @@ if lsof -Pi :${MODERN_PORT} -sTCP:LISTEN -t >/dev/null 2>&1; then
 fi
 
 # Levantar servidor MODERNO
+# -d: modo detached (background), --name: nombre del contenedor
+# -p puerto_host:puerto_contenedor mapea puertos entre host y contenedor
 docker run -d \
     --name "${MODERN_CONTAINER}" \
     -p "${MODERN_PORT}:4433" \
     "${MODERN_IMAGE}" > /dev/null
 
-if [ $? -eq 0 ]; then
+if [ $? -eq 0 ]; then # $? contiene el código de salida del docker run (0 = éxito)
     echo -e "${GREEN}✅ Servidor MODERNO levantado (${MODERN_CONTAINER})${NC}"
 else
     echo -e "${RED}❌ Error al levantar servidor MODERNO${NC}"
-    # Limpiar servidor legacy
+    # Limpiar servidor legacy -rm elimina el contenedor, -f fuerza la eliminación incluso si está corriendo
     docker rm -f "${LEGACY_CONTAINER}" > /dev/null 2>&1
     exit 1
 fi

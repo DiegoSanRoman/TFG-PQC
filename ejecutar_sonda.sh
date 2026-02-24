@@ -3,9 +3,14 @@
 # Script auxiliar para ejecutar la sonda PQC dentro de Docker
 # Uso: ./ejecutar_sonda.sh --input-csv ARCHIVO.csv [--max-hostnames N] [--repeticiones N] [--max-workers N]
 
+# Para asegurar que el script falle si algún comando falla y no haya resultados inconsistentes
 set -e
 
 # Colores para output
+# \033 es el caracter ESC (escape).
+# [ inicia la secuencia de control ANSI.
+# 0;31m, 0;32m, etc. son codigos de color.
+# La m indica "cambio de estilo".
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -23,6 +28,7 @@ DOCKER_IMAGE="tfg-sonda"
 DATASET_CSV="majestic_million.csv"
 
 # Parsear argumentos
+# Mientras sigue habiendo argumentos, procesarlos
 while [[ $# -gt 0 ]]; do
     case $1 in
         --input-csv)
@@ -64,14 +70,14 @@ echo "  • Hilos paralelelos: ${MAX_WORKERS}"
 echo "  • Imagen Docker: ${DOCKER_IMAGE}"
 echo ""
 
-# Verificar que Docker esté disponible
+# Verificar que Docker esté disponible (command -v busca docker en el PATH; si no esta, aborta)
 if ! command -v docker &> /dev/null; then
     echo -e "${RED}❌ Error: Docker no encontrado${NC}"
     echo "Asegúrate de tener Docker instalado y en el PATH"
     exit 1
 fi
 
-# Verificar que el CSV existe
+# Verificar que el CSV existe (-f comprueba archivo regular)
 if [ ! -f "${PROJECT_DIR}/data/${DATASET_CSV}" ]; then
     echo -e "${RED}❌ Error: Archivo no encontrado: ${PROJECT_DIR}/data/${DATASET_CSV}${NC}"
     echo "Archivos disponibles en data/:"
@@ -79,7 +85,7 @@ if [ ! -f "${PROJECT_DIR}/data/${DATASET_CSV}" ]; then
     exit 1
 fi
 
-# Verificar que el Dockerfile existe
+# Verificar que el Dockerfile existe (-f comprueba archivo regular)
 if [ ! -f "${PROJECT_DIR}/Dockerfile" ]; then
     echo -e "${RED}❌ Error: Dockerfile no encontrado en ${PROJECT_DIR}${NC}"
     exit 1
@@ -92,7 +98,7 @@ mkdir -p "${PROJECT_DIR}/resultados"
 if ! docker image inspect "${DOCKER_IMAGE}" &> /dev/null; then
     echo -e "${YELLOW}🔨 Construyendo imagen Docker: ${DOCKER_IMAGE}...${NC}"
     docker build -t "${DOCKER_IMAGE}" "${PROJECT_DIR}"
-    if [ $? -eq 0 ]; then
+    if [ $? -eq 0 ]; then # $? es el codigo de salida del comando anterior (0 = exito)
         echo -e "${GREEN}✓ Imagen construida exitosamente${NC}"
     else
         echo -e "${RED}❌ Error al construir la imagen Docker${NC}"
@@ -108,19 +114,26 @@ echo -e "${YELLOW}Espera a que termine (puede tomar varios minutos)${NC}"
 echo ""
 
 # Ejecutar la sonda en Docker
+# -it: modo interactivo con pseudo-TTY para que se muestren los logs en tiempo real
+# --rm: elimina el contenedor al terminar (para no acumular contenedores parados)
+# -v host: contenedor monta carpetas del host dentro del contenedor
+# "${DOCKER_IMAGE}" es la imagen que se ejecuta
+# Los argumentos siguientes se pasan al programa dentro del contenedor
 docker run -it --rm \
-  -v "${PROJECT_DIR}/data:/app/data" \
-  -v "${PROJECT_DIR}/resultados:/app/resultados" \
-  "${DOCKER_IMAGE}" \
-  --input-csv /app/data/${DATASET_CSV} \
-  --max-hostnames "${MAX_HOSTNAMES}" \
-  --repeticiones "${REPETICIONES}" \
-  --max-workers "${MAX_WORKERS}"
+    -v "${PROJECT_DIR}/data:/app/data" \
+    -v "${PROJECT_DIR}/resultados:/app/resultados" \
+    "${DOCKER_IMAGE}" \
+    --input-csv /app/data/${DATASET_CSV} \
+    --max-hostnames "${MAX_HOSTNAMES}" \
+    --repeticiones "${REPETICIONES}" \
+    --max-workers "${MAX_WORKERS}"
 
-EXIT_CODE=$?
+EXIT_CODE=$?    # Guardamos el código de salida del contenedor para verificar si fue exitoso o no
 
 echo ""
 
+# Si fue exitoso, los resultados ya estarán en ${PROJECT_DIR}/resultados/ gracias al volumen montado. 
+# Si hubo error, se muestra el código de error.
 if [ $EXIT_CODE -eq 0 ]; then
     echo -e "${GREEN}✅ ¡Sonda completada exitosamente!${NC}"
     echo -e "${BLUE}📁 Resultados guardados en:${NC}"

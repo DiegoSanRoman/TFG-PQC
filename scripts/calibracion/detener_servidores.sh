@@ -2,9 +2,14 @@
 # detener_servidores.sh
 # Script para detener AMBOS servidores PQC (legacy + moderno)
 
+# Para asegurar que el script falle si algún comando falla y no haya resultados inconsistentes
 set -e
 
 # Colores para output
+# \033 es el caracter ESC (escape).
+# [ inicia la secuencia de control ANSI.
+# 0;31m, 0;32m, etc. son codigos de color.
+# La m indica "cambio de estilo".
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -22,7 +27,7 @@ echo "║         Detener Servidores de Calibración PQC (Dual)         ║"
 echo "╚════════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
-# Verificar que Docker esté disponible
+# Verificar que Docker esté disponible (command -v busca docker en el PATH)
 if ! command -v docker &> /dev/null; then
     echo -e "${RED}❌ Error: Docker no encontrado${NC}"
     exit 1
@@ -33,9 +38,10 @@ fi
 # ============================================================
 echo -e "${CYAN}🛑 Deteniendo servidor LEGACY...${NC}"
 
+# docker ps lista contenedores en ejecución, --format muestra solo nombres, grep -q busca el nombre exacto
 if docker ps --format '{{.Names}}' | grep -q "^${LEGACY_CONTAINER}$"; then
-    docker stop "${LEGACY_CONTAINER}" > /dev/null 2>&1
-    docker rm "${LEGACY_CONTAINER}" > /dev/null 2>&1
+    docker stop "${LEGACY_CONTAINER}" > /dev/null 2>&1 # Detiene el contenedor stop detiene el contenedor pero no lo elimina, por eso se hace un rm después
+    docker rm "${LEGACY_CONTAINER}" > /dev/null 2>&1 # Elimina el contenedor -rm elimina el contenedor, -f fuerza la eliminación incluso si está corriendo
     echo -e "${GREEN}✅ Servidor LEGACY detenido y eliminado${NC}"
 else
     echo -e "${YELLOW}ℹ️  El servidor LEGACY no está corriendo${NC}"
@@ -47,9 +53,10 @@ fi
 echo ""
 echo -e "${CYAN}🛑 Deteniendo servidor MODERNO...${NC}"
 
+# docker ps lista contenedores en ejecución, --format muestra solo nombres, grep -q busca el nombre exacto
 if docker ps --format '{{.Names}}' | grep -q "^${MODERN_CONTAINER}$"; then
-    docker stop "${MODERN_CONTAINER}" > /dev/null 2>&1
-    docker rm "${MODERN_CONTAINER}" > /dev/null 2>&1
+    docker stop "${MODERN_CONTAINER}" > /dev/null 2>&1 # Detiene el contenedor stop detiene el contenedor pero no lo elimina, por eso se hace un rm después
+    docker rm "${MODERN_CONTAINER}" > /dev/null 2>&1 # Elimina el contenedor -rm elimina el contenedor, -f fuerza la eliminación incluso si está corriendo
     echo -e "${GREEN}✅ Servidor MODERNO detenido y eliminado${NC}"
 else
     echo -e "${YELLOW}ℹ️  El servidor MODERNO no está corriendo${NC}"

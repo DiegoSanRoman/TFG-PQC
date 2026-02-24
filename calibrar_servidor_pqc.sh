@@ -59,10 +59,11 @@ REQUIRED_SCRIPTS=(
 )
 
 for script in "${REQUIRED_SCRIPTS[@]}"; do
-    if [ ! -f "${SCRIPTS_DIR}/${script}" ]; then
+    if [ ! -f "${SCRIPTS_DIR}/${script}" ]; then    # -f comprueba si el archivo existe y es un archivo regular
         echo -e "${RED}❌ Error: Script no encontrado: ${SCRIPTS_DIR}/${script}${NC}"
         exit 1
     fi
+    # Hacer ejecutable el script
     chmod +x "${SCRIPTS_DIR}/${script}"
 done
 
@@ -101,6 +102,10 @@ CONTAINER_NAME="pqc-legacy-server"
 
 echo -e "${CYAN}🧪 Probando algoritmos LEGACY (kyber*, x25519_kyber*, p256_kyber*, frodo*, bikel1, hqc128)${NC}"
 
+# Ejecutar contenedor Docker con la sonda PQC contra el servidor LEGACY
+# --rm: elimina el contenedor al terminar, --network="host": usa la red del host para conectarse a localhost:4433
+# -v monta carpetas (data:ro es read-only, resultados es read-write)
+# Si el comando falla, mostramos error, detenemos los servidores y abortamos
 if ! docker run --rm \
     --network="host" \
     -v "${PROJECT_DIR}/data:/app/data:ro" \
@@ -112,17 +117,20 @@ if ! docker run --rm \
     --max-workers "${MAX_WORKERS}" \
     --log-level "INFO"; then
     echo -e "${RED}❌ Error al ejecutar pruebas LEGACY${NC}"
-    trap - EXIT
+    trap - EXIT # Desactiva el trap para evitar limpieza no controlada
     "${SCRIPTS_DIR}/detener_servidores.sh"
     exit 1
 fi
 
-# Copiar resultados del legacy
+# Copiar resultados del legacy a archivo específico
+# Renombramos resultados_sonda_pqc.json a resultados_calibracion_legacy.json para guardar histórico
 if [ -f "${PROJECT_DIR}/resultados/resultados_sonda_pqc.json" ]; then
+    # cp copia archivos, si el destino es un directorio, mantiene el nombre original, 
+    # si es un archivo, lo renombra. 2>/dev/null redirige errores a null para evitar mensajes si el resumen_por_grupo.csv no existe
     cp "${PROJECT_DIR}/resultados/resultados_sonda_pqc.json" \
        "${PROJECT_DIR}/resultados/resultados_calibracion_legacy.json"
     cp "${PROJECT_DIR}/resultados/resumen_por_grupo.csv" \
-       "${PROJECT_DIR}/resultados/resumen_calibracion_legacy.csv" 2>/dev/null || true
+       "${PROJECT_DIR}/resultados/resumen_calibracion_legacy.csv" 2>/dev/null || true # || true ignora errores
 fi
 
 echo ""
@@ -136,6 +144,10 @@ DATASET_CSV="calibracion_moderno.csv"
 
 echo -e "${CYAN}🧪 Probando algoritmos MODERNOS (mlkem768, x25519_mlkem768, x25519_mlkem512, secp256r1_mlkem768)${NC}"
 
+# Ejecutar contenedor Docker con la sonda PQC contra el servidor MODERNO
+# --rm: elimina el contenedor al terminar, --network="host": usa la red del host para conectarse a localhost:4434
+# -v monta carpetas (data:ro es read-only, resultados es read-write)
+# Si el comando falla, mostramos error, detenemos los servidores y abortamos
 if ! docker run --rm \
     --network="host" \
     -v "${PROJECT_DIR}/data:/app/data:ro" \
@@ -147,17 +159,18 @@ if ! docker run --rm \
     --max-workers "${MAX_WORKERS}" \
     --log-level "INFO"; then
     echo -e "${RED}❌ Error al ejecutar pruebas MODERNO${NC}"
-    trap - EXIT
+    trap - EXIT # Desactiva el trap para evitar limpieza no controlada
     "${SCRIPTS_DIR}/detener_servidores.sh"
     exit 1
 fi
 
-# Copiar resultados del moderno
+# Copiar resultados del moderno a archivo específico
+# Renombramos resultados_sonda_pqc.json a resultados_calibracion_moderno.json para guardar histórico
 if [ -f "${PROJECT_DIR}/resultados/resultados_sonda_pqc.json" ]; then
     cp "${PROJECT_DIR}/resultados/resultados_sonda_pqc.json" \
        "${PROJECT_DIR}/resultados/resultados_calibracion_moderno.json"
     cp "${PROJECT_DIR}/resultados/resumen_por_grupo.csv" \
-       "${PROJECT_DIR}/resultados/resumen_calibracion_moderno.csv" 2>/dev/null || true
+       "${PROJECT_DIR}/resultados/resumen_calibracion_moderno.csv" 2>/dev/null || true # || true ignora errores
 fi
 
 FIN_TIEMPO=$(date +%s)
@@ -169,7 +182,7 @@ echo -e "${BLUE}  Fase 4/4: Detener Servidores${NC}"
 echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
 echo ""
 
-# Desactivar trap para limpieza manual controlada
+# Antes de detener los servidores, desactivamos el trap para evitar que se ejecute la función de limpieza nuevamente
 trap - EXIT
 
 # Paso 4: Detener ambos servidores
@@ -194,15 +207,23 @@ echo "  • Resumen CSV MODERNO: ${PROJECT_DIR}/resultados/resumen_calibracion_m
 echo ""
 
 # Mostrar estadísticas combinadas si jq está disponible
+# jq es una herramienta para procesar JSON desde línea de comandos (command -v busca jq en el PATH)
+# -r: output raw (sin comillas), '.resumen': accede al objeto resumen del JSON
 if command -v jq &> /dev/null; then
     echo -e "${CYAN}📈 Estadísticas de calibración LEGACY:${NC}"
+    # -f comprueba si el archivo existe antes de procesarlo con jq
     if [ -f "${PROJECT_DIR}/resultados/resultados_calibracion_legacy.json" ]; then
+        # jq extrae total_pruebas, pruebas_exitosas y tasa_exito_pruebas_percent del JSON
+        # \n genera nuevas líneas dentro de la salida de jq
         jq -r '.resumen | "  • Total de pruebas: \(.total_pruebas)\n  • Pruebas exitosas: \(.pruebas_exitosas)\n  • Tasa de éxito: \(.tasa_exito_pruebas_percent)%"' \
             "${PROJECT_DIR}/resultados/resultados_calibracion_legacy.json"
     fi
     echo ""
     echo -e "${CYAN}📈 Estadísticas de calibración MODERNO:${NC}"
+    # -f comprueba si el archivo existe antes de procesarlo con jq
     if [ -f "${PROJECT_DIR}/resultados/resultados_calibracion_moderno.json" ]; then
+        # jq extrae total_pruebas, pruebas_exitosas y tasa_exito_pruebas_percent del JSON
+        # \n genera nuevas líneas dentro de la salida de jq
         jq -r '.resumen | "  • Total de pruebas: \(.total_pruebas)\n  • Pruebas exitosas: \(.pruebas_exitosas)\n  • Tasa de éxito: \(.tasa_exito_pruebas_percent)%"' \
             "${PROJECT_DIR}/resultados/resultados_calibracion_moderno.json"
     fi

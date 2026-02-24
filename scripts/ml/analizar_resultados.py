@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """
-Script mejorado: limpia outliers, aplica filtros de muestras mínimas y regenera gráficas
+Script analizar_resultados.py
+Analizar resultados de las pruebas de conexión TLS a los servidores PQC.
+Lee el JSON generado por hostname_conexion.py, procesa los datos, limpia outliers, y genera gráficas comparativas de latencia y overhead de bytes por grupo criptográfico. 
+Las gráficas se guardan en la carpeta "imagenes" y se muestran estadísticas de cada grupo. Se aplica un filtro de muestras mínimas para asegurar comparaciones significativas. Se utiliza logging para mostrar el progreso y resultados del análisis.
 """
+
+# Importar librerías
 import json
 import pandas as pd
 import numpy as np
@@ -36,17 +41,30 @@ COLORES_GRUPOS = {
     'x25519_hqc128': '#c5b0d5',
 }
 
+# Rutas de archivos
 BASE_DIR = Path(__file__).parent.parent.parent
 RESULTADOS_PATH = BASE_DIR / "resultados" / "resultados_sonda_pqc.json"
 OUTPUT_DIR = BASE_DIR / "imagenes"
 
+# Funciones de análisis
 def cargar_y_procesar():
-    """Carga datos y crea DataFrame filtrado y limpio."""
+    """
+    Carga datos y crea DataFrame filtrado y limpio.
+    Input: JSON con resultados de pruebas de conexión TLS.
+    Output: DataFrame completo y DataFrame solo con conexiones exitosas.
+        - Carga el JSON y extrae los datos relevantes.
+        - Crea un DataFrame con columnas para hostname, grupo, resultados de conexión, tiempos y bytes.
+        - Convierte columnas numéricas a tipo numérico, manejando errores.
+        - Filtra el DataFrame para obtener solo las conexiones exitosas (connection_result == "ACEPTADO").
+        - Muestra estadísticas básicas de los datos cargados.
+    """
     logger.info(f"Cargando datos desde {RESULTADOS_PATH}")
     
+    # Cargar JSON
     with RESULTADOS_PATH.open('r', encoding='utf-8') as f:
         data = json.load(f)
     
+    # Extraer datos y crear DataFrame
     registros = []
     for host_data in data['datos']:
         hostname = host_data['hostname']
@@ -66,12 +84,13 @@ def cargar_y_procesar():
             }
             registros.append(registro)
     
+    # Crear DataFrame
     df = pd.DataFrame(registros)
     
     # Convertir a numérico
     for col in ['dns_time_ms', 'tcp_time_ms', 'handshake_time_ms', 'tiempo_conexion_segundos',
                 'bytes_sent', 'bytes_received', 'handshake_overhead', 'response_size_bytes']:
-        df[col] = pd.to_numeric(df[col], errors='coerce')
+        df[col] = pd.to_numeric(df[col], errors='coerce') # coerce convierte errores a NaN
     
     # Filtrar solo exitosas
     df_exitos = df[df['connection_result'] == 'ACEPTADO'].copy()
@@ -84,6 +103,8 @@ def cargar_y_procesar():
 def remover_outliers(df, columnas, metodo='iqr', umbral_z=3):
     """
     Remueve outliers usando IQR o Z-score.
+    IQR: Valores fuera de [Q1 - 1.5*IQR, Q3 + 1.5*IQR] se consideran outliers.
+    Z-score: Valores con |Z| > umbral_z se consideran outliers.
     
     Args:
         df: DataFrame
@@ -91,9 +112,11 @@ def remover_outliers(df, columnas, metodo='iqr', umbral_z=3):
         metodo: 'iqr' o 'zscore'
         umbral_z: umbral de Z-score (default 3)
     """
+    # Crear copia del DataFrame para no modificar el original
     df_limpio = df.copy()
     outliers_removidos = 0
     
+    # Procesar cada columna
     for col in columnas:
         if col not in df_limpio.columns:
             continue
@@ -101,6 +124,7 @@ def remover_outliers(df, columnas, metodo='iqr', umbral_z=3):
         # Contar valores válidos antes
         antes = df_limpio[col].notna().sum()
         
+        # Método IQR
         if metodo == 'iqr':
             Q1 = df_limpio[col].quantile(0.25)
             Q3 = df_limpio[col].quantile(0.75)
@@ -109,10 +133,12 @@ def remover_outliers(df, columnas, metodo='iqr', umbral_z=3):
             upper_bound = Q3 + 1.5 * IQR
             df_limpio = df_limpio[(df_limpio[col].isna()) | (df_limpio[col] >= lower_bound) & (df_limpio[col] <= upper_bound)]
         
+        # Método Z-score
         elif metodo == 'zscore':
             z_scores = np.abs((df_limpio[col] - df_limpio[col].mean()) / df_limpio[col].std())
             df_limpio = df_limpio[(z_scores <= umbral_z) | (df_limpio[col].isna())]
         
+        # Contar valores válidos después y calcular removidos
         despues = df_limpio[col].notna().sum()
         removidos = antes - despues
         if removidos > 0:
@@ -123,16 +149,27 @@ def remover_outliers(df, columnas, metodo='iqr', umbral_z=3):
     return df_limpio
 
 def filtrar_por_muestras_minimas(df, min_muestras=20):
-    """Filtra grupos con menos de min_muestras conexiones exitosas."""
+    """
+    Filtra grupos con menos de min_muestras conexiones exitosas.
+    Input: DataFrame con resultados de conexiones exitosas, número mínimo de muestras por grupo.
+    Output: DataFrame filtrado solo con grupos que tienen al menos min_muestras conexiones exitos
+        - Cuenta el número de muestras por grupo.
+        - Identifica grupos que cumplen con el mínimo de muestras y los que no.
+        - Muestra estadísticas de grupos válidos y excluidos.
+        - Devuelve un DataFrame filtrado solo con los grupos válidos.
+    """
+    # Contar muestras por grupo
     grupos_counts = df['grupo'].value_counts()
     grupos_validos = grupos_counts[grupos_counts >= min_muestras].index.tolist()
     
     logger.info(f"\nFiltro de muestras mínimas (>={min_muestras}):")
     logger.info(f"  Grupos validos: {len(grupos_validos)}")
+    # Mostrar conteo de muestras por grupo válido
     for grupo in grupos_validos:
         count = grupos_counts[grupo]
         logger.info(f"    - {grupo}: {count} muestras")
     
+    # Mostrar grupos excluidos
     grupos_excluidos = grupos_counts[grupos_counts < min_muestras].index.tolist()
     if grupos_excluidos:
         logger.info(f"  Grupos excluidos: {len(grupos_excluidos)}")
@@ -143,7 +180,15 @@ def filtrar_por_muestras_minimas(df, min_muestras=20):
     return df[df['grupo'].isin(grupos_validos)].copy()
 
 def graficar_latencia(df, output_dir):
-    """Gráfica de latencia por grupo."""
+    """
+    Gráfica de latencia por grupo.
+    Crea una figura con 4 subplots para DNS, TCP, Handshake y Tiempo Total.
+    Cada subplot muestra una barra horizontal con el tiempo promedio por grupo, con barras de error para
+    la desviación estándar. Los grupos se ordenan de mayor a menor latencia promedio. Se aplican colores personalizados por grupo. Se guardan las gráficas en la carpeta de salida.
+    Input: DataFrame con resultados de conexiones exitosas, carpeta de salida para las gráficas.
+    Output: Gráficas guardadas en la carpeta de salida.
+    """
+    # Crear figura con 4 subplots
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
     fig.suptitle('Análisis de Latencia por Grupo Criptográfico (Datos Limpios)', 
                  fontsize=16, fontweight='bold')
@@ -180,6 +225,7 @@ def graficar_latencia(df, output_dir):
     axes[1, 1].set_title('Tiempo Total de Conexión', fontweight='bold')
     axes[1, 1].grid(axis='x', alpha=0.3)
     
+    # Ajustar layout y guardar figura
     plt.tight_layout()
     output_path = output_dir / 'latencia_limpia.png'
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
@@ -187,7 +233,15 @@ def graficar_latencia(df, output_dir):
     plt.close()
 
 def graficar_bytes(df, output_dir):
-    """Gráfica de bytes por grupo."""
+    """
+    Gráfica de bytes por grupo.
+    Crea una figura con 4 subplots para Bytes Enviados, Bytes Recibidos, Overhead del Handshake y Tamaño de Respuesta.
+    Cada subplot muestra una barra horizontal con el valor promedio por grupo, con barras de error para
+    la desviación estándar. Los grupos se ordenan de mayor a menor valor promedio. Se aplican colores personalizados por grupo. Se guardan las gráficas en la carpeta de salida.
+    Input: DataFrame con resultados de conexiones exitosas, carpeta de salida para las gráficas
+    Output: Gráficas guardadas en la carpeta de salida.
+    """
+    # Crear figura con 4 subplotsq
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
     fig.suptitle('Análisis de Overhead de Bytes por Grupo Criptográfico (Datos Limpios)', 
                  fontsize=16, fontweight='bold')
@@ -231,7 +285,12 @@ def graficar_bytes(df, output_dir):
     plt.close()
 
 def graficar_scatter(df, output_dir):
-    """Gráfica scatter: latencia vs overhead."""
+    """
+    Gráfica scatter: latencia vs overhead.
+    Crea una gráfica scatter donde cada punto representa un grupo criptográfico, con el tiempo de handshake promedio en el eje X y el overhead de bytes promedio en el eje Y. El tamaño de cada punto refleja la cantidad de muestras para ese grupo. Se aplican colores personalizados por grupo. Se guardan las gráficas en la carpeta de salida.
+    Input: DataFrame con resultados de conexiones exitosas, carpeta de salida para las gráficas
+    Output: Gráficas guardadas en la carpeta de salida.
+    """
     fig, ax = plt.subplots(figsize=(12, 8))
     
     for grupo in df['grupo'].unique():
@@ -249,6 +308,7 @@ def graficar_scatter(df, output_dir):
     ax.legend(loc='best')
     ax.grid(True, alpha=0.3)
     
+    # Ajustar layout y guardar figura
     plt.tight_layout()
     output_path = output_dir / 'scatter_limpia.png'
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
@@ -256,12 +316,13 @@ def graficar_scatter(df, output_dir):
     plt.close()
 
 def main():
+    # Crear carpeta de salida si no existe
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     
     # Cargar datos
     df_total, df_exitos = cargar_y_procesar()
     
-    # Limpiar outliers (IQR para bytes)
+    # Limpiar outliers 
     logger.info("\n🧹 Limpiando outliers de bytes...")
     df_exitos = remover_outliers(df_exitos, 
                                  ['bytes_sent', 'bytes_received', 'handshake_overhead', 'response_size_bytes'],

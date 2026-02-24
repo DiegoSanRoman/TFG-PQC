@@ -1,10 +1,12 @@
 #!/bin/bash
 # test_pipeline.sh
 # Script para probar el pipeline completo: sonda + análisis
-# Uso: ./test_pipeline.sh --input-csv ARCHIVO.csv [--max-hostnames N] [--repeticiones N] [--max-workers N]
+# Uso: ./test_pipeline.sh [--input-csv ARCHIVO.csv] [--max-hostnames N] [--repeticiones N] [--max-workers N]
 
+# Para asegurar que el script falle si algún comando falla y no haya resultados inconsistentes
 set -e
 
+# Para usar rutas relativas
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Valores por defecto
@@ -14,11 +16,12 @@ REPETICIONES=3
 MAX_WORKERS=20
 
 # Parsear argumentos
+# Mientras sigue habiendo argumentos, procesarlos
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --input-csv)
             INPUT_CSV="$2"
-            shift 2
+            shift 2             # Desplazar los argumentos para procesar el siguiente
             ;;
         --max-hostnames)
             MAX_HOSTNAMES="$2"
@@ -34,7 +37,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         *)
             echo "❌ Argumento desconocido: $1"
-            echo "Uso: ./test_pipeline.sh --input-csv ARCHIVO.csv [--max-hostnames N] [--repeticiones N] [--max-workers N]"
+            echo "Uso: ./test_pipeline.sh [--input-csv ARCHIVO.csv] [--max-hostnames N] [--repeticiones N] [--max-workers N]"
             exit 1
             ;;
     esac
