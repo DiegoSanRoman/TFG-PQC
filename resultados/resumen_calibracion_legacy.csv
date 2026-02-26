@@ -1,0 +1,15 @@
+Grupo,Total Pruebas,Aceptados,Rechazados,Errores,% Aceptación,% Rechazo,% Error,Handshake Media (ms),Handshake Mediana (ms),Handshake Desv.Std (ms),Handshake Min (ms),Handshake Max (ms),DNS Media (ms),TCP Media (ms),Bytes Enviados Media,Bytes Recibidos Media,Bytes Totales Media,Overhead Handshake Media
+Automático,1,1,0,0,100.0,0.0,0.0,72.4,72.4,0,72.4,72.4,4.93,1.32,1763,11627,13390,13390
+X25519,1,1,0,0,100.0,0.0,0.0,68.98,68.98,0,68.98,68.98,0.21,0.45,546,10549,11095,11095
+X25519MLKEM768,1,0,1,0,0.0,100.0,0.0,,,,,,,,,,,
+x25519_kyber768,1,0,1,0,0.0,100.0,0.0,,,,,,,,,,,
+mlkem768,1,0,1,0,0.0,100.0,0.0,,,,,,,,,,,
+kyber768,1,1,0,0,100.0,0.0,0.0,70.49,70.49,0,70.49,70.49,0.21,0.44,1690,11627,13317,13317
+p256_kyber768,1,0,1,0,0.0,100.0,0.0,,,,,,,,,,,
+SecP256r1MLKEM768,1,0,1,0,0.0,100.0,0.0,,,,,,,,,,,
+x25519_mlkem512,1,0,1,0,0.0,100.0,0.0,,,,,,,,,,,
+x25519_kyber512,1,0,1,0,0.0,100.0,0.0,,,,,,,,,,,
+frodo640aes,1,0,1,0,0.0,100.0,0.0,,,,,,,,,,,
+bikel1,1,0,1,0,0.0,100.0,0.0,,,,,,,,,,,
+x25519_bikel1,1,0,1,0,0.0,100.0,0.0,,,,,,,,,,,
+x25519_hqc128,1,0,1,0,0.0,100.0,0.0,,,,,,,,,,,
