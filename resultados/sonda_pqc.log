@@ -15997,3 +15997,363 @@
 2026-02-23 05:38:15,543 INFO Resultados guardados en /app/resultados/resultados_sonda_pqc.json
 2026-02-23 05:38:15,543 INFO Resumen CSV guardado en /app/resultados/resumen_por_grupo.csv
 2026-02-23 05:38:15,543 INFO ======================================================================
+2026-03-07 11:23:16,790 INFO Iniciando sonda PQC con OpenSSL personalizado
+2026-03-07 11:23:16,790 INFO Binario OpenSSL: /opt/openssl/bin/openssl
+2026-03-07 11:23:16,791 INFO Límite de procesos OpenSSL: 12
+2026-03-07 11:23:16,791 INFO Repeticiones por grupo: 3
+2026-03-07 11:23:16,792 WARNING Formato desconocido, usando columna B por defecto
+2026-03-07 11:23:16,793 INFO Se han cargado 7 hostnames desde /app/data/prueba.csv
+2026-03-07 11:23:16,793 INFO Grupos PQC a probar: Automático, X25519, X25519MLKEM768, x25519_kyber768, mlkem768, kyber768, p256_kyber768, SecP256r1MLKEM768, x25519_mlkem512, x25519_kyber512, frodo640aes, bikel1, x25519_bikel1, x25519_hqc128
+2026-03-07 11:23:16,793 INFO Iniciando escaneo concurrente con 20 hilos...
+2026-03-07 11:23:16,820 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,824 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,826 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,830 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,833 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,839 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,840 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,846 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,848 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,853 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,862 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,864 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,870 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,873 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,895 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,901 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,905 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,905 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,907 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,907 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,907 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,908 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,909 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,910 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,911 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,912 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,913 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,913 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,914 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,914 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,914 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,915 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,915 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,915 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,916 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,916 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,916 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,917 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,917 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,918 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,918 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,918 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:23:16,920 WARNING Escaneo sin éxitos para localhost:4433 (0/14 pruebas exitosas)
+2026-03-07 11:24:26,174 INFO Estadísticas por grupo exportadas a /app/resultados/resumen_por_grupo.csv
+2026-03-07 11:24:26,175 INFO ======================================================================
+2026-03-07 11:24:26,175 INFO Escaneo PQC completado
+2026-03-07 11:24:26,176 INFO Tiempo total: 69.34 segundos
+2026-03-07 11:24:26,176 INFO Hosts con al menos un éxito: 6/7 (85.71%)
+2026-03-07 11:24:26,176 INFO Pruebas exitosas: 14/98 (14.29%)
+2026-03-07 11:24:26,176 INFO Resultados guardados en /app/resultados/resultados_sonda_pqc.json
+2026-03-07 11:24:26,177 INFO Resumen CSV guardado en /app/resultados/resumen_por_grupo.csv
+2026-03-07 11:24:26,177 INFO ======================================================================
+2026-03-07 11:31:26,445 INFO Iniciando sonda PQC con OpenSSL personalizado
+2026-03-07 11:31:26,445 INFO Binario OpenSSL: /opt/openssl/bin/openssl
+2026-03-07 11:31:26,448 INFO Límite de procesos OpenSSL: 12
+2026-03-07 11:31:26,449 INFO Repeticiones por grupo: 3
+2026-03-07 11:31:26,450 WARNING Formato desconocido, usando columna B por defecto
+2026-03-07 11:31:26,450 INFO Se han cargado 7 hostnames desde /app/data/prueba.csv
+2026-03-07 11:31:26,450 INFO Grupos PQC a probar: Automático, X25519, X25519MLKEM768, x25519_kyber768, mlkem768, kyber768, p256_kyber768, SecP256r1MLKEM768, x25519_mlkem512, x25519_kyber512, frodo640aes, bikel1, x25519_bikel1, x25519_hqc128
+2026-03-07 11:31:26,451 INFO Iniciando escaneo concurrente con 20 hilos...
+2026-03-07 11:31:26,473 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,476 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,480 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,483 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,490 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,506 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,507 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,508 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,509 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,510 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,513 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,515 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,519 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,523 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,524 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,526 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,527 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,528 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,529 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,529 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,529 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,530 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,530 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,530 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,531 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,532 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,532 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,533 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,533 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,534 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,534 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,535 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,536 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,538 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,546 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,547 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,553 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,556 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,559 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,560 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,561 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,562 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:31:26,562 WARNING Escaneo sin éxitos para localhost:4433 (0/14 pruebas exitosas)
+2026-03-07 11:32:40,770 INFO Estadísticas por grupo exportadas a /app/resultados/resumen_por_grupo.csv
+2026-03-07 11:32:40,771 INFO ======================================================================
+2026-03-07 11:32:40,771 INFO Escaneo PQC completado
+2026-03-07 11:32:40,771 INFO Tiempo total: 74.30 segundos
+2026-03-07 11:32:40,771 INFO Hosts con al menos un éxito: 6/7 (85.71%)
+2026-03-07 11:32:40,772 INFO Pruebas exitosas: 14/98 (14.29%)
+2026-03-07 11:32:40,772 INFO Resultados guardados en /app/resultados/resultados_sonda_pqc.json
+2026-03-07 11:32:40,772 INFO Resumen CSV guardado en /app/resultados/resumen_por_grupo.csv
+2026-03-07 11:32:40,772 INFO ======================================================================
+2026-03-07 11:35:43,870 INFO Iniciando sonda PQC con OpenSSL personalizado
+2026-03-07 11:35:43,870 INFO Binario OpenSSL: /opt/openssl/bin/openssl
+2026-03-07 11:35:43,871 INFO Límite de procesos OpenSSL: 12
+2026-03-07 11:35:43,871 INFO Repeticiones por grupo: 3
+2026-03-07 11:35:43,872 WARNING Formato desconocido, usando columna B por defecto
+2026-03-07 11:35:43,872 INFO Se han cargado 7 hostnames desde /app/data/prueba.csv
+2026-03-07 11:35:43,872 INFO Grupos PQC a probar: Automático, X25519, X25519MLKEM768, x25519_kyber768, mlkem768, kyber768, p256_kyber768, SecP256r1MLKEM768, x25519_mlkem512, x25519_kyber512, frodo640aes, bikel1, x25519_bikel1, x25519_hqc128
+2026-03-07 11:35:43,873 INFO Iniciando escaneo concurrente con 20 hilos...
+2026-03-07 11:35:43,897 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,901 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,903 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,906 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,910 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,911 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,920 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,932 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,935 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,938 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,942 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,945 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,947 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,948 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,949 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,950 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,951 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,952 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,953 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,954 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,955 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,957 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,958 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,959 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,960 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,961 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,962 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,963 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,965 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,967 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,968 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,972 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,991 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,996 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:43,998 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:44,001 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:44,003 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:44,004 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:44,005 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:44,006 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:44,007 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:44,008 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:35:44,009 WARNING Escaneo sin éxitos para localhost:4433 (0/14 pruebas exitosas)
+2026-03-07 11:36:58,194 INFO Estadísticas por grupo exportadas a /app/resultados/resumen_por_grupo.csv
+2026-03-07 11:36:58,195 INFO ======================================================================
+2026-03-07 11:36:58,195 INFO Escaneo PQC completado
+2026-03-07 11:36:58,195 INFO Tiempo total: 74.29 segundos
+2026-03-07 11:36:58,195 INFO Hosts con al menos un éxito: 6/7 (85.71%)
+2026-03-07 11:36:58,195 INFO Pruebas exitosas: 14/98 (14.29%)
+2026-03-07 11:36:58,196 INFO Resultados guardados en /app/resultados/resultados_sonda_pqc.json
+2026-03-07 11:36:58,196 INFO Resumen CSV guardado en /app/resultados/resumen_por_grupo.csv
+2026-03-07 11:36:58,196 INFO ======================================================================
+2026-03-07 11:44:43,483 INFO Iniciando sonda PQC con OpenSSL personalizado
+2026-03-07 11:44:43,484 INFO Binario OpenSSL: /opt/openssl/bin/openssl
+2026-03-07 11:44:43,484 INFO Límite de procesos OpenSSL: 12
+2026-03-07 11:44:43,484 INFO Repeticiones por grupo: 3
+2026-03-07 11:44:43,485 WARNING Formato desconocido, usando columna B por defecto
+2026-03-07 11:44:43,486 INFO Se han cargado 7 hostnames desde /app/data/prueba.csv
+2026-03-07 11:44:43,486 INFO Grupos PQC a probar: Automático, X25519, X25519MLKEM768, x25519_kyber768, mlkem768, kyber768, p256_kyber768, SecP256r1MLKEM768, x25519_mlkem512, x25519_kyber512, frodo640aes, bikel1, x25519_bikel1, x25519_hqc128
+2026-03-07 11:44:43,486 INFO Iniciando escaneo concurrente con 20 hilos...
+2026-03-07 11:44:43,514 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,516 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,521 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,533 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,538 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,545 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,548 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,555 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,556 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,556 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,557 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,557 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,558 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,558 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,559 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,559 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,560 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,560 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,560 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,561 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,561 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,561 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,562 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,562 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,563 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,563 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,564 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,564 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,565 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,565 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,565 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,566 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,566 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,566 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,567 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,567 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,568 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,568 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,568 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,569 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,569 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,569 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:44:43,570 WARNING Escaneo sin éxitos para localhost:4433 (0/14 pruebas exitosas)
+2026-03-07 11:45:38,007 INFO Estadísticas por grupo exportadas a /app/resultados/resumen_por_grupo.csv
+2026-03-07 11:45:38,008 INFO ======================================================================
+2026-03-07 11:45:38,008 INFO Escaneo PQC completado
+2026-03-07 11:45:38,009 INFO Tiempo total: 54.48 segundos
+2026-03-07 11:45:38,009 INFO Hosts con al menos un éxito: 6/7 (85.71%)
+2026-03-07 11:45:38,009 INFO Pruebas exitosas: 14/98 (14.29%)
+2026-03-07 11:45:38,010 INFO Resultados guardados en /app/resultados/resultados_sonda_pqc.json
+2026-03-07 11:45:38,010 INFO Resumen CSV guardado en /app/resultados/resumen_por_grupo.csv
+2026-03-07 11:45:38,011 INFO ======================================================================
+2026-03-07 11:52:59,125 INFO Iniciando sonda PQC con OpenSSL personalizado
+2026-03-07 11:52:59,125 INFO Binario OpenSSL: /opt/openssl/bin/openssl
+2026-03-07 11:52:59,126 INFO Límite de procesos OpenSSL: 12
+2026-03-07 11:52:59,126 INFO Repeticiones por grupo: 3
+2026-03-07 11:52:59,127 WARNING Formato desconocido, usando columna B por defecto
+2026-03-07 11:52:59,127 INFO Se han cargado 7 hostnames desde /app/data/prueba.csv
+2026-03-07 11:52:59,128 INFO Grupos PQC a probar: Automático, X25519, X25519MLKEM768, x25519_kyber768, mlkem768, kyber768, p256_kyber768, SecP256r1MLKEM768, x25519_mlkem512, x25519_kyber512, frodo640aes, bikel1, x25519_bikel1, x25519_hqc128
+2026-03-07 11:52:59,128 INFO Iniciando escaneo concurrente con 20 hilos...
+2026-03-07 11:52:59,152 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,155 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,159 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,162 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,163 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,165 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,167 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,175 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,185 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,187 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,189 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,191 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,194 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,195 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,198 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,198 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,199 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,199 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,199 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,200 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,200 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,200 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,201 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,201 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,201 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,202 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,202 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,202 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,203 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,203 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,203 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,204 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,204 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,204 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,205 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,205 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,205 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,206 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,206 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,206 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,207 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,207 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:52:59,208 WARNING Escaneo sin éxitos para localhost:4433 (0/14 pruebas exitosas)
+2026-03-07 11:54:13,561 INFO Estadísticas por grupo exportadas a /app/resultados/resumen_por_grupo.csv
+2026-03-07 11:54:13,562 INFO ======================================================================
+2026-03-07 11:54:13,562 INFO Escaneo PQC completado
+2026-03-07 11:54:13,562 INFO Tiempo total: 74.40 segundos
+2026-03-07 11:54:13,562 INFO Hosts con al menos un éxito: 6/7 (85.71%)
+2026-03-07 11:54:13,562 INFO Pruebas exitosas: 14/98 (14.29%)
+2026-03-07 11:54:13,562 INFO Resultados guardados en /app/resultados/resultados_sonda_pqc.json
+2026-03-07 11:54:13,563 INFO Resumen CSV guardado en /app/resultados/resumen_por_grupo.csv
+2026-03-07 11:54:13,563 INFO ======================================================================
+2026-03-07 11:59:04,715 INFO Iniciando sonda PQC con OpenSSL personalizado
+2026-03-07 11:59:04,716 INFO Binario OpenSSL: /opt/openssl/bin/openssl
+2026-03-07 11:59:04,716 INFO Límite de procesos OpenSSL: 12
+2026-03-07 11:59:04,716 INFO Repeticiones por grupo: 3
+2026-03-07 11:59:04,717 WARNING Formato desconocido, usando columna B por defecto
+2026-03-07 11:59:04,717 INFO Se han cargado 7 hostnames desde /app/data/prueba.csv
+2026-03-07 11:59:04,718 INFO Grupos PQC a probar: Automático, X25519, X25519MLKEM768, x25519_kyber768, mlkem768, kyber768, p256_kyber768, SecP256r1MLKEM768, x25519_mlkem512, x25519_kyber512, frodo640aes, bikel1, x25519_bikel1, x25519_hqc128
+2026-03-07 11:59:04,718 INFO Iniciando escaneo concurrente con 20 hilos...
+2026-03-07 11:59:04,744 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,748 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,752 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,759 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,774 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,778 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,780 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,788 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,790 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,791 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,792 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,793 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,794 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,795 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,796 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,797 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,798 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,799 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,800 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,801 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,802 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,803 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,803 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,804 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,805 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,807 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,809 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,810 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,812 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,814 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,818 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,819 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,820 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,821 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,842 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,846 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,848 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,851 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,852 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,853 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,854 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,855 WARNING Conexión rechazada para localhost:4433
+2026-03-07 11:59:04,856 WARNING Escaneo sin éxitos para localhost:4433 (0/14 pruebas exitosas)
+2026-03-07 12:00:08,895 INFO Estadísticas por grupo exportadas a /app/resultados/resumen_por_grupo.csv
+2026-03-07 12:00:08,896 INFO ======================================================================
+2026-03-07 12:00:08,896 INFO Escaneo PQC completado
+2026-03-07 12:00:08,896 INFO Tiempo total: 64.15 segundos
+2026-03-07 12:00:08,897 INFO Hosts con al menos un éxito: 6/7 (85.71%)
+2026-03-07 12:00:08,897 INFO Pruebas exitosas: 14/98 (14.29%)
+2026-03-07 12:00:08,897 INFO Resultados guardados en /app/resultados/resultados_sonda_pqc.json
+2026-03-07 12:00:08,898 INFO Resumen CSV guardado en /app/resultados/resumen_por_grupo.csv
+2026-03-07 12:00:08,898 INFO ======================================================================

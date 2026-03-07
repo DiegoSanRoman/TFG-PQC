@@ -124,75 +124,66 @@ def leer_hostnames_csv(ruta_csv: Path, longitud_max: int, domain_column: Optiona
     return hostnames
 
 
-def parse_trace_bytes(trace_output: str) -> Dict[str, int]:
+def parse_trace_bytes(trace_output: str) -> Dict[str, Any]:
     '''
     Parsea bytes desde la salida de OpenSSL con -trace.
-    Utiliza heurísticas basadas en si el handshake fue exitoso.
     :param trace_output: Salida de stderr + stdout de OpenSSL con -trace
-    :return: Dict con bytes_sent, bytes_received, bytes_total, handshake_overhead
+    :return: Dict con bytes_sent, bytes_received, handshake_overhead, y measurement_method
     '''
     bytes_sent = 0
     bytes_received = 0
+    measurement_method = "unknown"  # "traced", "partial", "unknown"
     
-    # Intentar parsear desde -trace (buscando patrones más flexibles)
-    # Buscamos líneas que indiquen "Sent" o "Received" y luego buscamos líneas cercanas que indiquen "length = N"
+    # Parsear desde -trace buscando patrones "Length = N" después de "Sent/Received TLS Record"
+    # Formato OpenSSL:
+    #   Sent TLS Record
+    #   Header:
+    #     Version = ...
+    #     Content Type = ...
+    #     Length = 1560    <-- Este es el valor que necesitamos
     lines = trace_output.split('\n')
-    # Heurística: buscar en las siguientes 15 líneas después de cada "Sent" o "Received" para encontrar un patrón de "length = N"
+    
     for i, line in enumerate(lines):
-        # Buscar patrones de Sent/Received con longitud
-        if 'Sent' in line and 'Record' in line:
-            for j in range(i + 1, min(i + 15, len(lines))):
-                if 'length' in lines[j].lower() and '=' in lines[j]:
-                    try:
-                        match = re.search(r'=\s*(\d+)', lines[j])
-                        if match:
-                            bytes_sent += int(match.group(1)) + 5
-                            break
-                    except:
-                        pass
+        # Buscar "Sent TLS Record" o "Sent Record"
+        if ('Sent' in line and 'Record' in line) or 'Sent TLS Record' in line:
+            # Buscar "Length = N" en las siguientes líneas (típicamente línea +3 o +4)
+            for j in range(i + 1, min(i + 10, len(lines))):
+                # Patrón: "  Length = 1560" (con espacios iniciales)
+                match = re.search(r'^\s*Length\s*=\s*(\d+)', lines[j])
+                if match:
+                    length = int(match.group(1))
+                    # +5 bytes por TLS record header (1 byte tipo + 2 bytes versión + 2 bytes longitud)
+                    bytes_sent += length + 5
+                    measurement_method = "traced"
+                    break
         
-        elif 'Received' in line and 'Record' in line:
-            for j in range(i + 1, min(i + 15, len(lines))):
-                if 'length' in lines[j].lower() and '=' in lines[j]:
-                    try:
-                        match = re.search(r'=\s*(\d+)', lines[j])
-                        if match:
-                            bytes_received += int(match.group(1)) + 5
-                            break
-                    except:
-                        pass
+        # Buscar "Received TLS Record" o "Received Record"
+        elif ('Received' in line and 'Record' in line) or 'Received TLS Record' in line:
+            for j in range(i + 1, min(i + 10, len(lines))):
+                match = re.search(r'^\s*Length\s*=\s*(\d+)', lines[j])
+                if match:
+                    length = int(match.group(1))
+                    bytes_received += length + 5
+                    measurement_method = "traced"
+                    break
     
-    # Heurística: si no encontramos bytes en trace pero hay señales de handshake exitoso,
-    # usar estimaciones basadas en valores típicos reales
+    # Si solo capturamos uno de los dos (enviado o recibido), marcar como "partial"
+    if (bytes_sent > 0 and bytes_received == 0) or (bytes_sent == 0 and bytes_received > 0):
+        measurement_method = "partial"
+        logger.debug("Medición parcial de bytes: sent=%d, received=%d", bytes_sent, bytes_received)
+    
+    # Si no capturamos nada, dejar en 0 y marcar como "unknown"
+    # NO usar valores estimados hardcodeados
     if bytes_sent == 0 and bytes_received == 0:
-        # Indicadores de éxito basados en lo que devuelve OpenSSL s_client
-        has_server_key = "Server Temp Key:" in trace_output
-        has_cipher = ("Cipher" in trace_output or "cipher" in trace_output.lower()) and "(NONE)" not in trace_output
-        has_cert = ("subject=" in trace_output or "issuer=" in trace_output) and "-----BEGIN CERTIFICATE-----" in trace_output
-        
-        # Si hay cualquiera de estos indicadores, es probable que el handshake haya sido exitoso
-        if has_server_key or (has_cipher and has_cert):
-            # Valores típicos para un handshake TLS 1.3 exitoso (con PQC) - sacados de IA
-            # ClientHello: ~250 bytes (incluye grupos soportados)
-            # Finished message: ~32 bytes
-            # ServerHello + Encrypted Extensions: ~100 bytes
-            # Certificate: ~1200 bytes (típico para certificado auto-firmado)
-            # CertificateVerify: ~128 bytes (PQC puede ser más grande)
-            # Total típico: ~1700 bytes en cada dirección o menos
-            bytes_sent = 280  # ClientHello (~250) + Finished (~32)
-            bytes_received = 1500   # ServerHello + Certificate + CertificateVerify + Finished
-        else:
-            # No hay señales de éxito
-            bytes_sent = 0
-            bytes_received = 0
+        measurement_method = "unknown"
     
-    bytes_total = bytes_sent + bytes_received
+    handshake_overhead = bytes_sent + bytes_received if measurement_method != "unknown" else 0
     
     return {
-        'bytes_sent': bytes_sent,
-        'bytes_received': bytes_received,
-        'bytes_total': bytes_total,
-        'handshake_overhead': bytes_total
+        'bytes_sent': bytes_sent if measurement_method != "unknown" else None,
+        'bytes_received': bytes_received if measurement_method != "unknown" else None,
+        'handshake_overhead': handshake_overhead if measurement_method != "unknown" else None,
+        'measurement_method': measurement_method
     }
 
 
@@ -301,10 +292,10 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
             "cert_not_after": None,
             "cert_san": None,
             "cert_fingerprint_sha256": None,
-            "response_size_bytes": None,
             "bytes_sent": None,
             "bytes_received": None,
             "handshake_overhead": None,
+            "measurement_method": None,
             "sni_usado": sni_usado,
             "sni_difiere": sni_difiere,
             "retry": retried
@@ -330,10 +321,10 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
             "cert_not_after": None,
             "cert_san": None,
             "cert_fingerprint_sha256": None,
-            "response_size_bytes": None,
             "bytes_sent": None,
             "bytes_received": None,
             "handshake_overhead": None,
+            "measurement_method": None,
             "sni_usado": sni_usado,
             "sni_difiere": sni_difiere,
             "retry": retried
@@ -359,10 +350,10 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
             "cert_not_after": None,
             "cert_san": None,
             "cert_fingerprint_sha256": None,
-            "response_size_bytes": None,
             "bytes_sent": None,
             "bytes_received": None,
             "handshake_overhead": None,
+            "measurement_method": None,
             "sni_usado": sni_usado,
             "sni_difiere": sni_difiere,
             "retry": retried
@@ -425,10 +416,10 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
                         "cert_not_after": None,
                         "cert_san": None,
                         "cert_fingerprint_sha256": None,
-                        "response_size_bytes": None,
                         "bytes_sent": None,
                         "bytes_received": None,
                         "handshake_overhead": None,
+                        "measurement_method": None,
                         "sni_usado": sni_usado,
                         "sni_difiere": sni_difiere,
                         "retry": retried
@@ -455,8 +446,13 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
         # Métricas reales del tráfico de red
         bytes_sent = trace_metrics['bytes_sent']
         bytes_received = trace_metrics['bytes_received']
-        response_size_bytes = trace_metrics['bytes_total']
         handshake_overhead = trace_metrics['handshake_overhead']
+        measurement_method = trace_metrics['measurement_method']
+        
+        # Log de advertencia si no se pudieron medir bytes
+        if measurement_method == "unknown":
+            logger.debug("No se pudieron medir bytes desde trace para %s (grupo %s)", 
+                        hostname, group if group else "Automático")
 
         # Parseo de TLS: versión, cipher y ALPN
         tls_version = None
@@ -574,7 +570,10 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
                 "cert_not_after": cert_not_after,
                 "cert_san": cert_san,
                 "cert_fingerprint_sha256": cert_fingerprint_sha256,
-                "response_size_bytes": response_size_bytes,
+                "bytes_sent": bytes_sent,
+                "bytes_received": bytes_received,
+                "handshake_overhead": handshake_overhead,
+                "measurement_method": measurement_method,
                 "sni_usado": sni_usado,
                 "sni_difiere": sni_difiere,
                 "retry": retried
@@ -590,10 +589,6 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
         # Éxito real: hay Server Temp Key Y (hay certificado O cipher válido)
         if negotiated_line and (cert_issuer or (cipher_suite and "(NONE)" not in cipher_suite)):
             logger.debug("Éxito: %s - %s - %s", hostname, group if group else "Automático", negotiated_line)
-            # Valores de bytes estimados para conexión TLS exitosa
-            # Si el parsing de trace no capturó valores, usar estimaciones realistas
-            estimated_bytes_sent = 280 if bytes_sent == 0 else bytes_sent
-            estimated_bytes_received = 1500 if bytes_received == 0 else bytes_received
             return {
                 "error_category": None,
                 "connection_result": CONNECTION_ACCEPTED,
@@ -613,10 +608,10 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
                 "cert_not_after": cert_not_after,
                 "cert_san": cert_san,
                 "cert_fingerprint_sha256": cert_fingerprint_sha256,
-                "response_size_bytes": estimated_bytes_sent + estimated_bytes_received,
-                "bytes_sent": estimated_bytes_sent,
-                "bytes_received": estimated_bytes_received,
-                "handshake_overhead": estimated_bytes_sent + estimated_bytes_received,
+                "bytes_sent": bytes_sent,
+                "bytes_received": bytes_received,
+                "handshake_overhead": handshake_overhead,
+                "measurement_method": measurement_method,
                 "sni_usado": sni_usado,
                 "sni_difiere": sni_difiere,
                 "retry": retried
@@ -625,9 +620,6 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
         # Fallback: conexión exitosa si hay cipher válido Y certificado
         if cipher_suite and "(NONE)" not in cipher_suite and cert_issuer:
             logger.debug("Éxito: %s - %s - Conectado (TLS 1.3)", hostname, group if group else "Automático")
-            # Valores de bytes estimados para conexión TLS exitosa
-            estimated_bytes_sent = 280 if bytes_sent == 0 else bytes_sent
-            estimated_bytes_received = 1500 if bytes_received == 0 else bytes_received
             return {
                 "error_category": None,
                 "connection_result": CONNECTION_ACCEPTED,
@@ -647,10 +639,10 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
                 "cert_not_after": cert_not_after,
                 "cert_san": cert_san,
                 "cert_fingerprint_sha256": cert_fingerprint_sha256,
-                "response_size_bytes": estimated_bytes_sent + estimated_bytes_received,
-                "bytes_sent": estimated_bytes_sent,
-                "bytes_received": estimated_bytes_received,
-                "handshake_overhead": estimated_bytes_sent + estimated_bytes_received,
+                "bytes_sent": bytes_sent,
+                "bytes_received": bytes_received,
+                "handshake_overhead": handshake_overhead,
+                "measurement_method": measurement_method,
                 "sni_usado": sni_usado,
                 "sni_difiere": sni_difiere,
                 "retry": retried
@@ -677,10 +669,10 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
             "cert_not_after": cert_not_after,
             "cert_san": cert_san,
             "cert_fingerprint_sha256": cert_fingerprint_sha256,
-            "response_size_bytes": response_size_bytes,
             "bytes_sent": bytes_sent,
             "bytes_received": bytes_received,
             "handshake_overhead": handshake_overhead,
+            "measurement_method": measurement_method,
             "sni_usado": sni_usado,
             "sni_difiere": sni_difiere,
             "retry": retried
@@ -708,10 +700,10 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
             "cert_not_after": None,
             "cert_san": None,
             "cert_fingerprint_sha256": None,
-            "response_size_bytes": None,
             "bytes_sent": None,
             "bytes_received": None,
             "handshake_overhead": None,
+            "measurement_method": None,
             "sni_usado": sni_usado,
             "sni_difiere": sni_difiere,
             "retry": retried
@@ -797,7 +789,6 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
         tcp_times = []
         bytes_sent_list = []
         bytes_received_list = []
-        bytes_total_list = []
         handshake_overhead_list = []
         
         for prueba in pruebas_grupo:
@@ -812,8 +803,6 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
                     bytes_sent_list.append(prueba["bytes_sent"])
                 if prueba.get("bytes_received") is not None:
                     bytes_received_list.append(prueba["bytes_received"])
-                if prueba.get("response_size_bytes") is not None:
-                    bytes_total_list.append(prueba["response_size_bytes"])
                 if prueba.get("handshake_overhead") is not None:
                     handshake_overhead_list.append(prueba["handshake_overhead"])
         
@@ -838,7 +827,6 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
         stats_tcp = calc_stats(tcp_times)
         stats_bytes_sent = calc_stats(bytes_sent_list)
         stats_bytes_received = calc_stats(bytes_received_list)
-        stats_bytes_total = calc_stats(bytes_total_list)
         stats_handshake_overhead = calc_stats(handshake_overhead_list)
         
         # Contar categorías de error
@@ -862,7 +850,6 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
             "tcp_time_ms": stats_tcp,
             "bytes_sent": stats_bytes_sent,
             "bytes_received": stats_bytes_received,
-            "bytes_total": stats_bytes_total,
             "handshake_overhead": stats_handshake_overhead,
             "categorias_error": error_categories
         })
@@ -904,7 +891,6 @@ def exportar_estadisticas_csv(estadisticas_grupos: List[Dict[str, Any]], output_
             'TCP Media (ms)',
             'Bytes Enviados Media',
             'Bytes Recibidos Media',
-            'Bytes Totales Media',
             'Overhead Handshake Media'
         ]
         writer.writerow(headers)
@@ -929,7 +915,6 @@ def exportar_estadisticas_csv(estadisticas_grupos: List[Dict[str, Any]], output_
                 stats['tcp_time_ms']['media'],
                 stats['bytes_sent']['media'],
                 stats['bytes_received']['media'],
-                stats['bytes_total']['media'],
                 stats['handshake_overhead']['media']
             ]
             writer.writerow(row)
@@ -954,23 +939,26 @@ def calcular_promedio_repeticiones(intentos: List[Dict[str, Any]], grupo: str) -
         'dns_time_ms',
         'tcp_time_ms',
         'handshake_time_ms',
-        'response_size_bytes',
         'bytes_sent',
         'bytes_received',
         'handshake_overhead'
     ]
     
-    # Determinar la categoría de error y resultado de conexión más comunes
+    # Determinar la categoría de error, resultado de conexión y método de medición más comunes
     error_counts = {}
     result_counts = {}
+    measurement_counts = {}
     for intento in intentos:
         error = intento.get('error_category')
         result = intento.get('connection_result')
+        method = intento.get('measurement_method', 'unknown')
         error_counts[error] = error_counts.get(error, 0) + 1
         result_counts[result] = result_counts.get(result, 0) + 1
+        measurement_counts[method] = measurement_counts.get(method, 0) + 1
     
     error_category_promedio = max(error_counts, key=error_counts.get) if error_counts else None
     connection_result_promedio = max(result_counts, key=result_counts.get) if result_counts else None
+    measurement_method_promedio = max(measurement_counts, key=measurement_counts.get) if measurement_counts else 'unknown'
     
     # Tomar el primer intento exitoso como referencia para campos no numéricos
     # Si no hay exitosos, tomar el primero
@@ -994,6 +982,7 @@ def calcular_promedio_repeticiones(intentos: List[Dict[str, Any]], grupo: str) -
         'cert_not_after': referencia.get('cert_not_after'),
         'cert_san': referencia.get('cert_san'),
         'cert_fingerprint_sha256': referencia.get('cert_fingerprint_sha256'),
+        'measurement_method': measurement_method_promedio,
         'sni_usado': referencia.get('sni_usado'),
         'sni_difiere': referencia.get('sni_difiere'),
         'retry': referencia.get('retry')

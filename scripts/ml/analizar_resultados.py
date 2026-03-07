@@ -69,6 +69,11 @@ def cargar_y_procesar():
     for host_data in data['datos']:
         hostname = host_data['hostname']
         for prueba in host_data['pruebas']:
+            # Compatibilidad: usar handshake_overhead si existe, sino usar response_size_bytes
+            overhead = prueba.get('handshake_overhead')
+            if overhead is None:
+                overhead = prueba.get('response_size_bytes')
+            
             registro = {
                 'hostname': hostname,
                 'grupo': prueba.get('grupo'),
@@ -79,8 +84,7 @@ def cargar_y_procesar():
                 'tiempo_conexion_segundos': prueba.get('tiempo_conexion_segundos'),
                 'bytes_sent': prueba.get('bytes_sent'),
                 'bytes_received': prueba.get('bytes_received'),
-                'handshake_overhead': prueba.get('handshake_overhead'),
-                'response_size_bytes': prueba.get('response_size_bytes'),
+                'handshake_overhead': overhead,
             }
             registros.append(registro)
     
@@ -89,7 +93,7 @@ def cargar_y_procesar():
     
     # Convertir a numérico
     for col in ['dns_time_ms', 'tcp_time_ms', 'handshake_time_ms', 'tiempo_conexion_segundos',
-                'bytes_sent', 'bytes_received', 'handshake_overhead', 'response_size_bytes']:
+                'bytes_sent', 'bytes_received', 'handshake_overhead']:
         df[col] = pd.to_numeric(df[col], errors='coerce') # coerce convierte errores a NaN
     
     # Filtrar solo exitosas
@@ -234,49 +238,68 @@ def graficar_latencia(df, output_dir):
 
 def graficar_bytes(df, output_dir):
     """
-    Gráfica de bytes por grupo.
-    Crea una figura con 4 subplots para Bytes Enviados, Bytes Recibidos, Overhead del Handshake y Tamaño de Respuesta.
-    Cada subplot muestra una barra horizontal con el valor promedio por grupo, con barras de error para
-    la desviación estándar. Los grupos se ordenan de mayor a menor valor promedio. Se aplican colores personalizados por grupo. Se guardan las gráficas en la carpeta de salida.
+    Gráfica de bytes por grupo - Robusta ante datos faltantes.
+    Crea una figura con 4 subplots mostrando promedios por grupo con barras de error.
     Input: DataFrame con resultados de conexiones exitosas, carpeta de salida para las gráficas
     Output: Gráficas guardadas en la carpeta de salida.
     """
-    # Crear figura con 4 subplotsq
+    # Crear figura con 4 subplots
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
     fig.suptitle('Análisis de Overhead de Bytes por Grupo Criptográfico (Datos Limpios)', 
                  fontsize=16, fontweight='bold')
     
     # Bytes Sent
-    df_sent = df.groupby('grupo')['bytes_sent'].agg(['mean', 'std']).sort_values('mean', ascending=False)
-    axes[0, 0].barh(df_sent.index, df_sent['mean'], xerr=df_sent['std'],
-                     color=[COLORES_GRUPOS.get(g, '#999999') for g in df_sent.index], alpha=0.7, capsize=5)
-    axes[0, 0].set_xlabel('Bytes', fontweight='bold')
-    axes[0, 0].set_title('Bytes Enviados Promedio', fontweight='bold')
-    axes[0, 0].grid(axis='x', alpha=0.3)
+    if df['bytes_sent'].notna().any():
+        df_sent = df[df['bytes_sent'].notna()].groupby('grupo')['bytes_sent'].agg(['mean', 'std']).sort_values('mean', ascending=False)
+        if not df_sent.empty:
+            axes[0, 0].barh(df_sent.index, df_sent['mean'], xerr=df_sent['std'],
+                             color=[COLORES_GRUPOS.get(g, '#999999') for g in df_sent.index], alpha=0.7, capsize=5)
+            axes[0, 0].set_xlabel('Bytes', fontweight='bold')
+            axes[0, 0].set_title('Bytes Enviados Promedio', fontweight='bold')
+            axes[0, 0].grid(axis='x', alpha=0.3)
+        else:
+            axes[0, 0].text(0.5, 0.5, 'Sin datos válidos', ha='center', va='center', transform=axes[0, 0].transAxes)
+            axes[0, 0].set_title('Bytes Enviados Promedio', fontweight='bold')
+    else:
+        axes[0, 0].text(0.5, 0.5, 'Sin datos', ha='center', va='center', transform=axes[0, 0].transAxes)
+        axes[0, 0].set_title('Bytes Enviados Promedio', fontweight='bold')
     
     # Bytes Received
-    df_recv = df.groupby('grupo')['bytes_received'].agg(['mean', 'std']).sort_values('mean', ascending=False)
-    axes[0, 1].barh(df_recv.index, df_recv['mean'], xerr=df_recv['std'],
-                     color=[COLORES_GRUPOS.get(g, '#999999') for g in df_recv.index], alpha=0.7, capsize=5)
-    axes[0, 1].set_xlabel('Bytes', fontweight='bold')
-    axes[0, 1].set_title('Bytes Recibidos Promedio', fontweight='bold')
-    axes[0, 1].grid(axis='x', alpha=0.3)
+    if df['bytes_received'].notna().any():
+        df_recv = df[df['bytes_received'].notna()].groupby('grupo')['bytes_received'].agg(['mean', 'std']).sort_values('mean', ascending=False)
+        if not df_recv.empty:
+            axes[0, 1].barh(df_recv.index, df_recv['mean'], xerr=df_recv['std'],
+                             color=[COLORES_GRUPOS.get(g, '#999999') for g in df_recv.index], alpha=0.7, capsize=5)
+            axes[0, 1].set_xlabel('Bytes', fontweight='bold')
+            axes[0, 1].set_title('Bytes Recibidos Promedio', fontweight='bold')
+            axes[0, 1].grid(axis='x', alpha=0.3)
+        else:
+            axes[0, 1].text(0.5, 0.5, 'Sin datos válidos', ha='center', va='center', transform=axes[0, 1].transAxes)
+            axes[0, 1].set_title('Bytes Recibidos Promedio', fontweight='bold')
+    else:
+        axes[0, 1].text(0.5, 0.5, 'Sin datos', ha='center', va='center', transform=axes[0, 1].transAxes)
+        axes[0, 1].set_title('Bytes Recibidos Promedio', fontweight='bold')
     
     # Handshake Overhead
-    df_ovh = df.groupby('grupo')['handshake_overhead'].agg(['mean', 'std']).sort_values('mean', ascending=False)
-    axes[1, 0].barh(df_ovh.index, df_ovh['mean'], xerr=df_ovh['std'],
-                     color=[COLORES_GRUPOS.get(g, '#999999') for g in df_ovh.index], alpha=0.7, capsize=5)
-    axes[1, 0].set_xlabel('Bytes', fontweight='bold')
-    axes[1, 0].set_title('Overhead del Handshake TLS', fontweight='bold')
-    axes[1, 0].grid(axis='x', alpha=0.3)
+    if df['handshake_overhead'].notna().any():
+        df_ovh = df[df['handshake_overhead'].notna()].groupby('grupo')['handshake_overhead'].agg(['mean', 'std']).sort_values('mean', ascending=False)
+        if not df_ovh.empty:
+            axes[1, 0].barh(df_ovh.index, df_ovh['mean'], xerr=df_ovh['std'],
+                             color=[COLORES_GRUPOS.get(g, '#999999') for g in df_ovh.index], alpha=0.7, capsize=5)
+            axes[1, 0].set_xlabel('Bytes', fontweight='bold')
+            axes[1, 0].set_title('Overhead Total del Handshake', fontweight='bold')
+            axes[1, 0].grid(axis='x', alpha=0.3)
+        else:
+            axes[1, 0].text(0.5, 0.5, 'Sin datos válidos', ha='center', va='center', transform=axes[1, 0].transAxes)
+            axes[1, 0].set_title('Overhead Total del Handshake', fontweight='bold')
+    else:
+        axes[1, 0].text(0.5, 0.5, 'Sin datos', ha='center', va='center', transform=axes[1, 0].transAxes)
+        axes[1, 0].set_title('Overhead Total del Handshake', fontweight='bold')
     
-    # Response Size
-    df_resp = df.groupby('grupo')['response_size_bytes'].agg(['mean', 'std']).sort_values('mean', ascending=False)
-    axes[1, 1].barh(df_resp.index, df_resp['mean'], xerr=df_resp['std'],
-                     color=[COLORES_GRUPOS.get(g, '#999999') for g in df_resp.index], alpha=0.7, capsize=5)
-    axes[1, 1].set_xlabel('Bytes', fontweight='bold')
-    axes[1, 1].set_title('Tamaño de la Respuesta Promedio', fontweight='bold')
-    axes[1, 1].grid(axis='x', alpha=0.3)
+    # Placeholder para cuarta gráfica
+    axes[1, 1].text(0.5, 0.5, 'Reservado para análisis adicional', ha='center', va='center', transform=axes[1, 1].transAxes, style='italic', color='gray')
+    axes[1, 1].set_title('(Espacio reservado)', fontweight='bold')
+    axes[1, 1].axis('off')
     
     plt.tight_layout()
     output_path = output_dir / 'bytes_limpia.png'
@@ -293,20 +316,53 @@ def graficar_scatter(df, output_dir):
     """
     fig, ax = plt.subplots(figsize=(12, 8))
     
-    for grupo in df['grupo'].unique():
-        df_grupo = df[df['grupo'] == grupo]
+    # Verificar si hay datos válidos
+    if df.empty or 'handshake_time_ms' not in df.columns or 'handshake_overhead' not in df.columns:
+        ax.text(0.5, 0.5, 'Sin datos para scatter', ha='center', va='center', transform=ax.transAxes)
+        ax.set_title('Comparativa: Latencia vs Overhead de Bytes (Datos Limpios)', fontweight='bold')
+        plt.tight_layout()
+        output_path = output_dir / 'scatter_limpia.png'
+        plt.savefig(output_path, dpi=300, bbox_inches='tight')
+        logger.info(f"✓ Guardado: {output_path}")
+        plt.close()
+        return
+    
+    # Filtrar solo datos válidos
+    df_validos = df[(df['handshake_time_ms'].notna()) & (df['handshake_overhead'].notna())].copy()
+    
+    if df_validos.empty:
+        ax.text(0.5, 0.5, 'Sin datos válidos para scatter', ha='center', va='center', transform=ax.transAxes)
+        ax.set_title('Comparativa: Latencia vs Overhead de Bytes (Datos Limpios)', fontweight='bold')
+        plt.tight_layout()
+        output_path = output_dir / 'scatter_limpia.png'
+        plt.savefig(output_path, dpi=300, bbox_inches='tight')
+        logger.info(f"✓ Guardado: {output_path}")
+        plt.close()
+        return
+    
+    # Graficar por grupo
+    puntos_graficados = 0
+    for grupo in df_validos['grupo'].unique():
+        df_grupo = df_validos[df_validos['grupo'] == grupo]
         mean_latencia = df_grupo['handshake_time_ms'].mean()
         mean_overhead = df_grupo['handshake_overhead'].mean()
         count = len(df_grupo)
         
-        ax.scatter(mean_latencia, mean_overhead, s=count*5, alpha=0.6, 
-                  color=COLORES_GRUPOS.get(grupo, '#999999'), label=f'{grupo} (n={count})')
+        # Validar que sean números válidos
+        if pd.notna(mean_latencia) and pd.notna(mean_overhead):
+            ax.scatter(mean_latencia, mean_overhead, s=count*50, alpha=0.6, 
+                      color=COLORES_GRUPOS.get(grupo, '#999999'), label=f'{grupo} (n={count})')
+            puntos_graficados += 1
     
-    ax.set_xlabel('Tiempo de Handshake Promedio (ms)', fontweight='bold')
-    ax.set_ylabel('Overhead del Handshake Promedio (bytes)', fontweight='bold')
-    ax.set_title('Comparativa: Latencia vs Overhead de Bytes (Datos Limpios)', fontweight='bold')
-    ax.legend(loc='best')
-    ax.grid(True, alpha=0.3)
+    if puntos_graficados == 0:
+        ax.text(0.5, 0.5, 'No se pudieron graficar puntos', ha='center', va='center', transform=ax.transAxes)
+        ax.set_title('Comparativa: Latencia vs Overhead de Bytes (Datos Limpios)', fontweight='bold')
+    else:
+        ax.set_xlabel('Tiempo de Handshake Promedio (ms)', fontweight='bold')
+        ax.set_ylabel('Overhead del Handshake Promedio (bytes)', fontweight='bold')
+        ax.set_title('Comparativa: Latencia vs Overhead de Bytes (Datos Limpios)', fontweight='bold', fontsize=12)
+        ax.legend(loc='best')
+        ax.grid(True, alpha=0.3)
     
     # Ajustar layout y guardar figura
     plt.tight_layout()
@@ -325,12 +381,12 @@ def main():
     # Limpiar outliers 
     logger.info("\n🧹 Limpiando outliers de bytes...")
     df_exitos = remover_outliers(df_exitos, 
-                                 ['bytes_sent', 'bytes_received', 'handshake_overhead', 'response_size_bytes'],
+                                 ['bytes_sent', 'bytes_received', 'handshake_overhead'],
                                  metodo='iqr')
     
     # Aplicar filtro de muestras mínimas
     logger.info("\n📊 Aplicando filtro de muestras mínimas...")
-    df_filtrado = filtrar_por_muestras_minimas(df_exitos, min_muestras=20)
+    df_filtrado = filtrar_por_muestras_minimas(df_exitos, min_muestras=2)
     
     logger.info(f"\nDatos finales para gráficas: {len(df_filtrado)} registros de {df_filtrado['grupo'].nunique()} grupos")
     

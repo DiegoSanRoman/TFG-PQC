@@ -14,7 +14,7 @@ MAX_HOSTNAMES="100"
 REPETICIONES="3"
 MAX_WORKERS="20"
 DOCKER_IMAGE="tfg-sonda"
-DATASET_CSV="majestic_million.csv"
+DATASET_CSV="prueba.csv"
 
 # Parsear argumentos
 # Mientras sigue habiendo argumentos, procesarlos
