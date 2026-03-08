@@ -8,6 +8,25 @@ Este repositorio implementa una pipeline completa de:
 - análisis estadístico,
 - generación de artefactos (JSON/CSV/PNG) para investigación y TFG.
 
+## Índice
+
+- [1. Objetivo técnico del proyecto](#1-objetivo-técnico-del-proyecto)
+- [2. Quick Start](#2-quick-start)
+   - [2.1 Calibración local (recomendado primero)](#21-calibración-local-recomendado-primero)
+   - [2.2 Escaneo real (Internet)](#22-escaneo-real-internet)
+   - [2.3 Análisis y gráficas](#23-análisis-y-gráficas)
+   - [2.4 Pipeline completo](#24-pipeline-completo)
+- [3. Requisitos](#3-requisitos)
+- [4. Arquitectura funcional (alto nivel)](#4-arquitectura-funcional-alto-nivel)
+- [5. Estructura del repositorio](#5-estructura-del-repositorio)
+- [6. Documentación exhaustiva archivo por archivo](#6-documentación-exhaustiva-archivo-por-archivo)
+- [7. Métricas recolectadas (explicación completa)](#7-métricas-recolectadas-explicación-completa)
+- [8. Grupos criptográficos probados por la sonda final](#8-grupos-criptográficos-probados-por-la-sonda-final)
+- [9. Cómo se generan exactamente los resultados y figuras](#9-cómo-se-generan-exactamente-los-resultados-y-figuras)
+- [10. Troubleshooting operativo](#10-troubleshooting-operativo)
+- [11. Flujo recomendado para TFG (reproducible)](#11-flujo-recomendado-para-tfg-reproducible)
+- [12. Resumen de valor del sistema](#12-resumen-de-valor-del-sistema)
+
 ---
 
 ## 1. Objetivo técnico del proyecto
