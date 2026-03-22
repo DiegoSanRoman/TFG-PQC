@@ -194,6 +194,95 @@ def resumen_delta_vs_clasico(df, metrica_col, grupo_clasico='X25519'):
     resumen = resumen.sort_values('delta_mediana_ms', ascending=True)
     return resumen
 
+
+def resumen_delta_vs_clasico_restringido(
+    df,
+    metrica_col,
+    grupo_clasico='X25519',
+    grupos_permitidos=None,
+    hosts_permitidos=None,
+    min_hostnames=0
+):
+    """
+    Variante de delta vs clásico con filtros opcionales por grupos y cohorte de hosts.
+    Permite aplicar la misma lógica de cohorte común/muestras mínimas en múltiples subgráficas.
+    """
+    resumen = resumen_delta_vs_clasico(df, metrica_col, grupo_clasico=grupo_clasico)
+    if resumen.empty:
+        return resumen
+
+    if grupos_permitidos is not None:
+        resumen = resumen[resumen['grupo'].isin(grupos_permitidos)].copy()
+
+    if hosts_permitidos is not None:
+        host_group = _agregar_por_hostname_grupo(df, metrica_col)
+        if host_group.empty:
+            return pd.DataFrame()
+        host_group = host_group[host_group['hostname'].isin(hosts_permitidos)].copy()
+        if grupos_permitidos is not None:
+            host_group = host_group[host_group['grupo'].isin(grupos_permitidos)].copy()
+
+        pivot = host_group.pivot(index='hostname', columns='grupo', values=metrica_col)
+        if grupo_clasico not in pivot.columns:
+            return pd.DataFrame()
+
+        deltas = pivot.subtract(pivot[grupo_clasico], axis=0)
+        deltas_long = deltas.stack().reset_index(name='delta_ms')
+        deltas_long = deltas_long[deltas_long['delta_ms'].notna()].copy()
+        if deltas_long.empty:
+            return pd.DataFrame()
+
+        resumen = deltas_long.groupby('grupo').agg(
+            delta_mediana_ms=('delta_ms', 'median'),
+            delta_q1_ms=('delta_ms', lambda s: s.quantile(0.25)),
+            delta_q3_ms=('delta_ms', lambda s: s.quantile(0.75)),
+            delta_media_ms=('delta_ms', 'mean'),
+            delta_std_ms=('delta_ms', 'std'),
+            hostnames=('hostname', 'nunique')
+        ).reset_index()
+        resumen['delta_std_ms'] = resumen['delta_std_ms'].fillna(0.0)
+        resumen['delta_iqr_ms'] = resumen['delta_q3_ms'] - resumen['delta_q1_ms']
+
+    if min_hostnames > 0:
+        resumen = resumen[resumen['hostnames'] >= min_hostnames].copy()
+
+    return resumen.sort_values('delta_mediana_ms', ascending=True)
+
+
+def seleccionar_grupos_y_cohorte_comun(host_group, grupos_candidatos, min_hostnames, grupo_clasico='X25519'):
+    """
+    Selecciona un subconjunto de grupos con cohorte común >= min_hostnames.
+    Estrategia: eliminar iterativamente el grupo con menos hostnames hasta cumplir.
+    Siempre intenta mantener el grupo clásico.
+    """
+    grupos = [g for g in grupos_candidatos if g in set(host_group['grupo'].unique())]
+    if grupo_clasico not in grupos:
+        return [], set()
+
+    grupos_activos = grupos.copy()
+
+    while len(grupos_activos) >= 2:
+        hosts_por_grupo = {
+            grupo: set(host_group[host_group['grupo'] == grupo]['hostname'].unique())
+            for grupo in grupos_activos
+        }
+
+        if not hosts_por_grupo:
+            return [], set()
+
+        hosts_comunes = set.intersection(*hosts_por_grupo.values())
+        if len(hosts_comunes) >= min_hostnames:
+            return grupos_activos, hosts_comunes
+
+        candidatos_eliminar = [g for g in grupos_activos if g != grupo_clasico]
+        if not candidatos_eliminar:
+            break
+
+        grupo_a_eliminar = min(candidatos_eliminar, key=lambda g: len(hosts_por_grupo[g]))
+        grupos_activos.remove(grupo_a_eliminar)
+
+    return [], set()
+
 # Funciones de análisis
 def cargar_y_procesar():
     """
@@ -404,23 +493,27 @@ def graficar_latencia(df, output_dir, df_ranking=None):
     # Handshake (ranking justo por hostname con métrica robusta)
     fuente_ranking = df_ranking if df_ranking is not None else df
     min_hostnames_concluyente = 30
+    grupos_concluyentes = []
+    hosts_comunes_concluyentes = set()
     ranking_justo = resumen_justo_metrica(fuente_ranking, 'handshake_time_ms', grupo_clasico='X25519')
     if not ranking_justo.empty:
         ranking_concluyente = ranking_justo[ranking_justo['hostnames'] >= min_hostnames_concluyente].copy()
         ranking_no_concluyente = ranking_justo[ranking_justo['hostnames'] < min_hostnames_concluyente].copy()
 
         if not ranking_concluyente.empty:
-            # Cohorte común para comparación estrictamente justa entre grupos concluyentes.
             hg = _agregar_por_hostname_grupo(fuente_ranking, 'handshake_time_ms')
-            grupos_concluyentes = ranking_concluyente['grupo'].tolist()
-            hosts_por_grupo = {
-                grupo: set(hg[hg['grupo'] == grupo]['hostname'].unique())
-                for grupo in grupos_concluyentes
-            }
-            hosts_comunes = set.intersection(*hosts_por_grupo.values()) if hosts_por_grupo else set()
+            grupos_concluyentes, hosts_comunes_concluyentes = seleccionar_grupos_y_cohorte_comun(
+                hg,
+                ranking_concluyente['grupo'].tolist(),
+                min_hostnames=min_hostnames_concluyente,
+                grupo_clasico='X25519'
+            )
 
-            if len(hosts_comunes) >= min_hostnames_concluyente:
-                hg_comun = hg[hg['hostname'].isin(hosts_comunes) & hg['grupo'].isin(grupos_concluyentes)].copy()
+            if grupos_concluyentes and len(hosts_comunes_concluyentes) >= min_hostnames_concluyente:
+                hg_comun = hg[
+                    hg['hostname'].isin(hosts_comunes_concluyentes) &
+                    hg['grupo'].isin(grupos_concluyentes)
+                ].copy()
                 ranking_concluyente = hg_comun.groupby('grupo').agg(
                     valor_mediana_ms=('handshake_time_ms', 'median'),
                     valor_q1_ms=('handshake_time_ms', lambda s: s.quantile(0.25)),
@@ -448,22 +541,8 @@ def graficar_latencia(df, output_dir, df_ranking=None):
                 axes[0].set_xlabel('Tiempo (ms)', fontweight='bold')
                 axes[0].set_title('Handshake TLS justo (cohorte común, mediana/IQR)', fontweight='bold')
             else:
-                ranking_concluyente = ranking_concluyente.sort_values('valor_mediana_ms', ascending=True)
-                ranking_concluyente['ranking_rapidez'] = np.arange(1, len(ranking_concluyente) + 1)
-
-                etiquetas = [f"{g} (hosts={n})" for g, n in zip(ranking_concluyente['grupo'], ranking_concluyente['hostnames'])]
-                err_left = ranking_concluyente['valor_mediana_ms'].to_numpy() - ranking_concluyente['valor_q1_ms'].to_numpy()
-                err_right = ranking_concluyente['valor_q3_ms'].to_numpy() - ranking_concluyente['valor_mediana_ms'].to_numpy()
-                axes[0].barh(
-                    etiquetas,
-                    ranking_concluyente['valor_mediana_ms'],
-                    xerr=np.vstack([err_left, err_right]),
-                    color=[COLORES_GRUPOS.get(g, '#999999') for g in ranking_concluyente['grupo']],
-                    alpha=0.7,
-                    capsize=5
-                )
-                axes[0].set_xlabel('Tiempo (ms)', fontweight='bold')
-                axes[0].set_title('Handshake TLS justo (mediana/IQR, >=30 hosts)', fontweight='bold')
+                axes[0].text(0.5, 0.5, f'Sin cohorte común >={min_hostnames_concluyente} hosts', ha='center', va='center', transform=axes[0].transAxes)
+                axes[0].set_title('Handshake TLS justo', fontweight='bold')
         else:
             axes[0].text(0.5, 0.5, 'Sin grupos concluyentes (>=30 hosts comparables)', ha='center', va='center', transform=axes[0].transAxes)
             axes[0].set_title('Handshake TLS justo', fontweight='bold')
@@ -488,7 +567,16 @@ def graficar_latencia(df, output_dir, df_ranking=None):
     axes[0].grid(axis='x', alpha=0.3)
 
     # Delta robusto por hostname vs X25519 para OpenSSL total (sin DNS precheck)
-    delta_sin_dns = resumen_delta_vs_clasico(df, 'tiempo_conexion_sin_dns_ms', grupo_clasico='X25519')
+    # Se aplica la misma lógica de grupos concluyentes + cohorte común que en Handshake TLS justo.
+    usar_cohorte_comun = bool(grupos_concluyentes) and len(hosts_comunes_concluyentes) >= min_hostnames_concluyente
+    delta_sin_dns = resumen_delta_vs_clasico_restringido(
+        df,
+        'tiempo_conexion_sin_dns_ms',
+        grupo_clasico='X25519',
+        grupos_permitidos=grupos_concluyentes if grupos_concluyentes else None,
+        hosts_permitidos=hosts_comunes_concluyentes if usar_cohorte_comun else None,
+        min_hostnames=min_hostnames_concluyente if grupos_concluyentes else 0
+    )
     if not delta_sin_dns.empty:
         delta_sin_dns = delta_sin_dns.sort_values('delta_mediana_ms', ascending=True)
         etiquetas = [f"{g} (hosts={n})" for g, n in zip(delta_sin_dns['grupo'], delta_sin_dns['hostnames'])]
@@ -515,7 +603,15 @@ def graficar_latencia(df, output_dir, df_ranking=None):
     axes[1].grid(axis='x', alpha=0.3)
 
     # Delta robusto por hostname vs X25519 para handshake TLS
-    delta_handshake = resumen_delta_vs_clasico(df, 'handshake_time_ms', grupo_clasico='X25519')
+    # Se aplica la misma lógica de grupos concluyentes + cohorte común que en Handshake TLS justo.
+    delta_handshake = resumen_delta_vs_clasico_restringido(
+        df,
+        'handshake_time_ms',
+        grupo_clasico='X25519',
+        grupos_permitidos=grupos_concluyentes if grupos_concluyentes else None,
+        hosts_permitidos=hosts_comunes_concluyentes if usar_cohorte_comun else None,
+        min_hostnames=min_hostnames_concluyente if grupos_concluyentes else 0
+    )
     if not delta_handshake.empty:
         delta_handshake = delta_handshake.sort_values('delta_mediana_ms', ascending=True)
         etiquetas = [f"{g} (hosts={n})" for g, n in zip(delta_handshake['grupo'], delta_handshake['hostnames'])]
