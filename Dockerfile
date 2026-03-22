@@ -9,6 +9,7 @@ LABEL description="Sonda PQC adaptada a estructura de proyecto"
 # Usamos env -u para temporalmente desactivar LD_LIBRARY_PATH durante apk
 RUN env -u LD_LIBRARY_PATH apk update && \
     env -u LD_LIBRARY_PATH apk add --no-cache \
+    bash \
     python3 \
     py3-pip \
     build-base \
@@ -42,7 +43,9 @@ WORKDIR /app
 COPY . /app
 
 # 7. Crear directorios necesarios (por seguridad)
-RUN mkdir -p /app/resultados /app/logs
+RUN mkdir -p /app/resultados /app/logs && \
+    sed -i 's/\r$//' /app/test_pipeline.sh /app/ejecutar_sonda.sh /app/ejecutar_analisis.sh && \
+    chmod +x /app/test_pipeline.sh /app/ejecutar_sonda.sh /app/ejecutar_analisis.sh
 
-# 8. Comando de arranque --> Ejecutar la sonda directamente
-ENTRYPOINT ["python3", "/app/scripts/sondas/sonda_pqc_final.py"]
+# 8. Comando de arranque --> Ejecutar pipeline completo
+ENTRYPOINT ["bash", "/app/test_pipeline.sh"]

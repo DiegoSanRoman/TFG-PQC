@@ -95,6 +95,12 @@ def cargar_y_procesar():
     for col in ['dns_time_ms', 'tcp_time_ms', 'handshake_time_ms', 'tiempo_conexion_segundos',
                 'bytes_sent', 'bytes_received', 'handshake_overhead']:
         df[col] = pd.to_numeric(df[col], errors='coerce') # coerce convierte errores a NaN
+
+    # Métricas derivadas para análisis de conexión/TLS sin sesgo de DNS
+    df['tiempo_total_ms'] = df['tiempo_conexion_segundos'] * 1000
+    df['tiempo_conexion_sin_dns_ms'] = df['tiempo_total_ms'] - df['dns_time_ms']
+    # Evitar valores no físicos por ruido de medición (p.ej. redondeos/desfases)
+    df.loc[df['tiempo_conexion_sin_dns_ms'] < 0, 'tiempo_conexion_sin_dns_ms'] = np.nan
     
     # Filtrar solo exitosas
     df_exitos = df[df['connection_result'] == 'ACEPTADO'].copy()
@@ -152,6 +158,54 @@ def remover_outliers(df, columnas, metodo='iqr', umbral_z=3):
     logger.info(f"Total de outliers removidos: {outliers_removidos}")
     return df_limpio
 
+
+def remover_outliers_por_grupo(df, columnas, grupo_col='grupo', metodo='iqr', umbral_z=3, min_muestras_columna=4):
+    """
+    Remueve outliers por grupo para evitar sesgos entre grupos con escalas distintas.
+
+    - Calcula umbrales por cada grupo y columna.
+    - Si un grupo tiene muy pocas muestras válidas en una columna, no filtra esa columna.
+    """
+    df_limpio = df.copy()
+    outliers_removidos = 0
+
+    for grupo in df_limpio[grupo_col].dropna().unique():
+        mask_grupo = df_limpio[grupo_col] == grupo
+
+        for col in columnas:
+            if col not in df_limpio.columns:
+                continue
+
+            valores = df_limpio.loc[mask_grupo, col].dropna()
+            if len(valores) < min_muestras_columna:
+                continue
+
+            if metodo == 'iqr':
+                q1 = valores.quantile(0.25)
+                q3 = valores.quantile(0.75)
+                iqr = q3 - q1
+                lower_bound = q1 - 1.5 * iqr
+                upper_bound = q3 + 1.5 * iqr
+                mask_outlier = mask_grupo & df_limpio[col].notna() & ((df_limpio[col] < lower_bound) | (df_limpio[col] > upper_bound))
+            elif metodo == 'zscore':
+                std = valores.std()
+                if std == 0 or np.isnan(std):
+                    continue
+                mean = valores.mean()
+                z_scores = np.abs((df_limpio[col] - mean) / std)
+                mask_outlier = mask_grupo & df_limpio[col].notna() & (z_scores > umbral_z)
+            else:
+                continue
+
+            removidos = int(mask_outlier.sum())
+            if removidos > 0:
+                outliers_removidos += removidos
+                logger.info(f"  {grupo} - {col}: removidos {removidos} outliers")
+                df_limpio = df_limpio.loc[~mask_outlier].copy()
+
+    logger.info(f"Total de outliers removidos (por grupo): {outliers_removidos}")
+    return df_limpio
+
 def filtrar_por_muestras_minimas(df, min_muestras=20):
     """
     Filtra grupos con menos de min_muestras conexiones exitosas.
@@ -194,39 +248,39 @@ def graficar_latencia(df, output_dir):
     """
     # Crear figura con 4 subplots
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-    fig.suptitle('Análisis de Latencia por Grupo Criptográfico (Datos Limpios)', 
+    fig.suptitle('Análisis de Latencia por Grupo Criptográfico (Sin sesgo DNS)', 
                  fontsize=16, fontweight='bold')
-    
-    # DNS
-    df_dns = df.groupby('grupo')['dns_time_ms'].agg(['mean', 'std']).sort_values('mean', ascending=False)
-    axes[0, 0].barh(df_dns.index, df_dns['mean'], xerr=df_dns['std'],
-                     color=[COLORES_GRUPOS.get(g, '#999999') for g in df_dns.index], alpha=0.7, capsize=5)
-    axes[0, 0].set_xlabel('Tiempo (ms)', fontweight='bold')
-    axes[0, 0].set_title('Tiempo de Resolución DNS', fontweight='bold')
-    axes[0, 0].grid(axis='x', alpha=0.3)
-    
+
     # TCP
     df_tcp = df.groupby('grupo')['tcp_time_ms'].agg(['mean', 'std']).sort_values('mean', ascending=False)
-    axes[0, 1].barh(df_tcp.index, df_tcp['mean'], xerr=df_tcp['std'],
+    axes[0, 0].barh(df_tcp.index, df_tcp['mean'], xerr=df_tcp['std'],
                      color=[COLORES_GRUPOS.get(g, '#999999') for g in df_tcp.index], alpha=0.7, capsize=5)
-    axes[0, 1].set_xlabel('Tiempo (ms)', fontweight='bold')
-    axes[0, 1].set_title('Tiempo de Establecimiento TCP', fontweight='bold')
-    axes[0, 1].grid(axis='x', alpha=0.3)
+    axes[0, 0].set_xlabel('Tiempo (ms)', fontweight='bold')
+    axes[0, 0].set_title('Tiempo de Establecimiento TCP', fontweight='bold')
+    axes[0, 0].grid(axis='x', alpha=0.3)
     
     # Handshake
     df_hs = df.groupby('grupo')['handshake_time_ms'].agg(['mean', 'std']).sort_values('mean', ascending=False)
-    axes[1, 0].barh(df_hs.index, df_hs['mean'], xerr=df_hs['std'],
+    axes[0, 1].barh(df_hs.index, df_hs['mean'], xerr=df_hs['std'],
                      color=[COLORES_GRUPOS.get(g, '#999999') for g in df_hs.index], alpha=0.7, capsize=5)
+    axes[0, 1].set_xlabel('Tiempo (ms)', fontweight='bold')
+    axes[0, 1].set_title('Tiempo de Handshake TLS', fontweight='bold')
+    axes[0, 1].grid(axis='x', alpha=0.3)
+
+    # Total sin DNS (métrica principal para conexión/TLS)
+    df_sin_dns = df.groupby('grupo')['tiempo_conexion_sin_dns_ms'].agg(['mean', 'std']).sort_values('mean', ascending=False)
+    axes[1, 0].barh(df_sin_dns.index, df_sin_dns['mean'], xerr=df_sin_dns['std'],
+                     color=[COLORES_GRUPOS.get(g, '#999999') for g in df_sin_dns.index], alpha=0.7, capsize=5)
     axes[1, 0].set_xlabel('Tiempo (ms)', fontweight='bold')
-    axes[1, 0].set_title('Tiempo de Handshake TLS', fontweight='bold')
+    axes[1, 0].set_title('Tiempo Total sin DNS', fontweight='bold')
     axes[1, 0].grid(axis='x', alpha=0.3)
     
-    # Total
+    # Total (referencia)
     df_total = df.groupby('grupo')['tiempo_conexion_segundos'].agg(['mean', 'std']).sort_values('mean', ascending=False)
     axes[1, 1].barh(df_total.index, df_total['mean'], xerr=df_total['std'],
                      color=[COLORES_GRUPOS.get(g, '#999999') for g in df_total.index], alpha=0.7, capsize=5)
     axes[1, 1].set_xlabel('Tiempo (segundos)', fontweight='bold')
-    axes[1, 1].set_title('Tiempo Total de Conexión', fontweight='bold')
+    axes[1, 1].set_title('Tiempo Total de Conexión (referencia)', fontweight='bold')
     axes[1, 1].grid(axis='x', alpha=0.3)
     
     # Ajustar layout y guardar figura
@@ -378,15 +432,29 @@ def main():
     # Cargar datos
     df_total, df_exitos = cargar_y_procesar()
     
-    # Limpiar outliers 
-    logger.info("\n🧹 Limpiando outliers de bytes...")
-    df_exitos = remover_outliers(df_exitos, 
-                                 ['bytes_sent', 'bytes_received', 'handshake_overhead'],
-                                 metodo='iqr')
+    # Limpiar outliers de forma robusta por grupo (bytes + latencia sin DNS)
+    logger.info("\n🧹 Limpiando outliers por grupo (latencia + bytes)...")
+    columnas_outliers = [
+        'tcp_time_ms',
+        'handshake_time_ms',
+        'tiempo_conexion_sin_dns_ms',
+        'tiempo_conexion_segundos',
+        'bytes_sent',
+        'bytes_received',
+        'handshake_overhead'
+    ]
+    df_exitos = remover_outliers_por_grupo(
+        df_exitos,
+        columnas_outliers,
+        grupo_col='grupo',
+        metodo='iqr',
+        min_muestras_columna=4
+    )
     
     # Aplicar filtro de muestras mínimas
     logger.info("\n📊 Aplicando filtro de muestras mínimas...")
     df_filtrado = filtrar_por_muestras_minimas(df_exitos, min_muestras=2)
+    # df_filtrado = df_exitos.copy() # --- IGNORE ---
     
     logger.info(f"\nDatos finales para gráficas: {len(df_filtrado)} registros de {df_filtrado['grupo'].nunique()} grupos")
     

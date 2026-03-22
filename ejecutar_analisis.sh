@@ -29,22 +29,34 @@ if ! command -v python3 &> /dev/null; then
     exit 1
 fi
 
-# Crear entorno virtual si no existe (-d comprueba si existe el directorio)
-if [ ! -d "$VENV_DIR" ]; then
-    echo "--- Creando entorno virtual..."   # -e sirve para el formato 
-    python3 -m venv "$VENV_DIR" # -m venv crea un entorno virtual aislado
+PYTHON_CMD="python"
+
+# En contenedor usamos paquetes ya preinstalados en la imagen para evitar fallos TLS con pip.
+if [ -f "/.dockerenv" ]; then
+    echo "--- Entorno Docker detectado: usando Python del sistema con dependencias de la imagen..."
+    PYTHON_CMD="python3"
+    python3 -c "import pandas, numpy, matplotlib, seaborn" 2>/dev/null || {
+        echo "ERROR - Faltan dependencias Python en la imagen Docker"
+        exit 1
+    }
+else
+    # Crear entorno virtual si no existe (-d comprueba si existe el directorio)
+    if [ ! -d "$VENV_DIR" ]; then
+        echo "--- Creando entorno virtual..."   # -e sirve para el formato
+        python3 -m venv "$VENV_DIR" # -m venv crea un entorno virtual aislado
+    fi
+
+    # Activar entorno virtual
+    echo "--- Activando entorno virtual..."
+    source "${VENV_DIR}/bin/activate"
+
+    # Instalar dependencias si no están presentes
+    echo "--- Verificando dependencias..."
+    pip install -q pandas numpy matplotlib seaborn 2>/dev/null || {     # -q silencia la salida de pip, y 2>/dev/null redirige errores a null para evitar ruido
+        echo "   --- Instalando paquetes requeridos..."
+        pip install pandas numpy matplotlib seaborn
+    }
 fi
-
-# Activar entorno virtual
-echo "--- Activando entorno virtual..."
-source "${VENV_DIR}/bin/activate"
-
-# Instalar dependencias si no están presentes
-echo "--- Verificando dependencias..."
-pip install -q pandas numpy matplotlib seaborn 2>/dev/null || {     # -q silencia la salida de pip, y 2>/dev/null redirige errores a null para evitar ruido
-    echo "   --- Instalando paquetes requeridos..."
-    pip install pandas numpy matplotlib seaborn
-}
 
 # Verificar que el archivo JSON existe (-f comprueba archivo regular)
 if [ ! -f "$INPUT_JSON" ]; then
@@ -61,7 +73,7 @@ echo "--- Ejecutando análisis..."
 echo ""
 
 # Ejecutar el análisis con el script de Python, pasando los argumentos necesarios
-python "$SCRIPT_PATH" --input "$INPUT_JSON" --output "$OUTPUT_DIR"
+"$PYTHON_CMD" "$SCRIPT_PATH" --input "$INPUT_JSON" --output "$OUTPUT_DIR"
 
 # Mostrar resumen
 echo ""

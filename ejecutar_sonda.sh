@@ -11,10 +11,11 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Valores por defecto
 MAX_HOSTNAMES="100"
-REPETICIONES="3"
+REPETICIONES="1"
 MAX_WORKERS="20"
 DOCKER_IMAGE="tfg-sonda"
 DATASET_CSV="prueba.csv"
+DATASET_BASENAME=""
 
 # Parsear argumentos
 # Mientras sigue habiendo argumentos, procesarlos
@@ -59,16 +60,15 @@ echo "  • Hilos paralelelos: ${MAX_WORKERS}"
 echo "  • Imagen Docker: ${DOCKER_IMAGE}"
 echo ""
 
-# Verificar que Docker esté disponible (command -v busca docker en el PATH; si no esta, aborta)
-if ! command -v docker &> /dev/null; then
-    echo "ERROR - Docker no encontrado"
-    echo "Asegúrate de tener Docker instalado y en el PATH"
-    exit 1
+# Verificar que el CSV existe (-f comprueba archivo regular)
+if [[ "${DATASET_CSV}" = */* ]]; then
+    DATASET_BASENAME="$(basename "${DATASET_CSV}")"
+else
+    DATASET_BASENAME="${DATASET_CSV}"
 fi
 
-# Verificar que el CSV existe (-f comprueba archivo regular)
-if [ ! -f "${PROJECT_DIR}/data/${DATASET_CSV}" ]; then
-    echo "ERROR - Archivo no encontrado: ${PROJECT_DIR}/data/${DATASET_CSV}"
+if [ ! -f "${PROJECT_DIR}/data/${DATASET_BASENAME}" ]; then
+    echo "ERROR - Archivo no encontrado: ${PROJECT_DIR}/data/${DATASET_BASENAME}"
     echo "Archivos disponibles en data/:"
     ls -1 "${PROJECT_DIR}/data/" 2>/dev/null || echo "  (directorio vacío)"
     exit 1
@@ -82,6 +82,40 @@ fi
 
 # Crear directorio de resultados si no existe
 mkdir -p "${PROJECT_DIR}/resultados"
+
+# Si Docker no está disponible pero estamos dentro del contenedor,
+# ejecutar la sonda directamente (evita Docker-in-Docker).
+if ! command -v docker &> /dev/null; then
+    if [ -f "/.dockerenv" ]; then
+        echo "--- Docker CLI no disponible en contenedor; ejecutando sonda localmente..."
+        python3 "${PROJECT_DIR}/scripts/sondas/sonda_pqc_final.py" \
+            --input-csv "${PROJECT_DIR}/data/${DATASET_BASENAME}" \
+            --max-hostnames "${MAX_HOSTNAMES}" \
+            --repeticiones "${REPETICIONES}" \
+            --max-workers "${MAX_WORKERS}"
+
+        EXIT_CODE=$?
+        echo ""
+        if [ $EXIT_CODE -eq 0 ]; then
+            echo "OK - Sonda completada exitosamente"
+            echo "--- Resultados guardados en:"
+            echo "  • JSON: ${PROJECT_DIR}/resultados/resultados_sonda_pqc.json"
+            echo "  • CSV:  ${PROJECT_DIR}/resultados/resumen_por_grupo.csv"
+            echo "  • LOG:  ${PROJECT_DIR}/resultados/sonda_pqc.log"
+            echo ""
+            echo "--- Proximo paso: ejecutar análisis"
+            echo "  $ ./ejecutar_analisis.sh"
+            exit 0
+        else
+            echo "ERROR - Error durante la ejecucion local (codigo: $EXIT_CODE)"
+            exit $EXIT_CODE
+        fi
+    else
+        echo "ERROR - Docker no encontrado"
+        echo "Asegúrate de tener Docker instalado y en el PATH"
+        exit 1
+    fi
+fi
 
 # Verificar si la imagen existe, si no, la construimos
 if ! docker image inspect "${DOCKER_IMAGE}" &> /dev/null; then
@@ -107,12 +141,14 @@ echo ""
 # --rm: elimina el contenedor al terminar (para no acumular contenedores parados)
 # -v host: contenedor monta carpetas del host dentro del contenedor
 # "${DOCKER_IMAGE}" es la imagen que se ejecuta
-# Los argumentos siguientes se pasan al programa dentro del contenedor
+# Forzamos ENTRYPOINT a python3 para evitar recursión con test_pipeline.sh
 docker run -it --rm \
     -v "${PROJECT_DIR}/data:/app/data" \
     -v "${PROJECT_DIR}/resultados:/app/resultados" \
+    --entrypoint python3 \
     "${DOCKER_IMAGE}" \
-    --input-csv /app/data/${DATASET_CSV} \
+    /app/scripts/sondas/sonda_pqc_final.py \
+    --input-csv "/app/data/${DATASET_BASENAME}" \
     --max-hostnames "${MAX_HOSTNAMES}" \
     --repeticiones "${REPETICIONES}" \
     --max-workers "${MAX_WORKERS}"

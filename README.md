@@ -671,18 +671,18 @@ Esta sección describe para **cada métrica**: cómo se obtiene, qué significa 
 ## 7.3 Métricas de volumen (bytes)
 
 ### `bytes_sent`
-- **Cómo se obtiene:** parseando `-trace` de OpenSSL; suma de longitudes en registros enviados (+5 bytes de cabecera TLS por registro).
-- **Qué significa:** tráfico saliente durante handshake.
+- **Cómo se obtiene:** parseando `-trace` de OpenSSL; suma de longitudes en registros TLS salientes de tipo Handshake/ChangeCipherSpec/Alert (+5 bytes de cabecera TLS por registro).
+- **Qué significa:** tráfico saliente del handshake TLS (sin datos de aplicación HTTP).
 - **Utilidad:** medir coste de subida asociado al grupo criptográfico.
 
 ### `bytes_received`
-- **Cómo se obtiene:** parseando `-trace` de OpenSSL en registros recibidos (+5 cabecera TLS).
-- **Qué significa:** tráfico entrante durante handshake.
-- **Utilidad:** medir coste de descarga y peso de respuesta de servidor.
+- **Cómo se obtiene:** parseando `-trace` de OpenSSL en registros TLS entrantes de tipo Handshake/ChangeCipherSpec/Alert (+5 bytes de cabecera TLS).
+- **Qué significa:** tráfico entrante del handshake TLS (sin payload de aplicación HTTP).
+- **Utilidad:** medir coste de descarga estrictamente criptográfico entre grupos.
 
 ### `handshake_overhead`
 - **Cómo se obtiene:** `bytes_sent + bytes_received`.
-- **Qué significa:** tamaño total intercambiado en handshake.
+- **Qué significa:** tamaño total intercambiado en el handshake TLS puro.
 - **Utilidad:** comparar huella total de red entre grupos.
 
 ### `measurement_method`

@@ -126,13 +126,15 @@ def leer_hostnames_csv(ruta_csv: Path, longitud_max: int, domain_column: Optiona
 
 def parse_trace_bytes(trace_output: str) -> Dict[str, Any]:
     '''
-    Parsea bytes desde la salida de OpenSSL con -trace.
+    Parsea bytes de handshake TLS desde la salida de OpenSSL con -trace.
     :param trace_output: Salida de stderr + stdout de OpenSSL con -trace
     :return: Dict con bytes_sent, bytes_received, handshake_overhead, y measurement_method
     '''
     bytes_sent = 0
     bytes_received = 0
     measurement_method = "unknown"  # "traced", "partial", "unknown"
+    handshake_content_types = {"handshake", "changecipherspec", "alert"}
+    max_record_length = 20000
     
     # Parsear desde -trace buscando patrones "Length = N" después de "Sent/Received TLS Record"
     # Formato OpenSSL:
@@ -146,25 +148,37 @@ def parse_trace_bytes(trace_output: str) -> Dict[str, Any]:
     for i, line in enumerate(lines):
         # Buscar "Sent TLS Record" o "Sent Record"
         if ('Sent' in line and 'Record' in line) or 'Sent TLS Record' in line:
+            content_type = None
             # Buscar "Length = N" en las siguientes líneas (típicamente línea +3 o +4)
             for j in range(i + 1, min(i + 10, len(lines))):
+                content_match = re.search(r'^\s*Content\s*Type\s*=\s*(.+)$', lines[j], re.IGNORECASE)
+                if content_match:
+                    content_type = content_match.group(1).strip().lower()
+
                 # Patrón: "  Length = 1560" (con espacios iniciales)
                 match = re.search(r'^\s*Length\s*=\s*(\d+)', lines[j])
                 if match:
                     length = int(match.group(1))
-                    # +5 bytes por TLS record header (1 byte tipo + 2 bytes versión + 2 bytes longitud)
-                    bytes_sent += length + 5
-                    measurement_method = "traced"
+                    if length <= max_record_length and content_type and any(token in content_type for token in handshake_content_types):
+                        # +5 bytes por TLS record header (1 byte tipo + 2 bytes versión + 2 bytes longitud)
+                        bytes_sent += length + 5
+                        measurement_method = "traced"
                     break
         
         # Buscar "Received TLS Record" o "Received Record"
         elif ('Received' in line and 'Record' in line) or 'Received TLS Record' in line:
+            content_type = None
             for j in range(i + 1, min(i + 10, len(lines))):
+                content_match = re.search(r'^\s*Content\s*Type\s*=\s*(.+)$', lines[j], re.IGNORECASE)
+                if content_match:
+                    content_type = content_match.group(1).strip().lower()
+
                 match = re.search(r'^\s*Length\s*=\s*(\d+)', lines[j])
                 if match:
                     length = int(match.group(1))
-                    bytes_received += length + 5
-                    measurement_method = "traced"
+                    if length <= max_record_length and content_type and any(token in content_type for token in handshake_content_types):
+                        bytes_received += length + 5
+                        measurement_method = "traced"
                     break
     
     # Si solo capturamos uno de los dos (enviado o recibido), marcar como "partial"
@@ -221,7 +235,6 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
         "s_client",                                 # Modo cliente para probar conexiones TLS
         "-connect", f"{base_hostname}:{puerto}",    # Host y puerto a conectar
         "-servername", base_hostname,               # SNI para el hostname (importante para servidores con múltiples certificados)
-        "-ign_eof",                                 # Ignorar EOF inesperados para evitar errores en conexiones que cierran rápido
         "-trace",                                   # Habilitar trace para capturar detalles de bytes enviados/recibidos
         "-provider", "oqsprovider",                 # Usar el provider OQS para soporte PQC
         "-provider", "default"                      # Incluir el provider default para compatibilidad con grupos tradicionales
@@ -386,9 +399,8 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
                 try:
                     # Timeout más largo para localhost/calibración (30s) vs. Internet (8s)
                     timeout_seconds = 30 if "localhost" in base_hostname or "127.0.0.1" in base_hostname else 8
-                    # Enviamos una solicitud HTTP/1.1 completa con Connection: close
-                    http_request = f"GET / HTTP/1.1\r\nHost: {base_hostname}\r\nConnection: close\r\nUser-Agent: OQS-Sonda\r\n\r\n"
-                    stdout_bytes, stderr_bytes = process.communicate(input=http_request.encode(), timeout=timeout_seconds)
+                    # Handshake puro: no enviamos tráfico de aplicación (sin GET)
+                    stdout_bytes, stderr_bytes = process.communicate(input=b"", timeout=timeout_seconds)
                     break
                 except subprocess.TimeoutExpired:
                     process.kill()
@@ -1059,7 +1071,7 @@ if __name__ == "__main__":
     # Probamos diferentes protocolos, desde automático (None) hasta algunos híbridos y algunos puros PQC
     grupos = [
         # --- Automático y Clásico ---
-        None,                   # 1. Automático
+                           # 1. Automático
         "X25519",               # 2. Clásico (Control)
         # --- Éxitos Casi Confirmados ---                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
         "X25519MLKEM768",       # 3. Estándar NIST Híbrido 
