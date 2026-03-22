@@ -46,6 +46,59 @@ BASE_DIR = Path(__file__).parent.parent.parent
 RESULTADOS_PATH = BASE_DIR / "resultados" / "resultados_sonda_pqc.json"
 OUTPUT_DIR = BASE_DIR / "imagenes"
 
+
+def construir_dataset_justo(df, grupo_clasico='X25519'):
+    """
+    Construye el subconjunto justo:
+    - Solo conexiones ACEPTADAS con handshake_time_ms válido.
+    - Solo hostnames que aceptaron el grupo clásico y al menos un grupo no clásico.
+    """
+    if df.empty:
+        return pd.DataFrame()
+
+    base = df[['hostname', 'grupo', 'connection_result', 'handshake_time_ms']].copy()
+    base = base[
+        (base['connection_result'] == 'ACEPTADO') &
+        (base['grupo'].notna()) &
+        (base['handshake_time_ms'].notna())
+    ]
+
+    if base.empty:
+        return pd.DataFrame()
+
+    hosts_clasico = set(base[base['grupo'] == grupo_clasico]['hostname'].unique())
+    hosts_no_clasico = set(base[base['grupo'] != grupo_clasico]['hostname'].unique())
+    hosts_validos = hosts_clasico.intersection(hosts_no_clasico)
+
+    if not hosts_validos:
+        return pd.DataFrame()
+
+    return base[base['hostname'].isin(hosts_validos)].copy()
+
+
+def calcular_ranking_justo_handshake(df, grupo_clasico='X25519'):
+    """
+    Ranking justo de rapidez con tiempos absolutos (ms):
+    - Usa solo hostnames comparables (aceptan clásico + >=1 no clásico).
+    - Calcula media por (hostname, grupo).
+    - Luego promedia por grupo para evitar sesgo de hostnames con más repeticiones.
+    """
+    df_justo = construir_dataset_justo(df, grupo_clasico=grupo_clasico)
+    if df_justo.empty:
+        return pd.DataFrame()
+
+    host_group = df_justo.groupby(['hostname', 'grupo'], as_index=False)['handshake_time_ms'].mean()
+    ranking = host_group.groupby('grupo').agg(
+        handshake_medio_ms=('handshake_time_ms', 'mean'),
+        handshake_std_ms=('handshake_time_ms', 'std'),
+        hostnames=('hostname', 'nunique')
+    ).reset_index()
+
+    ranking['handshake_std_ms'] = ranking['handshake_std_ms'].fillna(0.0)
+    ranking = ranking.sort_values('handshake_medio_ms', ascending=True)
+    ranking['ranking_rapidez'] = np.arange(1, len(ranking) + 1)
+    return ranking
+
 # Funciones de análisis
 def cargar_y_procesar():
     """
@@ -239,7 +292,7 @@ def filtrar_por_muestras_minimas(df, min_muestras=20):
     
     return df[df['grupo'].isin(grupos_validos)].copy()
 
-def graficar_latencia(df, output_dir):
+def graficar_latencia(df, output_dir, df_ranking=None):
     """
     Gráfica de latencia por grupo.
     Crea una figura con 4 subplots para DNS, TCP, Handshake y Tiempo Total.
@@ -253,12 +306,53 @@ def graficar_latencia(df, output_dir):
     fig.suptitle('Análisis de Latencia por Grupo Criptográfico', 
                  fontsize=16, fontweight='bold')
     
-    # Handshake
-    df_hs = df.groupby('grupo')['handshake_time_ms'].agg(['mean', 'std']).sort_values('mean', ascending=False)
-    axes[0].barh(df_hs.index, df_hs['mean'], xerr=df_hs['std'],
-                     color=[COLORES_GRUPOS.get(g, '#999999') for g in df_hs.index], alpha=0.7, capsize=5)
-    axes[0].set_xlabel('Tiempo (ms)', fontweight='bold')
-    axes[0].set_title('Tiempo de Handshake TLS', fontweight='bold')
+    # Handshake (ranking justo por hostname con tiempos absolutos)
+    fuente_ranking = df_ranking if df_ranking is not None else df
+    min_hostnames_concluyente = 30
+    ranking_justo = calcular_ranking_justo_handshake(fuente_ranking, grupo_clasico='X25519')
+    if not ranking_justo.empty:
+        ranking_concluyente = ranking_justo[ranking_justo['hostnames'] >= min_hostnames_concluyente].copy()
+        ranking_no_concluyente = ranking_justo[ranking_justo['hostnames'] < min_hostnames_concluyente].copy()
+
+        if not ranking_concluyente.empty:
+            ranking_concluyente = ranking_concluyente.sort_values('handshake_medio_ms', ascending=True)
+            ranking_concluyente['ranking_rapidez'] = np.arange(1, len(ranking_concluyente) + 1)
+
+            etiquetas = [f"{g} (hosts={n})" for g, n in zip(ranking_concluyente['grupo'], ranking_concluyente['hostnames'])]
+        # Evitar que el error dibuje tiempos negativos (solo efecto visual; no hay tiempos < 0)
+            err_left = np.minimum(ranking_concluyente['handshake_std_ms'].to_numpy(), ranking_concluyente['handshake_medio_ms'].to_numpy())
+            err_right = ranking_concluyente['handshake_std_ms'].to_numpy()
+            axes[0].barh(
+                etiquetas,
+                ranking_concluyente['handshake_medio_ms'],
+                xerr=np.vstack([err_left, err_right]),
+                color=[COLORES_GRUPOS.get(g, '#999999') for g in ranking_concluyente['grupo']],
+                alpha=0.7,
+                capsize=5
+            )
+            axes[0].set_xlabel('Tiempo (ms)', fontweight='bold')
+            axes[0].set_title('Ranking justo Handshake TLS (concluyente: >=30 hosts)', fontweight='bold')
+        else:
+            axes[0].text(0.5, 0.5, 'Sin grupos concluyentes (>=30 hosts comparables)', ha='center', va='center', transform=axes[0].transAxes)
+            axes[0].set_title('Ranking justo Handshake TLS', fontweight='bold')
+
+        # Exportar ranking justo para auditoría (concluyente y no concluyente)
+        ranking_concluyente_path = output_dir / 'ranking_justo_handshake.csv'
+        ranking_concluyente.to_csv(ranking_concluyente_path, index=False)
+        logger.info(f"✓ Guardado: {ranking_concluyente_path}")
+
+        if not ranking_no_concluyente.empty:
+            ranking_no_concluyente = ranking_no_concluyente.sort_values('hostnames', ascending=False).copy()
+            ranking_no_concluyente['motivo'] = f'Muestra insuficiente (<{min_hostnames_concluyente} hostnames comparables)'
+            ranking_no_concluyente_path = output_dir / 'ranking_justo_handshake_no_concluyente.csv'
+            ranking_no_concluyente.to_csv(ranking_no_concluyente_path, index=False)
+            logger.info(f"✓ Guardado: {ranking_no_concluyente_path}")
+    else:
+        df_hs = df.groupby('grupo')['handshake_time_ms'].agg(['mean', 'std']).sort_values('mean', ascending=False)
+        axes[0].barh(df_hs.index, df_hs['mean'], xerr=df_hs['std'],
+                        color=[COLORES_GRUPOS.get(g, '#999999') for g in df_hs.index], alpha=0.7, capsize=5)
+        axes[0].set_xlabel('Tiempo (ms)', fontweight='bold')
+        axes[0].set_title('Tiempo de Handshake TLS', fontweight='bold')
     axes[0].grid(axis='x', alpha=0.3)
 
     # Total sin DNS (métrica principal para conexión/TLS)
@@ -283,6 +377,7 @@ def graficar_latencia(df, output_dir):
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     logger.info(f"✓ Guardado: {output_path}")
     plt.close()
+
 
 
 def graficar_bytes(df, output_dir):
@@ -426,6 +521,7 @@ def main():
     
     # Cargar datos
     df_total, df_exitos = cargar_y_procesar()
+    df_exitos_ranking = df_exitos.copy()
     
     # Limpiar outliers de forma robusta por grupo (bytes + latencia sin DNS)
     logger.info("\n🧹 Limpiando outliers por grupo (latencia + bytes)...")
@@ -455,7 +551,7 @@ def main():
     
     # Generar gráficas
     logger.info("\n📈 Generando gráficas...")
-    graficar_latencia(df_filtrado, OUTPUT_DIR)
+    graficar_latencia(df_filtrado, OUTPUT_DIR, df_ranking=df_exitos_ranking)
     graficar_bytes(df_filtrado, OUTPUT_DIR)
     graficar_scatter(df_filtrado, OUTPUT_DIR)
     

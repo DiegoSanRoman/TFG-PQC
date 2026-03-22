@@ -372,6 +372,20 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
             "retry": retried
         }
 
+    # Fijar destino de conexión para comparaciones justas entre grupos:
+    # - Si tenemos IP resuelta en pre-check, conectar a esa IP.
+    # - Mantener SNI con hostname original (-servername) para no romper validación/certificados.
+    # Esto evita que distintos grupos terminen en nodos CDN/anycast distintos.
+    connect_host = ip_resuelta if ip_resuelta else base_hostname
+    if connect_host and ":" in connect_host and not connect_host.startswith("["):
+        connect_host = f"[{connect_host}]"
+
+    try:
+        idx_connect = cmd.index("-connect")
+        cmd[idx_connect + 1] = f"{connect_host}:{puerto}"
+    except (ValueError, IndexError):
+        pass
+
     # Si el pre-check TCP fue exitoso, procedemos a ejecutar OpenSSL para probar el handshake TLS/PQC
     # Ejecutamos el comando y capturamos la salida
     try:
