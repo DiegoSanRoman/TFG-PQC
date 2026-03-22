@@ -381,13 +381,15 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
         # Ejecutamos con Popen (Process open) para controlar mejor timeouts y limpieza
         stdout_bytes = b""
         stderr_bytes = b""
-        handshake_inicio = time.time()
+        handshake_time_ms = None
 
         max_attempts = 2
+        return_code = None
         for intento in range(1, max_attempts + 1):
             if proc_semaphore:
                 proc_semaphore.acquire()
             try:
+                intento_inicio = time.time()
                 process = subprocess.Popen(
                     cmd,
                     stdin=subprocess.PIPE,
@@ -401,10 +403,15 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
                     timeout_seconds = 30 if "localhost" in base_hostname or "127.0.0.1" in base_hostname else 8
                     # Handshake puro: no enviamos tráfico de aplicación (sin GET)
                     stdout_bytes, stderr_bytes = process.communicate(input=b"", timeout=timeout_seconds)
+                    # Medición por intento (no acumula reintentos previos)
+                    handshake_time_ms = round((time.time() - intento_inicio) * 1000, 2)
+                    return_code = process.returncode
                     break
                 except subprocess.TimeoutExpired:
                     process.kill()
                     stdout_bytes, stderr_bytes = process.communicate()
+                    handshake_time_ms = round((time.time() - intento_inicio) * 1000, 2)
+                    return_code = process.returncode
                     if intento < max_attempts:
                         retried = True
                         continue
@@ -440,8 +447,6 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
                 # Liberar el semáforo si se adquirió, para permitir que otros procesos continúen
                 if proc_semaphore:
                     proc_semaphore.release()
-
-        handshake_time_ms = round((time.time() - handshake_inicio) * 1000, 2)
 
         # Medimos el tiempo final
         tiempo_fin = time.time()
@@ -551,13 +556,28 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
 
         # Detectar fallos reales de handshake
         handshake_failed = False
-        if tls_alert and ("handshake failure" in tls_alert.lower() or 
-                          "protocol version" in tls_alert.lower() or
-                          "illegal parameter" in tls_alert.lower()):
+        tls_alert_lower = tls_alert.lower() if tls_alert else ""
+        fatal_alert_markers = [
+            "handshake failure",
+            "protocol version",
+            "illegal parameter",
+            "decode error",
+            "internal error",
+            "unexpected message",
+            "bad record mac",
+            "decrypt error"
+        ]
+        has_fatal_alert = any(marker in tls_alert_lower for marker in fatal_alert_markers)
+
+        if has_fatal_alert:
             handshake_failed = True
         
         # Cipher (NONE) significa que no se negoció nada
         if cipher_suite and "(NONE)" in cipher_suite:
+            handshake_failed = True
+
+        # Return code distinto de 0 suele indicar fallo o cierre anómalo
+        if return_code not in (0, None):
             handshake_failed = True
         
         # Si hay fallo de handshake confirmado, es RECHAZADO
@@ -599,7 +619,7 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
                 break
 
         # Éxito real: hay Server Temp Key Y (hay certificado O cipher válido)
-        if negotiated_line and (cert_issuer or (cipher_suite and "(NONE)" not in cipher_suite)):
+        if return_code == 0 and negotiated_line and (cert_issuer or (cipher_suite and "(NONE)" not in cipher_suite)):
             logger.debug("Éxito: %s - %s - %s", hostname, group if group else "Automático", negotiated_line)
             return {
                 "error_category": None,
@@ -630,7 +650,7 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
             }
 
         # Fallback: conexión exitosa si hay cipher válido Y certificado
-        if cipher_suite and "(NONE)" not in cipher_suite and cert_issuer:
+        if return_code == 0 and cipher_suite and "(NONE)" not in cipher_suite and cert_issuer:
             logger.debug("Éxito: %s - %s - Conectado (TLS 1.3)", hostname, group if group else "Automático")
             return {
                 "error_category": None,
@@ -972,9 +992,23 @@ def calcular_promedio_repeticiones(intentos: List[Dict[str, Any]], grupo: str) -
     connection_result_promedio = max(result_counts, key=result_counts.get) if result_counts else None
     measurement_method_promedio = max(measurement_counts, key=measurement_counts.get) if measurement_counts else 'unknown'
     
-    # Tomar el primer intento exitoso como referencia para campos no numéricos
-    # Si no hay exitosos, tomar el primero
-    referencia = next((i for i in intentos if i.get('connection_result') == CONNECTION_ACCEPTED), intentos[0])
+    # Para evitar sesgos, promediar métricas numéricas solo dentro del resultado agregado
+    if connection_result_promedio == CONNECTION_ACCEPTED:
+        intentos_metricas = [i for i in intentos if i.get('connection_result') == CONNECTION_ACCEPTED]
+    elif connection_result_promedio == CONNECTION_REJECTED:
+        intentos_metricas = [i for i in intentos if i.get('connection_result') == CONNECTION_REJECTED]
+    else:
+        intentos_metricas = [i for i in intentos if i.get('connection_result') is None]
+
+    # Fallback defensivo si no quedó nada en el subconjunto
+    if not intentos_metricas:
+        intentos_metricas = intentos
+
+    # Tomar referencia del mismo subconjunto para coherencia de campos no numéricos
+    if connection_result_promedio == CONNECTION_ACCEPTED:
+        referencia = next((i for i in intentos_metricas if i.get('connection_result') == CONNECTION_ACCEPTED), intentos_metricas[0])
+    else:
+        referencia = intentos_metricas[0]
     
     # Construir resultado promedio
     resultado = {
@@ -1000,9 +1034,9 @@ def calcular_promedio_repeticiones(intentos: List[Dict[str, Any]], grupo: str) -
         'retry': referencia.get('retry')
     }
     
-    # Calcular promedios para campos numéricos
+    # Calcular promedios para campos numéricos (sin mezclar aceptados/rechazados)
     for campo in campos_numericos:
-        valores = [intento.get(campo) for intento in intentos if intento.get(campo) is not None]
+        valores = [intento.get(campo) for intento in intentos_metricas if intento.get(campo) is not None]
         if valores:
             promedio = sum(valores) / len(valores)
             # Redondear según el tipo de métrica

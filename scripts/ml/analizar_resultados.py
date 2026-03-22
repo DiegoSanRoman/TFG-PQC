@@ -96,11 +96,13 @@ def cargar_y_procesar():
                 'bytes_sent', 'bytes_received', 'handshake_overhead']:
         df[col] = pd.to_numeric(df[col], errors='coerce') # coerce convierte errores a NaN
 
-    # Métricas derivadas para análisis de conexión/TLS sin sesgo de DNS
+    # Métricas derivadas para análisis de conexión/TLS
+    # Nota: tiempo_conexion_segundos se mide alrededor de la ejecución de OpenSSL,
+    # por lo que ya excluye el pre-check DNS en la ruta normal.
     df['tiempo_total_ms'] = df['tiempo_conexion_segundos'] * 1000
-    df['tiempo_conexion_sin_dns_ms'] = df['tiempo_total_ms'] - df['dns_time_ms']
-    # Evitar valores no físicos por ruido de medición (p.ej. redondeos/desfases)
-    df.loc[df['tiempo_conexion_sin_dns_ms'] < 0, 'tiempo_conexion_sin_dns_ms'] = np.nan
+    df['tiempo_conexion_sin_dns_ms'] = df['tiempo_total_ms']
+    # Referencia opcional: aproximación end-to-end incluyendo DNS cuando exista.
+    df['tiempo_total_con_dns_ms'] = df['tiempo_total_ms'] + df['dns_time_ms']
     
     # Filtrar solo exitosas
     df_exitos = df[df['connection_result'] == 'ACEPTADO'].copy()
@@ -246,42 +248,34 @@ def graficar_latencia(df, output_dir):
     Input: DataFrame con resultados de conexiones exitosas, carpeta de salida para las gráficas.
     Output: Gráficas guardadas en la carpeta de salida.
     """
-    # Crear figura con 4 subplots
-    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-    fig.suptitle('Análisis de Latencia por Grupo Criptográfico (Sin sesgo DNS)', 
+    # Crear figura con 3 subplots (sin TCP)
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+    fig.suptitle('Análisis de Latencia por Grupo Criptográfico', 
                  fontsize=16, fontweight='bold')
-
-    # TCP
-    df_tcp = df.groupby('grupo')['tcp_time_ms'].agg(['mean', 'std']).sort_values('mean', ascending=False)
-    axes[0, 0].barh(df_tcp.index, df_tcp['mean'], xerr=df_tcp['std'],
-                     color=[COLORES_GRUPOS.get(g, '#999999') for g in df_tcp.index], alpha=0.7, capsize=5)
-    axes[0, 0].set_xlabel('Tiempo (ms)', fontweight='bold')
-    axes[0, 0].set_title('Tiempo de Establecimiento TCP', fontweight='bold')
-    axes[0, 0].grid(axis='x', alpha=0.3)
     
     # Handshake
     df_hs = df.groupby('grupo')['handshake_time_ms'].agg(['mean', 'std']).sort_values('mean', ascending=False)
-    axes[0, 1].barh(df_hs.index, df_hs['mean'], xerr=df_hs['std'],
+    axes[0].barh(df_hs.index, df_hs['mean'], xerr=df_hs['std'],
                      color=[COLORES_GRUPOS.get(g, '#999999') for g in df_hs.index], alpha=0.7, capsize=5)
-    axes[0, 1].set_xlabel('Tiempo (ms)', fontweight='bold')
-    axes[0, 1].set_title('Tiempo de Handshake TLS', fontweight='bold')
-    axes[0, 1].grid(axis='x', alpha=0.3)
+    axes[0].set_xlabel('Tiempo (ms)', fontweight='bold')
+    axes[0].set_title('Tiempo de Handshake TLS', fontweight='bold')
+    axes[0].grid(axis='x', alpha=0.3)
 
     # Total sin DNS (métrica principal para conexión/TLS)
     df_sin_dns = df.groupby('grupo')['tiempo_conexion_sin_dns_ms'].agg(['mean', 'std']).sort_values('mean', ascending=False)
-    axes[1, 0].barh(df_sin_dns.index, df_sin_dns['mean'], xerr=df_sin_dns['std'],
+    axes[1].barh(df_sin_dns.index, df_sin_dns['mean'], xerr=df_sin_dns['std'],
                      color=[COLORES_GRUPOS.get(g, '#999999') for g in df_sin_dns.index], alpha=0.7, capsize=5)
-    axes[1, 0].set_xlabel('Tiempo (ms)', fontweight='bold')
-    axes[1, 0].set_title('Tiempo Total sin DNS', fontweight='bold')
-    axes[1, 0].grid(axis='x', alpha=0.3)
+    axes[1].set_xlabel('Tiempo (ms)', fontweight='bold')
+    axes[1].set_title('Tiempo OpenSSL (sin precheck DNS)', fontweight='bold')
+    axes[1].grid(axis='x', alpha=0.3)
     
     # Total (referencia)
     df_total = df.groupby('grupo')['tiempo_conexion_segundos'].agg(['mean', 'std']).sort_values('mean', ascending=False)
-    axes[1, 1].barh(df_total.index, df_total['mean'], xerr=df_total['std'],
+    axes[2].barh(df_total.index, df_total['mean'], xerr=df_total['std'],
                      color=[COLORES_GRUPOS.get(g, '#999999') for g in df_total.index], alpha=0.7, capsize=5)
-    axes[1, 1].set_xlabel('Tiempo (segundos)', fontweight='bold')
-    axes[1, 1].set_title('Tiempo Total de Conexión (referencia)', fontweight='bold')
-    axes[1, 1].grid(axis='x', alpha=0.3)
+    axes[2].set_xlabel('Tiempo (segundos)', fontweight='bold')
+    axes[2].set_title('Tiempo Total de Conexión (s)', fontweight='bold')
+    axes[2].grid(axis='x', alpha=0.3)
     
     # Ajustar layout y guardar figura
     plt.tight_layout()
@@ -289,6 +283,7 @@ def graficar_latencia(df, output_dir):
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     logger.info(f"✓ Guardado: {output_path}")
     plt.close()
+
 
 def graficar_bytes(df, output_dir):
     """
