@@ -99,6 +99,101 @@ def calcular_ranking_justo_handshake(df, grupo_clasico='X25519'):
     ranking['ranking_rapidez'] = np.arange(1, len(ranking) + 1)
     return ranking
 
+
+def _agregar_por_hostname_grupo(df, metrica_col):
+    """
+    Agrega una métrica por (hostname, grupo) para evitar sesgo por repeticiones desbalanceadas.
+    """
+    base = df[
+        (df['connection_result'] == 'ACEPTADO') &
+        (df['hostname'].notna()) &
+        (df['grupo'].notna()) &
+        (df[metrica_col].notna())
+    ][['hostname', 'grupo', metrica_col]].copy()
+
+    if base.empty:
+        return pd.DataFrame(columns=['hostname', 'grupo', metrica_col])
+
+    return base.groupby(['hostname', 'grupo'], as_index=False)[metrica_col].mean()
+
+
+def resumen_justo_metrica(df, metrica_col, grupo_clasico='X25519'):
+    """
+    Resumen robusto absoluto (no delta) por grupo usando hostnames comparables.
+
+    - Toma hostnames que aceptan clásico + >=1 no clásico.
+    - Agrega por hostname y grupo.
+    - Resume por grupo con mediana e IQR para robustez.
+    """
+    if df.empty or metrica_col not in df.columns:
+        return pd.DataFrame()
+
+    host_group = _agregar_por_hostname_grupo(df, metrica_col)
+    if host_group.empty:
+        return pd.DataFrame()
+
+    hosts_clasico = set(host_group[host_group['grupo'] == grupo_clasico]['hostname'].unique())
+    hosts_no_clasico = set(host_group[host_group['grupo'] != grupo_clasico]['hostname'].unique())
+    hosts_validos = hosts_clasico.intersection(hosts_no_clasico)
+    if not hosts_validos:
+        return pd.DataFrame()
+
+    host_group = host_group[host_group['hostname'].isin(hosts_validos)].copy()
+    resumen = host_group.groupby('grupo').agg(
+        valor_mediana_ms=(metrica_col, 'median'),
+        valor_q1_ms=(metrica_col, lambda s: s.quantile(0.25)),
+        valor_q3_ms=(metrica_col, lambda s: s.quantile(0.75)),
+        valor_media_ms=(metrica_col, 'mean'),
+        valor_std_ms=(metrica_col, 'std'),
+        hostnames=('hostname', 'nunique')
+    ).reset_index()
+
+    resumen['valor_std_ms'] = resumen['valor_std_ms'].fillna(0.0)
+    resumen['iqr_ms'] = resumen['valor_q3_ms'] - resumen['valor_q1_ms']
+    resumen = resumen.sort_values('valor_mediana_ms', ascending=True)
+    return resumen
+
+
+def resumen_delta_vs_clasico(df, metrica_col, grupo_clasico='X25519'):
+    """
+    Resumen robusto de deltas por hostname comparable:
+    delta = metrica(grupo) - metrica(grupo_clasico)
+
+    Esto elimina gran parte del ruido de red entre hostnames y hace la comparación más justa.
+    """
+    if df.empty or metrica_col not in df.columns:
+        return pd.DataFrame()
+
+    host_group = _agregar_por_hostname_grupo(df, metrica_col)
+    if host_group.empty:
+        return pd.DataFrame()
+
+    pivot = host_group.pivot(index='hostname', columns='grupo', values=metrica_col)
+    if grupo_clasico not in pivot.columns:
+        return pd.DataFrame()
+
+    deltas = pivot.subtract(pivot[grupo_clasico], axis=0)
+    deltas_long = deltas.stack().reset_index(name='delta_ms')
+    deltas_long = deltas_long[deltas_long['delta_ms'].notna()].copy()
+    deltas_long = deltas_long.rename(columns={'grupo': 'grupo'})
+
+    if deltas_long.empty:
+        return pd.DataFrame()
+
+    resumen = deltas_long.groupby('grupo').agg(
+        delta_mediana_ms=('delta_ms', 'median'),
+        delta_q1_ms=('delta_ms', lambda s: s.quantile(0.25)),
+        delta_q3_ms=('delta_ms', lambda s: s.quantile(0.75)),
+        delta_media_ms=('delta_ms', 'mean'),
+        delta_std_ms=('delta_ms', 'std'),
+        hostnames=('hostname', 'nunique')
+    ).reset_index()
+
+    resumen['delta_std_ms'] = resumen['delta_std_ms'].fillna(0.0)
+    resumen['delta_iqr_ms'] = resumen['delta_q3_ms'] - resumen['delta_q1_ms']
+    resumen = resumen.sort_values('delta_mediana_ms', ascending=True)
+    return resumen
+
 # Funciones de análisis
 def cargar_y_procesar():
     """
@@ -306,35 +401,72 @@ def graficar_latencia(df, output_dir, df_ranking=None):
     fig.suptitle('Análisis de Latencia por Grupo Criptográfico', 
                  fontsize=16, fontweight='bold')
     
-    # Handshake (ranking justo por hostname con tiempos absolutos)
+    # Handshake (ranking justo por hostname con métrica robusta)
     fuente_ranking = df_ranking if df_ranking is not None else df
     min_hostnames_concluyente = 30
-    ranking_justo = calcular_ranking_justo_handshake(fuente_ranking, grupo_clasico='X25519')
+    ranking_justo = resumen_justo_metrica(fuente_ranking, 'handshake_time_ms', grupo_clasico='X25519')
     if not ranking_justo.empty:
         ranking_concluyente = ranking_justo[ranking_justo['hostnames'] >= min_hostnames_concluyente].copy()
         ranking_no_concluyente = ranking_justo[ranking_justo['hostnames'] < min_hostnames_concluyente].copy()
 
         if not ranking_concluyente.empty:
-            ranking_concluyente = ranking_concluyente.sort_values('handshake_medio_ms', ascending=True)
-            ranking_concluyente['ranking_rapidez'] = np.arange(1, len(ranking_concluyente) + 1)
+            # Cohorte común para comparación estrictamente justa entre grupos concluyentes.
+            hg = _agregar_por_hostname_grupo(fuente_ranking, 'handshake_time_ms')
+            grupos_concluyentes = ranking_concluyente['grupo'].tolist()
+            hosts_por_grupo = {
+                grupo: set(hg[hg['grupo'] == grupo]['hostname'].unique())
+                for grupo in grupos_concluyentes
+            }
+            hosts_comunes = set.intersection(*hosts_por_grupo.values()) if hosts_por_grupo else set()
 
-            etiquetas = [f"{g} (hosts={n})" for g, n in zip(ranking_concluyente['grupo'], ranking_concluyente['hostnames'])]
-        # Evitar que el error dibuje tiempos negativos (solo efecto visual; no hay tiempos < 0)
-            err_left = np.minimum(ranking_concluyente['handshake_std_ms'].to_numpy(), ranking_concluyente['handshake_medio_ms'].to_numpy())
-            err_right = ranking_concluyente['handshake_std_ms'].to_numpy()
-            axes[0].barh(
-                etiquetas,
-                ranking_concluyente['handshake_medio_ms'],
-                xerr=np.vstack([err_left, err_right]),
-                color=[COLORES_GRUPOS.get(g, '#999999') for g in ranking_concluyente['grupo']],
-                alpha=0.7,
-                capsize=5
-            )
-            axes[0].set_xlabel('Tiempo (ms)', fontweight='bold')
-            axes[0].set_title('Ranking justo Handshake TLS (concluyente: >=30 hosts)', fontweight='bold')
+            if len(hosts_comunes) >= min_hostnames_concluyente:
+                hg_comun = hg[hg['hostname'].isin(hosts_comunes) & hg['grupo'].isin(grupos_concluyentes)].copy()
+                ranking_concluyente = hg_comun.groupby('grupo').agg(
+                    valor_mediana_ms=('handshake_time_ms', 'median'),
+                    valor_q1_ms=('handshake_time_ms', lambda s: s.quantile(0.25)),
+                    valor_q3_ms=('handshake_time_ms', lambda s: s.quantile(0.75)),
+                    valor_media_ms=('handshake_time_ms', 'mean'),
+                    valor_std_ms=('handshake_time_ms', 'std'),
+                    hostnames=('hostname', 'nunique')
+                ).reset_index()
+                ranking_concluyente['valor_std_ms'] = ranking_concluyente['valor_std_ms'].fillna(0.0)
+                ranking_concluyente['iqr_ms'] = ranking_concluyente['valor_q3_ms'] - ranking_concluyente['valor_q1_ms']
+                ranking_concluyente = ranking_concluyente.sort_values('valor_mediana_ms', ascending=True)
+                ranking_concluyente['ranking_rapidez'] = np.arange(1, len(ranking_concluyente) + 1)
+
+                etiquetas = [f"{g} (hosts={n})" for g, n in zip(ranking_concluyente['grupo'], ranking_concluyente['hostnames'])]
+                err_left = ranking_concluyente['valor_mediana_ms'].to_numpy() - ranking_concluyente['valor_q1_ms'].to_numpy()
+                err_right = ranking_concluyente['valor_q3_ms'].to_numpy() - ranking_concluyente['valor_mediana_ms'].to_numpy()
+                axes[0].barh(
+                    etiquetas,
+                    ranking_concluyente['valor_mediana_ms'],
+                    xerr=np.vstack([err_left, err_right]),
+                    color=[COLORES_GRUPOS.get(g, '#999999') for g in ranking_concluyente['grupo']],
+                    alpha=0.7,
+                    capsize=5
+                )
+                axes[0].set_xlabel('Tiempo (ms)', fontweight='bold')
+                axes[0].set_title('Handshake TLS justo (cohorte común, mediana/IQR)', fontweight='bold')
+            else:
+                ranking_concluyente = ranking_concluyente.sort_values('valor_mediana_ms', ascending=True)
+                ranking_concluyente['ranking_rapidez'] = np.arange(1, len(ranking_concluyente) + 1)
+
+                etiquetas = [f"{g} (hosts={n})" for g, n in zip(ranking_concluyente['grupo'], ranking_concluyente['hostnames'])]
+                err_left = ranking_concluyente['valor_mediana_ms'].to_numpy() - ranking_concluyente['valor_q1_ms'].to_numpy()
+                err_right = ranking_concluyente['valor_q3_ms'].to_numpy() - ranking_concluyente['valor_mediana_ms'].to_numpy()
+                axes[0].barh(
+                    etiquetas,
+                    ranking_concluyente['valor_mediana_ms'],
+                    xerr=np.vstack([err_left, err_right]),
+                    color=[COLORES_GRUPOS.get(g, '#999999') for g in ranking_concluyente['grupo']],
+                    alpha=0.7,
+                    capsize=5
+                )
+                axes[0].set_xlabel('Tiempo (ms)', fontweight='bold')
+                axes[0].set_title('Handshake TLS justo (mediana/IQR, >=30 hosts)', fontweight='bold')
         else:
             axes[0].text(0.5, 0.5, 'Sin grupos concluyentes (>=30 hosts comparables)', ha='center', va='center', transform=axes[0].transAxes)
-            axes[0].set_title('Ranking justo Handshake TLS', fontweight='bold')
+            axes[0].set_title('Handshake TLS justo', fontweight='bold')
 
         # Exportar ranking justo para auditoría (concluyente y no concluyente)
         ranking_concluyente_path = output_dir / 'ranking_justo_handshake.csv'
@@ -348,27 +480,65 @@ def graficar_latencia(df, output_dir, df_ranking=None):
             ranking_no_concluyente.to_csv(ranking_no_concluyente_path, index=False)
             logger.info(f"✓ Guardado: {ranking_no_concluyente_path}")
     else:
-        df_hs = df.groupby('grupo')['handshake_time_ms'].agg(['mean', 'std']).sort_values('mean', ascending=False)
-        axes[0].barh(df_hs.index, df_hs['mean'], xerr=df_hs['std'],
+        df_hs = df.groupby('grupo')['handshake_time_ms'].agg(['median', 'mean', 'std']).sort_values('median', ascending=False)
+        axes[0].barh(df_hs.index, df_hs['median'], xerr=df_hs['std'],
                         color=[COLORES_GRUPOS.get(g, '#999999') for g in df_hs.index], alpha=0.7, capsize=5)
         axes[0].set_xlabel('Tiempo (ms)', fontweight='bold')
-        axes[0].set_title('Tiempo de Handshake TLS', fontweight='bold')
+        axes[0].set_title('Tiempo de Handshake TLS (mediana)', fontweight='bold')
     axes[0].grid(axis='x', alpha=0.3)
 
-    # Total sin DNS (métrica principal para conexión/TLS)
-    df_sin_dns = df.groupby('grupo')['tiempo_conexion_sin_dns_ms'].agg(['mean', 'std']).sort_values('mean', ascending=False)
-    axes[1].barh(df_sin_dns.index, df_sin_dns['mean'], xerr=df_sin_dns['std'],
-                     color=[COLORES_GRUPOS.get(g, '#999999') for g in df_sin_dns.index], alpha=0.7, capsize=5)
-    axes[1].set_xlabel('Tiempo (ms)', fontweight='bold')
-    axes[1].set_title('Tiempo OpenSSL (sin precheck DNS)', fontweight='bold')
+    # Delta robusto por hostname vs X25519 para OpenSSL total (sin DNS precheck)
+    delta_sin_dns = resumen_delta_vs_clasico(df, 'tiempo_conexion_sin_dns_ms', grupo_clasico='X25519')
+    if not delta_sin_dns.empty:
+        delta_sin_dns = delta_sin_dns.sort_values('delta_mediana_ms', ascending=True)
+        etiquetas = [f"{g} (hosts={n})" for g, n in zip(delta_sin_dns['grupo'], delta_sin_dns['hostnames'])]
+        err_left = delta_sin_dns['delta_mediana_ms'].to_numpy() - delta_sin_dns['delta_q1_ms'].to_numpy()
+        err_right = delta_sin_dns['delta_q3_ms'].to_numpy() - delta_sin_dns['delta_mediana_ms'].to_numpy()
+        axes[1].barh(
+            etiquetas,
+            delta_sin_dns['delta_mediana_ms'],
+            xerr=np.vstack([err_left, err_right]),
+            color=[COLORES_GRUPOS.get(g, '#999999') for g in delta_sin_dns['grupo']],
+            alpha=0.7,
+            capsize=5
+        )
+        axes[1].axvline(0, color='black', linewidth=1, alpha=0.6)
+        axes[1].set_xlabel('Δ Tiempo (ms) vs X25519', fontweight='bold')
+        axes[1].set_title('OpenSSL total (mediana/IQR por host, vs X25519)', fontweight='bold')
+
+        delta_sin_dns_path = output_dir / 'delta_open_ssl_vs_x25519.csv'
+        delta_sin_dns.to_csv(delta_sin_dns_path, index=False)
+        logger.info(f"✓ Guardado: {delta_sin_dns_path}")
+    else:
+        axes[1].text(0.5, 0.5, 'Sin datos comparables para delta vs X25519', ha='center', va='center', transform=axes[1].transAxes)
+        axes[1].set_title('OpenSSL total (vs X25519)', fontweight='bold')
     axes[1].grid(axis='x', alpha=0.3)
-    
-    # Total (referencia)
-    df_total = df.groupby('grupo')['tiempo_conexion_segundos'].agg(['mean', 'std']).sort_values('mean', ascending=False)
-    axes[2].barh(df_total.index, df_total['mean'], xerr=df_total['std'],
-                     color=[COLORES_GRUPOS.get(g, '#999999') for g in df_total.index], alpha=0.7, capsize=5)
-    axes[2].set_xlabel('Tiempo (segundos)', fontweight='bold')
-    axes[2].set_title('Tiempo Total de Conexión (s)', fontweight='bold')
+
+    # Delta robusto por hostname vs X25519 para handshake TLS
+    delta_handshake = resumen_delta_vs_clasico(df, 'handshake_time_ms', grupo_clasico='X25519')
+    if not delta_handshake.empty:
+        delta_handshake = delta_handshake.sort_values('delta_mediana_ms', ascending=True)
+        etiquetas = [f"{g} (hosts={n})" for g, n in zip(delta_handshake['grupo'], delta_handshake['hostnames'])]
+        err_left = delta_handshake['delta_mediana_ms'].to_numpy() - delta_handshake['delta_q1_ms'].to_numpy()
+        err_right = delta_handshake['delta_q3_ms'].to_numpy() - delta_handshake['delta_mediana_ms'].to_numpy()
+        axes[2].barh(
+            etiquetas,
+            delta_handshake['delta_mediana_ms'],
+            xerr=np.vstack([err_left, err_right]),
+            color=[COLORES_GRUPOS.get(g, '#999999') for g in delta_handshake['grupo']],
+            alpha=0.7,
+            capsize=5
+        )
+        axes[2].axvline(0, color='black', linewidth=1, alpha=0.6)
+        axes[2].set_xlabel('Δ Tiempo (ms) vs X25519', fontweight='bold')
+        axes[2].set_title('Handshake TLS (Δ mediana/IQR por host, vs X25519)', fontweight='bold')
+
+        delta_handshake_path = output_dir / 'delta_handshake_vs_x25519.csv'
+        delta_handshake.to_csv(delta_handshake_path, index=False)
+        logger.info(f"✓ Guardado: {delta_handshake_path}")
+    else:
+        axes[2].text(0.5, 0.5, 'Sin datos comparables para delta vs X25519', ha='center', va='center', transform=axes[2].transAxes)
+        axes[2].set_title('Handshake TLS (vs X25519)', fontweight='bold')
     axes[2].grid(axis='x', alpha=0.3)
     
     # Ajustar layout y guardar figura
@@ -451,77 +621,12 @@ def graficar_bytes(df, output_dir):
     logger.info(f"✓ Guardado: {output_path}")
     plt.close()
 
-def graficar_scatter(df, output_dir):
-    """
-    Gráfica scatter: latencia vs overhead.
-    Crea una gráfica scatter donde cada punto representa un grupo criptográfico, con el tiempo de handshake promedio en el eje X y el overhead de bytes promedio en el eje Y. El tamaño de cada punto refleja la cantidad de muestras para ese grupo. Se aplican colores personalizados por grupo. Se guardan las gráficas en la carpeta de salida.
-    Input: DataFrame con resultados de conexiones exitosas, carpeta de salida para las gráficas
-    Output: Gráficas guardadas en la carpeta de salida.
-    """
-    fig, ax = plt.subplots(figsize=(12, 8))
-    
-    # Verificar si hay datos válidos
-    if df.empty or 'handshake_time_ms' not in df.columns or 'handshake_overhead' not in df.columns:
-        ax.text(0.5, 0.5, 'Sin datos para scatter', ha='center', va='center', transform=ax.transAxes)
-        ax.set_title('Comparativa: Latencia vs Overhead de Bytes (Datos Limpios)', fontweight='bold')
-        plt.tight_layout()
-        output_path = output_dir / 'scatter_limpia.png'
-        plt.savefig(output_path, dpi=300, bbox_inches='tight')
-        logger.info(f"✓ Guardado: {output_path}")
-        plt.close()
-        return
-    
-    # Filtrar solo datos válidos
-    df_validos = df[(df['handshake_time_ms'].notna()) & (df['handshake_overhead'].notna())].copy()
-    
-    if df_validos.empty:
-        ax.text(0.5, 0.5, 'Sin datos válidos para scatter', ha='center', va='center', transform=ax.transAxes)
-        ax.set_title('Comparativa: Latencia vs Overhead de Bytes (Datos Limpios)', fontweight='bold')
-        plt.tight_layout()
-        output_path = output_dir / 'scatter_limpia.png'
-        plt.savefig(output_path, dpi=300, bbox_inches='tight')
-        logger.info(f"✓ Guardado: {output_path}")
-        plt.close()
-        return
-    
-    # Graficar por grupo
-    puntos_graficados = 0
-    for grupo in df_validos['grupo'].unique():
-        df_grupo = df_validos[df_validos['grupo'] == grupo]
-        mean_latencia = df_grupo['handshake_time_ms'].mean()
-        mean_overhead = df_grupo['handshake_overhead'].mean()
-        count = len(df_grupo)
-        
-        # Validar que sean números válidos
-        if pd.notna(mean_latencia) and pd.notna(mean_overhead):
-            ax.scatter(mean_latencia, mean_overhead, s=count*50, alpha=0.6, 
-                      color=COLORES_GRUPOS.get(grupo, '#999999'), label=f'{grupo} (n={count})')
-            puntos_graficados += 1
-    
-    if puntos_graficados == 0:
-        ax.text(0.5, 0.5, 'No se pudieron graficar puntos', ha='center', va='center', transform=ax.transAxes)
-        ax.set_title('Comparativa: Latencia vs Overhead de Bytes (Datos Limpios)', fontweight='bold')
-    else:
-        ax.set_xlabel('Tiempo de Handshake Promedio (ms)', fontweight='bold')
-        ax.set_ylabel('Overhead del Handshake Promedio (bytes)', fontweight='bold')
-        ax.set_title('Comparativa: Latencia vs Overhead de Bytes (Datos Limpios)', fontweight='bold', fontsize=12)
-        ax.legend(loc='best')
-        ax.grid(True, alpha=0.3)
-    
-    # Ajustar layout y guardar figura
-    plt.tight_layout()
-    output_path = output_dir / 'scatter_limpia.png'
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    logger.info(f"✓ Guardado: {output_path}")
-    plt.close()
-
 def main():
     # Crear carpeta de salida si no existe
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     
     # Cargar datos
     df_total, df_exitos = cargar_y_procesar()
-    df_exitos_ranking = df_exitos.copy()
     
     # Limpiar outliers de forma robusta por grupo (bytes + latencia sin DNS)
     logger.info("\n🧹 Limpiando outliers por grupo (latencia + bytes)...")
@@ -541,6 +646,7 @@ def main():
         metodo='iqr',
         min_muestras_columna=4
     )
+    df_exitos_ranking = df_exitos.copy()
     
     # Aplicar filtro de muestras mínimas
     logger.info("\n📊 Aplicando filtro de muestras mínimas...")
@@ -553,7 +659,6 @@ def main():
     logger.info("\n📈 Generando gráficas...")
     graficar_latencia(df_filtrado, OUTPUT_DIR, df_ranking=df_exitos_ranking)
     graficar_bytes(df_filtrado, OUTPUT_DIR)
-    graficar_scatter(df_filtrado, OUTPUT_DIR)
     
     logger.info(f"\n✅ ¡Análisis completado! Gráficas guardadas en {OUTPUT_DIR}")
 
