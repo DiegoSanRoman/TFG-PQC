@@ -168,7 +168,8 @@ TFG-PQC/
 └── imagenes/
     ├── bytes_limpia.png
     ├── latencia_limpia.png
-    └── scatter_limpia.png
+   ├── delta_openssl_execution_time_vs_x25519.csv
+   └── delta_openssl_tcp_tls_vs_x25519.csv
 ```
 
 ---
@@ -404,10 +405,11 @@ TFG-PQC/
 3. Convierte columnas numéricas y filtra `ACEPTADO`.
 4. Limpia outliers (`remover_outliers`, IQR por defecto).
 5. Filtra grupos con mínimo de muestras (`filtrar_por_muestras_minimas`).
-6. Genera 3 gráficos:
+6. Genera 2 gráficos + 2 tablas delta:
    - `latencia_limpia.png`
    - `bytes_limpia.png`
-   - `scatter_limpia.png`
+   - `delta_openssl_execution_time_vs_x25519.csv`
+   - `delta_openssl_tcp_tls_vs_x25519.csv`
 
 **Nivel de operación:** capa de post-procesado estadístico y comunicación visual.
 
@@ -558,15 +560,14 @@ TFG-PQC/
 ## 6.9 Artefactos visuales (`imagenes/`)
 
 ### `imagenes/latencia_limpia.png`
-**Qué representa:** análisis de latencia por grupo en 4 subgráficos:
-1) DNS,
-2) TCP,
-3) Handshake TLS,
-4) Tiempo total.
+**Qué representa:** análisis robusto de tiempo por grupo en 3 subgráficos:
+1) OpenSSL TCP+TLS justo (cohorte común),
+2) Δ OpenSSL execution time vs X25519,
+3) Δ OpenSSL TCP+TLS vs X25519.
 
-**Cómo se genera:** función `graficar_latencia` de `analizar_resultados.py` (medias + desviación estándar).
+**Cómo se genera:** función `graficar_latencia` de `analizar_resultados.py` (mediana/IQR por host cuando aplica cohorte común).
 
-**Utilidad en el proyecto:** comparar coste temporal de cada grupo y descomponer dónde se consume el tiempo.
+**Utilidad en el proyecto:** comparar grupos en tiempo de ejecución real medido por OpenSSL con metodología robusta y comparable.
 
 ---
 
@@ -585,12 +586,21 @@ TFG-PQC/
 
 ---
 
-### `imagenes/scatter_limpia.png`
-**Qué representa:** relación latencia vs overhead (cada punto es un grupo).
+### `imagenes/delta_openssl_execution_time_vs_x25519.csv`
+**Qué representa:** deltas robustos por grupo frente a `X25519` sobre `openssl_execution_time_ms`.
 
-**Cómo se genera:** función `graficar_scatter`, usando medias por grupo y tamaño de punto proporcional a muestras.
+**Cómo se genera:** exportación desde `graficar_latencia` tras agregar por host y aplicar filtros de cohorte/muestras.
 
-**Utilidad en el proyecto:** visualizar trade-off rendimiento (ms) vs coste (bytes) entre grupos.
+**Utilidad en el proyecto:** trazabilidad numérica del panel de delta temporal total en OpenSSL.
+
+---
+
+### `imagenes/delta_openssl_tcp_tls_vs_x25519.csv`
+**Qué representa:** deltas robustos por grupo frente a `X25519` sobre `openssl_connect_tls_time_ms`.
+
+**Cómo se genera:** exportación desde `graficar_latencia` con la misma cohorte común que el gráfico principal.
+
+**Utilidad en el proyecto:** evidencia numérica del coste temporal TCP+TLS por grupo.
 
 ---
 
@@ -659,9 +669,14 @@ Esta sección describe para **cada métrica**: cómo se obtiene, qué significa 
 - **Utilidad:** aislar problemas de red/puerto antes de TLS.
 
 ### `handshake_time_ms`
-- **Cómo se obtiene:** tiempo de ejecución de handshake durante `openssl s_client`.
-- **Qué significa:** coste temporal de negociación TLS (incluyendo grupo criptográfico).
-- **Utilidad:** comparar rendimiento criptográfico entre grupos.
+- **Cómo se obtiene:** cronometraje del intento en `openssl s_client` (`Popen` + `communicate`).
+- **Qué significa:** tiempo combinado de conexión TCP + negociación TLS dentro de OpenSSL.
+- **Utilidad:** métrica legacy para compatibilidad histórica (no es handshake TLS puro aislado).
+
+### `openssl_connect_tls_time_ms`
+- **Cómo se obtiene:** mismo cronometraje de ejecución de OpenSSL (`Popen` + `communicate`), exportado con nombre explícito.
+- **Qué significa:** tiempo TCP+TLS observado por OpenSSL en una sola métrica.
+- **Utilidad:** evitar ambigüedad metodológica al comparar grupos criptográficos.
 
 ### `tiempo_conexion_segundos`
 - **Cómo se obtiene:** diferencia entre inicio y fin global de la operación.
@@ -886,10 +901,11 @@ Se generan en la fase de análisis (`analizar_resultados.py`):
 2. Filtra solo conexiones `ACEPTADO` para análisis comparativo de rendimiento.
 3. Limpia outliers (IQR en métricas de bytes).
 4. Filtra grupos con mínimo de muestras.
-5. Grafica 3 vistas complementarias:
+5. Grafica 2 vistas y exporta 2 tablas delta:
    - latencia,
    - bytes,
-   - trade-off latencia vs overhead.
+   - delta_openssl_execution_time_vs_x25519.csv,
+   - delta_openssl_tcp_tls_vs_x25519.csv.
 
 ---
 

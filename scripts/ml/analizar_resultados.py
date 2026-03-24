@@ -46,22 +46,23 @@ BASE_DIR = Path(__file__).parent.parent.parent
 RESULTADOS_PATH = BASE_DIR / "resultados" / "resultados_sonda_pqc.json"
 OUTPUT_DIR = BASE_DIR / "imagenes"
 MIN_MUESTRAS_ANALISIS = 30
+METRICA_CONNECT_TLS_MS = 'openssl_connect_tls_time_ms'
 
 
 def construir_dataset_justo(df, grupo_clasico='X25519'):
     """
     Construye el subconjunto justo:
-    - Solo conexiones ACEPTADAS con handshake_time_ms válido.
+    - Solo conexiones ACEPTADAS con métrica TCP+TLS de OpenSSL válida.
     - Solo hostnames que aceptaron el grupo clásico y al menos un grupo no clásico.
     """
     if df.empty:
         return pd.DataFrame()
 
-    base = df[['hostname', 'grupo', 'connection_result', 'handshake_time_ms']].copy()
+    base = df[['hostname', 'grupo', 'connection_result', METRICA_CONNECT_TLS_MS]].copy()
     base = base[
         (base['connection_result'] == 'ACEPTADO') &
         (base['grupo'].notna()) &
-        (base['handshake_time_ms'].notna())
+        (base[METRICA_CONNECT_TLS_MS].notna())
     ]
 
     if base.empty:
@@ -88,10 +89,10 @@ def calcular_ranking_justo_handshake(df, grupo_clasico='X25519'):
     if df_justo.empty:
         return pd.DataFrame()
 
-    host_group = df_justo.groupby(['hostname', 'grupo'], as_index=False)['handshake_time_ms'].mean()
+    host_group = df_justo.groupby(['hostname', 'grupo'], as_index=False)[METRICA_CONNECT_TLS_MS].mean()
     ranking = host_group.groupby('grupo').agg(
-        handshake_medio_ms=('handshake_time_ms', 'mean'),
-        handshake_std_ms=('handshake_time_ms', 'std'),
+        handshake_medio_ms=(METRICA_CONNECT_TLS_MS, 'mean'),
+        handshake_std_ms=(METRICA_CONNECT_TLS_MS, 'std'),
         hostnames=('hostname', 'nunique')
     ).reset_index()
 
@@ -319,6 +320,7 @@ def cargar_y_procesar():
                 'dns_time_ms': prueba.get('dns_time_ms'),
                 'tcp_time_ms': prueba.get('tcp_time_ms'),
                 'handshake_time_ms': prueba.get('handshake_time_ms'),
+                METRICA_CONNECT_TLS_MS: prueba.get(METRICA_CONNECT_TLS_MS, prueba.get('handshake_time_ms')),
                 'tiempo_conexion_segundos': prueba.get('tiempo_conexion_segundos'),
                 'bytes_sent': prueba.get('bytes_sent'),
                 'bytes_received': prueba.get('bytes_received'),
@@ -333,10 +335,14 @@ def cargar_y_procesar():
     df = pd.DataFrame(registros)
     
     # Convertir a numérico
-    for col in ['dns_time_ms', 'tcp_time_ms', 'handshake_time_ms', 'tiempo_conexion_segundos',
+    for col in ['dns_time_ms', 'tcp_time_ms', 'handshake_time_ms', METRICA_CONNECT_TLS_MS, 'tiempo_conexion_segundos',
             'bytes_sent', 'bytes_received', 'handshake_overhead',
             'handshake_total_bytes_sent', 'handshake_total_bytes_received', 'handshake_total_overhead']:
         df[col] = pd.to_numeric(df[col], errors='coerce') # coerce convierte errores a NaN
+
+    # Compatibilidad: asegurar que ambas columnas estén sincronizadas
+    df[METRICA_CONNECT_TLS_MS] = df[METRICA_CONNECT_TLS_MS].fillna(df['handshake_time_ms'])
+    df['handshake_time_ms'] = df['handshake_time_ms'].fillna(df[METRICA_CONNECT_TLS_MS])
 
     # Métricas derivadas para análisis de conexión/TLS
     # Nota: tiempo_conexion_segundos se mide alrededor de la ejecución de OpenSSL,
@@ -497,19 +503,25 @@ def graficar_latencia(df, output_dir, df_ranking=None):
     fig, axes = plt.subplots(1, 3, figsize=(18, 6))
     fig.suptitle('Análisis de Latencia por Grupo Criptográfico', 
                  fontsize=16, fontweight='bold')
+
+    # Limpiar artefactos legacy para mantener nombres consistentes
+    for legacy_name in ['delta_open_ssl_vs_x25519.csv', 'delta_handshake_vs_x25519.csv']:
+        legacy_path = output_dir / legacy_name
+        if legacy_path.exists():
+            legacy_path.unlink()
     
     # Handshake (ranking justo por hostname con métrica robusta)
     fuente_ranking = df_ranking if df_ranking is not None else df
     min_hostnames_concluyente = 30
     grupos_concluyentes = []
     hosts_comunes_concluyentes = set()
-    ranking_justo = resumen_justo_metrica(fuente_ranking, 'handshake_time_ms', grupo_clasico='X25519')
+    ranking_justo = resumen_justo_metrica(fuente_ranking, METRICA_CONNECT_TLS_MS, grupo_clasico='X25519')
     if not ranking_justo.empty:
         ranking_concluyente = ranking_justo[ranking_justo['hostnames'] >= min_hostnames_concluyente].copy()
         ranking_no_concluyente = ranking_justo[ranking_justo['hostnames'] < min_hostnames_concluyente].copy()
 
         if not ranking_concluyente.empty:
-            hg = _agregar_por_hostname_grupo(fuente_ranking, 'handshake_time_ms')
+            hg = _agregar_por_hostname_grupo(fuente_ranking, METRICA_CONNECT_TLS_MS)
             grupos_concluyentes, hosts_comunes_concluyentes = seleccionar_grupos_y_cohorte_comun(
                 hg,
                 ranking_concluyente['grupo'].tolist(),
@@ -523,11 +535,11 @@ def graficar_latencia(df, output_dir, df_ranking=None):
                     hg['grupo'].isin(grupos_concluyentes)
                 ].copy()
                 ranking_concluyente = hg_comun.groupby('grupo').agg(
-                    valor_mediana_ms=('handshake_time_ms', 'median'),
-                    valor_q1_ms=('handshake_time_ms', lambda s: s.quantile(0.25)),
-                    valor_q3_ms=('handshake_time_ms', lambda s: s.quantile(0.75)),
-                    valor_media_ms=('handshake_time_ms', 'mean'),
-                    valor_std_ms=('handshake_time_ms', 'std'),
+                    valor_mediana_ms=(METRICA_CONNECT_TLS_MS, 'median'),
+                    valor_q1_ms=(METRICA_CONNECT_TLS_MS, lambda s: s.quantile(0.25)),
+                    valor_q3_ms=(METRICA_CONNECT_TLS_MS, lambda s: s.quantile(0.75)),
+                    valor_media_ms=(METRICA_CONNECT_TLS_MS, 'mean'),
+                    valor_std_ms=(METRICA_CONNECT_TLS_MS, 'std'),
                     hostnames=('hostname', 'nunique')
                 ).reset_index()
                 ranking_concluyente['valor_std_ms'] = ranking_concluyente['valor_std_ms'].fillna(0.0)
@@ -547,13 +559,13 @@ def graficar_latencia(df, output_dir, df_ranking=None):
                     capsize=5
                 )
                 axes[0].set_xlabel('Tiempo (ms)', fontweight='bold')
-                axes[0].set_title('Handshake TLS justo (cohorte común, mediana/IQR)', fontweight='bold')
+                axes[0].set_title('OpenSSL TCP+TLS justo (cohorte común, mediana/IQR)', fontweight='bold')
             else:
                 axes[0].text(0.5, 0.5, f'Sin cohorte común >={min_hostnames_concluyente} hosts', ha='center', va='center', transform=axes[0].transAxes)
-                axes[0].set_title('Handshake TLS justo', fontweight='bold')
+                axes[0].set_title('OpenSSL TCP+TLS justo', fontweight='bold')
         else:
             axes[0].text(0.5, 0.5, 'Sin grupos concluyentes (>=30 hosts comparables)', ha='center', va='center', transform=axes[0].transAxes)
-            axes[0].set_title('Handshake TLS justo', fontweight='bold')
+            axes[0].set_title('OpenSSL TCP+TLS justo', fontweight='bold')
 
         # Exportar ranking justo para auditoría (concluyente y no concluyente)
         ranking_concluyente_path = output_dir / 'ranking_justo_handshake.csv'
@@ -567,11 +579,11 @@ def graficar_latencia(df, output_dir, df_ranking=None):
             ranking_no_concluyente.to_csv(ranking_no_concluyente_path, index=False)
             logger.info(f"✓ Guardado: {ranking_no_concluyente_path}")
     else:
-        df_hs = df.groupby('grupo')['handshake_time_ms'].agg(['median', 'mean', 'std']).sort_values('median', ascending=False)
+        df_hs = df.groupby('grupo')[METRICA_CONNECT_TLS_MS].agg(['median', 'mean', 'std']).sort_values('median', ascending=False)
         axes[0].barh(df_hs.index, df_hs['median'], xerr=df_hs['std'],
                         color=[COLORES_GRUPOS.get(g, '#999999') for g in df_hs.index], alpha=0.7, capsize=5)
         axes[0].set_xlabel('Tiempo (ms)', fontweight='bold')
-        axes[0].set_title('Tiempo de Handshake TLS (mediana)', fontweight='bold')
+        axes[0].set_title('Tiempo OpenSSL TCP+TLS (mediana)', fontweight='bold')
     axes[0].grid(axis='x', alpha=0.3)
 
     # Delta robusto por hostname vs X25519 para tiempo de ejecución de OpenSSL
@@ -602,7 +614,7 @@ def graficar_latencia(df, output_dir, df_ranking=None):
         axes[1].set_xlabel('Δ Tiempo (ms) vs X25519', fontweight='bold')
         axes[1].set_title('OpenSSL execution time (mediana/IQR por host, vs X25519)', fontweight='bold')
 
-        delta_sin_dns_path = output_dir / 'delta_open_ssl_vs_x25519.csv'
+        delta_sin_dns_path = output_dir / 'delta_openssl_execution_time_vs_x25519.csv'
         delta_sin_dns.to_csv(delta_sin_dns_path, index=False)
         logger.info(f"✓ Guardado: {delta_sin_dns_path}")
     else:
@@ -610,39 +622,39 @@ def graficar_latencia(df, output_dir, df_ranking=None):
         axes[1].set_title('OpenSSL execution time (vs X25519)', fontweight='bold')
     axes[1].grid(axis='x', alpha=0.3)
 
-    # Delta robusto por hostname vs X25519 para handshake TLS
-    # Se aplica la misma lógica de grupos concluyentes + cohorte común que en Handshake TLS justo.
-    delta_handshake = resumen_delta_vs_clasico_restringido(
+    # Delta robusto por hostname vs X25519 para OpenSSL TCP+TLS
+    # Se aplica la misma lógica de grupos concluyentes + cohorte común que en OpenSSL TCP+TLS justo.
+    delta_connect_tls = resumen_delta_vs_clasico_restringido(
         df,
-        'handshake_time_ms',
+        METRICA_CONNECT_TLS_MS,
         grupo_clasico='X25519',
         grupos_permitidos=grupos_concluyentes if grupos_concluyentes else None,
         hosts_permitidos=hosts_comunes_concluyentes if usar_cohorte_comun else None,
         min_hostnames=min_hostnames_concluyente if grupos_concluyentes else 0
     )
-    if not delta_handshake.empty:
-        delta_handshake = delta_handshake.sort_values('delta_mediana_ms', ascending=True)
-        etiquetas = [f"{g} (hosts={n})" for g, n in zip(delta_handshake['grupo'], delta_handshake['hostnames'])]
-        err_left = delta_handshake['delta_mediana_ms'].to_numpy() - delta_handshake['delta_q1_ms'].to_numpy()
-        err_right = delta_handshake['delta_q3_ms'].to_numpy() - delta_handshake['delta_mediana_ms'].to_numpy()
+    if not delta_connect_tls.empty:
+        delta_connect_tls = delta_connect_tls.sort_values('delta_mediana_ms', ascending=True)
+        etiquetas = [f"{g} (hosts={n})" for g, n in zip(delta_connect_tls['grupo'], delta_connect_tls['hostnames'])]
+        err_left = delta_connect_tls['delta_mediana_ms'].to_numpy() - delta_connect_tls['delta_q1_ms'].to_numpy()
+        err_right = delta_connect_tls['delta_q3_ms'].to_numpy() - delta_connect_tls['delta_mediana_ms'].to_numpy()
         axes[2].barh(
             etiquetas,
-            delta_handshake['delta_mediana_ms'],
+            delta_connect_tls['delta_mediana_ms'],
             xerr=np.vstack([err_left, err_right]),
-            color=[COLORES_GRUPOS.get(g, '#999999') for g in delta_handshake['grupo']],
+            color=[COLORES_GRUPOS.get(g, '#999999') for g in delta_connect_tls['grupo']],
             alpha=0.7,
             capsize=5
         )
         axes[2].axvline(0, color='black', linewidth=1, alpha=0.6)
         axes[2].set_xlabel('Δ Tiempo (ms) vs X25519', fontweight='bold')
-        axes[2].set_title('Handshake TLS (Δ mediana/IQR por host, vs X25519)', fontweight='bold')
+        axes[2].set_title('OpenSSL TCP+TLS (Δ mediana/IQR por host, vs X25519)', fontweight='bold')
 
-        delta_handshake_path = output_dir / 'delta_handshake_vs_x25519.csv'
-        delta_handshake.to_csv(delta_handshake_path, index=False)
-        logger.info(f"✓ Guardado: {delta_handshake_path}")
+        delta_connect_tls_path = output_dir / 'delta_openssl_tcp_tls_vs_x25519.csv'
+        delta_connect_tls.to_csv(delta_connect_tls_path, index=False)
+        logger.info(f"✓ Guardado: {delta_connect_tls_path}")
     else:
         axes[2].text(0.5, 0.5, 'Sin datos comparables para delta vs X25519', ha='center', va='center', transform=axes[2].transAxes)
-        axes[2].set_title('Handshake TLS (vs X25519)', fontweight='bold')
+        axes[2].set_title('OpenSSL TCP+TLS (vs X25519)', fontweight='bold')
     axes[2].grid(axis='x', alpha=0.3)
     
     # Ajustar layout y guardar figura
@@ -793,7 +805,7 @@ def main():
     logger.info("\n🧹 Limpiando outliers por grupo (latencia + bytes)...")
     columnas_outliers = [
         'tcp_time_ms',
-        'handshake_time_ms',
+        METRICA_CONNECT_TLS_MS,
         'openssl_execution_time_ms',
         'tiempo_conexion_segundos',
         'bytes_sent',

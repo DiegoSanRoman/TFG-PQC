@@ -319,6 +319,7 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
             "dns_time_ms": dns_time_ms,
             "tcp_time_ms": tcp_time_ms,
             "handshake_time_ms": None,
+            "openssl_connect_tls_time_ms": None,
             "ip": ip_resuelta,
             "ip_familia": ip_familia,
             "tls_version": None,
@@ -348,6 +349,7 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
             "dns_time_ms": dns_time_ms,
             "tcp_time_ms": tcp_time_ms,
             "handshake_time_ms": None,
+            "openssl_connect_tls_time_ms": None,
             "ip": ip_resuelta,
             "ip_familia": ip_familia,
             "tls_version": None,
@@ -377,6 +379,7 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
             "dns_time_ms": dns_time_ms,
             "tcp_time_ms": tcp_time_ms,
             "handshake_time_ms": None,
+            "openssl_connect_tls_time_ms": None,
             "ip": ip_resuelta,
             "ip_familia": ip_familia,
             "tls_version": None,
@@ -463,6 +466,7 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
                         "dns_time_ms": dns_time_ms,
                         "tcp_time_ms": tcp_time_ms,
                         "handshake_time_ms": None,
+                        "openssl_connect_tls_time_ms": None,
                         "ip": ip_resuelta,
                         "ip_familia": ip_familia,
                         "tls_version": None,
@@ -634,6 +638,7 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
                 "dns_time_ms": dns_time_ms,
                 "tcp_time_ms": tcp_time_ms,
                 "handshake_time_ms": handshake_time_ms,
+                "openssl_connect_tls_time_ms": handshake_time_ms,
                 "ip": ip_resuelta,
                 "ip_familia": ip_familia,
                 "tls_version": tls_version,
@@ -676,6 +681,7 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
                 "dns_time_ms": dns_time_ms,
                 "tcp_time_ms": tcp_time_ms,
                 "handshake_time_ms": handshake_time_ms,
+                "openssl_connect_tls_time_ms": handshake_time_ms,
                 "ip": ip_resuelta,
                 "ip_familia": ip_familia,
                 "tls_version": tls_version,
@@ -711,6 +717,7 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
                 "dns_time_ms": dns_time_ms,
                 "tcp_time_ms": tcp_time_ms,
                 "handshake_time_ms": handshake_time_ms,
+                "openssl_connect_tls_time_ms": handshake_time_ms,
                 "ip": ip_resuelta,
                 "ip_familia": ip_familia,
                 "tls_version": tls_version,
@@ -745,6 +752,7 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
             "dns_time_ms": dns_time_ms,
             "tcp_time_ms": tcp_time_ms,
             "handshake_time_ms": handshake_time_ms,
+            "openssl_connect_tls_time_ms": handshake_time_ms,
             "ip": ip_resuelta,
             "ip_familia": ip_familia,
             "tls_version": tls_version,
@@ -780,6 +788,7 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
             "dns_time_ms": dns_time_ms,
             "tcp_time_ms": tcp_time_ms,
             "handshake_time_ms": None,
+            "openssl_connect_tls_time_ms": None,
             "ip": ip_resuelta,
             "ip_familia": ip_familia,
             "tls_version": None,
@@ -876,6 +885,7 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
         # Recolectar métricas numéricas solo de conexiones exitosas
         # Creamos las listas para cada métrica que queremos analizar
         handshake_times = []
+        openssl_connect_tls_times = []
         dns_times = []
         tcp_times = []
         bytes_sent_list = []
@@ -887,6 +897,8 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
             if prueba.get("connection_result") == CONNECTION_ACCEPTED:
                 if prueba.get("handshake_time_ms") is not None:
                     handshake_times.append(prueba["handshake_time_ms"])
+                if prueba.get("openssl_connect_tls_time_ms") is not None:
+                    openssl_connect_tls_times.append(prueba["openssl_connect_tls_time_ms"])
                 if prueba.get("dns_time_ms") is not None:
                     dns_times.append(prueba["dns_time_ms"])
                 if prueba.get("tcp_time_ms") is not None:
@@ -917,6 +929,7 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
             }
         
         stats_handshake = calc_stats(handshake_times)
+        stats_openssl_connect_tls = calc_stats(openssl_connect_tls_times)
         stats_dns = calc_stats(dns_times)
         stats_tcp = calc_stats(tcp_times)
         stats_bytes_sent = calc_stats(bytes_sent_list)
@@ -941,6 +954,7 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
             "porcentaje_rechazo": porcentaje_rechazo,
             "porcentaje_error": porcentaje_error,
             "handshake_time_ms": stats_handshake,
+            "openssl_connect_tls_time_ms": stats_openssl_connect_tls,
             "dns_time_ms": stats_dns,
             "tcp_time_ms": stats_tcp,
             "bytes_sent": stats_bytes_sent,
@@ -1037,6 +1051,7 @@ def calcular_promedio_repeticiones(intentos: List[Dict[str, Any]], grupo: str) -
         'dns_time_ms',
         'tcp_time_ms',
         'handshake_time_ms',
+        'openssl_connect_tls_time_ms',
         'bytes_sent',
         'bytes_received',
         'handshake_overhead',
