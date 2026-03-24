@@ -45,6 +45,7 @@ COLORES_GRUPOS = {
 BASE_DIR = Path(__file__).parent.parent.parent
 RESULTADOS_PATH = BASE_DIR / "resultados" / "resultados_sonda_pqc.json"
 OUTPUT_DIR = BASE_DIR / "imagenes"
+MIN_MUESTRAS_ANALISIS = 30
 
 
 def construir_dataset_justo(df, grupo_clasico='X25519'):
@@ -811,7 +812,7 @@ def main():
     
     # Aplicar filtro de muestras mínimas
     logger.info("\n📊 Aplicando filtro de muestras mínimas...")
-    df_filtrado = filtrar_por_muestras_minimas(df_exitos, min_muestras=2)
+    df_filtrado = filtrar_por_muestras_minimas(df_exitos, min_muestras=MIN_MUESTRAS_ANALISIS)
     # df_filtrado = df_exitos.copy() # --- IGNORE ---
     
     logger.info(f"\nDatos finales para gráficas: {len(df_filtrado)} registros de {df_filtrado['grupo'].nunique()} grupos")
