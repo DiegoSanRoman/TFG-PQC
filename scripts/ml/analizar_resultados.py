@@ -322,6 +322,9 @@ def cargar_y_procesar():
                 'bytes_sent': prueba.get('bytes_sent'),
                 'bytes_received': prueba.get('bytes_received'),
                 'handshake_overhead': overhead,
+                'handshake_total_bytes_sent': prueba.get('handshake_total_bytes_sent'),
+                'handshake_total_bytes_received': prueba.get('handshake_total_bytes_received'),
+                'handshake_total_overhead': prueba.get('handshake_total_overhead'),
             }
             registros.append(registro)
     
@@ -330,7 +333,8 @@ def cargar_y_procesar():
     
     # Convertir a numérico
     for col in ['dns_time_ms', 'tcp_time_ms', 'handshake_time_ms', 'tiempo_conexion_segundos',
-                'bytes_sent', 'bytes_received', 'handshake_overhead']:
+            'bytes_sent', 'bytes_received', 'handshake_overhead',
+            'handshake_total_bytes_sent', 'handshake_total_bytes_received', 'handshake_total_overhead']:
         df[col] = pd.to_numeric(df[col], errors='coerce') # coerce convierte errores a NaN
 
     # Métricas derivadas para análisis de conexión/TLS
@@ -665,14 +669,14 @@ def graficar_bytes(df, output_dir):
             axes[0, 0].barh(df_sent.index, df_sent['mean'], xerr=df_sent['std'],
                              color=[COLORES_GRUPOS.get(g, '#999999') for g in df_sent.index], alpha=0.7, capsize=5)
             axes[0, 0].set_xlabel('Bytes', fontweight='bold')
-            axes[0, 0].set_title('Bytes Enviados Promedio', fontweight='bold')
+            axes[0, 0].set_title('Bytes Enviados (CH/SH) Promedio', fontweight='bold')
             axes[0, 0].grid(axis='x', alpha=0.3)
         else:
             axes[0, 0].text(0.5, 0.5, 'Sin datos válidos', ha='center', va='center', transform=axes[0, 0].transAxes)
-            axes[0, 0].set_title('Bytes Enviados Promedio', fontweight='bold')
+            axes[0, 0].set_title('Bytes Enviados (CH/SH) Promedio', fontweight='bold')
     else:
         axes[0, 0].text(0.5, 0.5, 'Sin datos', ha='center', va='center', transform=axes[0, 0].transAxes)
-        axes[0, 0].set_title('Bytes Enviados Promedio', fontweight='bold')
+        axes[0, 0].set_title('Bytes Enviados (CH/SH) Promedio', fontweight='bold')
     
     # Bytes Received
     if df['bytes_received'].notna().any():
@@ -681,14 +685,14 @@ def graficar_bytes(df, output_dir):
             axes[0, 1].barh(df_recv.index, df_recv['mean'], xerr=df_recv['std'],
                              color=[COLORES_GRUPOS.get(g, '#999999') for g in df_recv.index], alpha=0.7, capsize=5)
             axes[0, 1].set_xlabel('Bytes', fontweight='bold')
-            axes[0, 1].set_title('Bytes Recibidos Promedio', fontweight='bold')
+            axes[0, 1].set_title('Bytes Recibidos (CH/SH) Promedio', fontweight='bold')
             axes[0, 1].grid(axis='x', alpha=0.3)
         else:
             axes[0, 1].text(0.5, 0.5, 'Sin datos válidos', ha='center', va='center', transform=axes[0, 1].transAxes)
-            axes[0, 1].set_title('Bytes Recibidos Promedio', fontweight='bold')
+            axes[0, 1].set_title('Bytes Recibidos (CH/SH) Promedio', fontweight='bold')
     else:
         axes[0, 1].text(0.5, 0.5, 'Sin datos', ha='center', va='center', transform=axes[0, 1].transAxes)
-        axes[0, 1].set_title('Bytes Recibidos Promedio', fontweight='bold')
+        axes[0, 1].set_title('Bytes Recibidos (CH/SH) Promedio', fontweight='bold')
     
     # Handshake Overhead
     if df['handshake_overhead'].notna().any():
@@ -697,19 +701,30 @@ def graficar_bytes(df, output_dir):
             axes[1, 0].barh(df_ovh.index, df_ovh['mean'], xerr=df_ovh['std'],
                              color=[COLORES_GRUPOS.get(g, '#999999') for g in df_ovh.index], alpha=0.7, capsize=5)
             axes[1, 0].set_xlabel('Bytes', fontweight='bold')
-            axes[1, 0].set_title('Overhead Total del Handshake', fontweight='bold')
+            axes[1, 0].set_title('Overhead CH/SH (Intercambio de Claves)', fontweight='bold')
             axes[1, 0].grid(axis='x', alpha=0.3)
         else:
             axes[1, 0].text(0.5, 0.5, 'Sin datos válidos', ha='center', va='center', transform=axes[1, 0].transAxes)
-            axes[1, 0].set_title('Overhead Total del Handshake', fontweight='bold')
+            axes[1, 0].set_title('Overhead CH/SH (Intercambio de Claves)', fontweight='bold')
     else:
         axes[1, 0].text(0.5, 0.5, 'Sin datos', ha='center', va='center', transform=axes[1, 0].transAxes)
-        axes[1, 0].set_title('Overhead Total del Handshake', fontweight='bold')
+        axes[1, 0].set_title('Overhead CH/SH (Intercambio de Claves)', fontweight='bold')
     
-    # Placeholder para cuarta gráfica
-    axes[1, 1].text(0.5, 0.5, 'Reservado para análisis adicional', ha='center', va='center', transform=axes[1, 1].transAxes, style='italic', color='gray')
-    axes[1, 1].set_title('(Espacio reservado)', fontweight='bold')
-    axes[1, 1].axis('off')
+    # Handshake Total real (resumen OpenSSL)
+    if df['handshake_total_overhead'].notna().any():
+        df_ovh_total = df[df['handshake_total_overhead'].notna()].groupby('grupo')['handshake_total_overhead'].agg(['mean', 'std']).sort_values('mean', ascending=False)
+        if not df_ovh_total.empty:
+            axes[1, 1].barh(df_ovh_total.index, df_ovh_total['mean'], xerr=df_ovh_total['std'],
+                             color=[COLORES_GRUPOS.get(g, '#999999') for g in df_ovh_total.index], alpha=0.7, capsize=5)
+            axes[1, 1].set_xlabel('Bytes', fontweight='bold')
+            axes[1, 1].set_title('Overhead Total del Handshake (OpenSSL)', fontweight='bold')
+            axes[1, 1].grid(axis='x', alpha=0.3)
+        else:
+            axes[1, 1].text(0.5, 0.5, 'Sin datos válidos', ha='center', va='center', transform=axes[1, 1].transAxes)
+            axes[1, 1].set_title('Overhead Total del Handshake (OpenSSL)', fontweight='bold')
+    else:
+        axes[1, 1].text(0.5, 0.5, 'Sin datos de handshake total', ha='center', va='center', transform=axes[1, 1].transAxes)
+        axes[1, 1].set_title('Overhead Total del Handshake (OpenSSL)', fontweight='bold')
     
     plt.tight_layout()
     output_path = output_dir / 'bytes_limpia.png'
@@ -733,7 +748,8 @@ def main():
         'tiempo_conexion_segundos',
         'bytes_sent',
         'bytes_received',
-        'handshake_overhead'
+        'handshake_overhead',
+        'handshake_total_overhead'
     ]
     df_exitos = remover_outliers_por_grupo(
         df_exitos,

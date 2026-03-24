@@ -16,6 +16,8 @@ MAX_WORKERS="20"
 DOCKER_IMAGE="tfg-sonda"
 DATASET_CSV="prueba.csv"
 DATASET_BASENAME=""
+FORCE_REBUILD="0"
+IMAGE_HASH_FILE=""
 
 # Parsear argumentos
 # Mientras sigue habiendo argumentos, procesarlos
@@ -37,9 +39,13 @@ while [[ $# -gt 0 ]]; do
             MAX_WORKERS="$2"
             shift 2
             ;;
+        --rebuild)
+            FORCE_REBUILD="1"
+            shift
+            ;;
         *)
         echo "- Argumento desconocido: $1"
-            echo "Uso: $0 --input-csv ARCHIVO.csv [--max-hostnames N] [--repeticiones N] [--max-workers N]"
+            echo "Uso: $0 --input-csv ARCHIVO.csv [--max-hostnames N] [--repeticiones N] [--max-workers N] [--rebuild]"
             exit 1
             ;;
     esac
@@ -58,6 +64,7 @@ echo "  • Max hostnames: ${MAX_HOSTNAMES}"
 echo "  • Repeticiones: ${REPETICIONES}"
 echo "  • Hilos paralelelos: ${MAX_WORKERS}"
 echo "  • Imagen Docker: ${DOCKER_IMAGE}"
+echo "  • Rebuild forzado: ${FORCE_REBUILD}"
 echo ""
 
 # Verificar que el CSV existe (-f comprueba archivo regular)
@@ -82,6 +89,7 @@ fi
 
 # Crear directorio de resultados si no existe
 mkdir -p "${PROJECT_DIR}/resultados"
+IMAGE_HASH_FILE="${PROJECT_DIR}/resultados/.docker_image_hash_${DOCKER_IMAGE}.txt"
 
 # Si Docker no está disponible pero estamos dentro del contenedor,
 # ejecutar la sonda directamente (evita Docker-in-Docker).
@@ -117,18 +125,37 @@ if ! command -v docker &> /dev/null; then
     fi
 fi
 
-# Verificar si la imagen existe, si no, la construimos
+# Verificar si hay que reconstruir imagen (inexistente, forzado o código cambiado)
+CURRENT_HASH="$(cat "${PROJECT_DIR}/Dockerfile" "${PROJECT_DIR}/scripts/sondas/sonda_pqc_final.py" | sha256sum | awk '{print $1}')"
+LAST_HASH=""
+if [ -f "${IMAGE_HASH_FILE}" ]; then
+    LAST_HASH="$(cat "${IMAGE_HASH_FILE}" 2>/dev/null || true)"
+fi
+
+REBUILD_NEEDED="0"
 if ! docker image inspect "${DOCKER_IMAGE}" &> /dev/null; then
+    echo "--- Imagen Docker no encontrada, se construirá"
+    REBUILD_NEEDED="1"
+elif [ "${FORCE_REBUILD}" = "1" ]; then
+    echo "--- Rebuild forzado por --rebuild"
+    REBUILD_NEEDED="1"
+elif [ "${CURRENT_HASH}" != "${LAST_HASH}" ]; then
+    echo "--- Detectados cambios en Dockerfile/sonda, se reconstruirá la imagen"
+    REBUILD_NEEDED="1"
+else
+    echo "OK - Imagen Docker al día"
+fi
+
+if [ "${REBUILD_NEEDED}" = "1" ]; then
     echo "--- Construyendo imagen Docker: ${DOCKER_IMAGE}..."
     docker build -t "${DOCKER_IMAGE}" "${PROJECT_DIR}"
     if [ $? -eq 0 ]; then # $? es el codigo de salida del comando anterior (0 = exito)
+        echo "${CURRENT_HASH}" > "${IMAGE_HASH_FILE}"
         echo "OK - Imagen construida exitosamente"
     else
         echo "ERROR - Error al construir la imagen Docker"
         exit 1
     fi
-else
-    echo "OK - Imagen Docker encontrada"
 fi
 
 echo ""

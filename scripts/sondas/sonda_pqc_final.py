@@ -128,7 +128,10 @@ def parse_trace_bytes(trace_output: str) -> Dict[str, Any]:
     '''
     Parsea bytes de handshake TLS desde la salida de OpenSSL con -trace.
     :param trace_output: Salida de stderr + stdout de OpenSSL con -trace
-    :return: Dict con bytes_sent, bytes_received, handshake_overhead, y measurement_method
+        :return: Dict con:
+            - bytes_sent/bytes_received/handshake_overhead: métricas de intercambio de claves visibles en trace (CH/SH + CCS/Alert)
+            - handshake_total_bytes_sent/handshake_total_bytes_received/handshake_total_overhead: métricas de handshake total reportadas por OpenSSL
+            - measurement_method / measurement_method_total: calidad/fuente de medición
     '''
     bytes_sent = 0
     bytes_received = 0
@@ -192,12 +195,34 @@ def parse_trace_bytes(trace_output: str) -> Dict[str, Any]:
         measurement_method = "unknown"
     
     handshake_overhead = bytes_sent + bytes_received if measurement_method != "unknown" else 0
+
+    # Métrica de handshake total reportada por OpenSSL (incluye mensajes cifrados en TLS 1.3)
+    # Formato típico: "SSL handshake has read 3587 bytes and written 1204 bytes"
+    handshake_total_bytes_received = None
+    handshake_total_bytes_sent = None
+    handshake_total_overhead = None
+    measurement_method_total = "unknown"
+
+    match_total = re.search(
+        r"SSL\s+handshake\s+has\s+read\s+(\d+)\s+bytes\s+and\s+written\s+(\d+)\s+bytes",
+        trace_output,
+        re.IGNORECASE
+    )
+    if match_total:
+        handshake_total_bytes_received = int(match_total.group(1))
+        handshake_total_bytes_sent = int(match_total.group(2))
+        handshake_total_overhead = handshake_total_bytes_sent + handshake_total_bytes_received
+        measurement_method_total = "openssl_summary"
     
     return {
         'bytes_sent': bytes_sent if measurement_method != "unknown" else None,
         'bytes_received': bytes_received if measurement_method != "unknown" else None,
         'handshake_overhead': handshake_overhead if measurement_method != "unknown" else None,
-        'measurement_method': measurement_method
+        'measurement_method': measurement_method,
+        'handshake_total_bytes_sent': handshake_total_bytes_sent,
+        'handshake_total_bytes_received': handshake_total_bytes_received,
+        'handshake_total_overhead': handshake_total_overhead,
+        'measurement_method_total': measurement_method_total
     }
 
 
@@ -479,6 +504,10 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
         bytes_received = trace_metrics['bytes_received']
         handshake_overhead = trace_metrics['handshake_overhead']
         measurement_method = trace_metrics['measurement_method']
+        handshake_total_bytes_sent = trace_metrics['handshake_total_bytes_sent']
+        handshake_total_bytes_received = trace_metrics['handshake_total_bytes_received']
+        handshake_total_overhead = trace_metrics['handshake_total_overhead']
+        measurement_method_total = trace_metrics['measurement_method_total']
         
         # Log de advertencia si no se pudieron medir bytes
         if measurement_method == "unknown":
@@ -620,6 +649,10 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
                 "bytes_received": bytes_received,
                 "handshake_overhead": handshake_overhead,
                 "measurement_method": measurement_method,
+                "handshake_total_bytes_sent": handshake_total_bytes_sent,
+                "handshake_total_bytes_received": handshake_total_bytes_received,
+                "handshake_total_overhead": handshake_total_overhead,
+                "measurement_method_total": measurement_method_total,
                 "sni_usado": sni_usado,
                 "sni_difiere": sni_difiere,
                 "retry": retried
@@ -658,6 +691,10 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
                 "bytes_received": bytes_received,
                 "handshake_overhead": handshake_overhead,
                 "measurement_method": measurement_method,
+                "handshake_total_bytes_sent": handshake_total_bytes_sent,
+                "handshake_total_bytes_received": handshake_total_bytes_received,
+                "handshake_total_overhead": handshake_total_overhead,
+                "measurement_method_total": measurement_method_total,
                 "sni_usado": sni_usado,
                 "sni_difiere": sni_difiere,
                 "retry": retried
@@ -689,6 +726,10 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
                 "bytes_received": bytes_received,
                 "handshake_overhead": handshake_overhead,
                 "measurement_method": measurement_method,
+                "handshake_total_bytes_sent": handshake_total_bytes_sent,
+                "handshake_total_bytes_received": handshake_total_bytes_received,
+                "handshake_total_overhead": handshake_total_overhead,
+                "measurement_method_total": measurement_method_total,
                 "sni_usado": sni_usado,
                 "sni_difiere": sni_difiere,
                 "retry": retried
@@ -719,6 +760,10 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
             "bytes_received": bytes_received,
             "handshake_overhead": handshake_overhead,
             "measurement_method": measurement_method,
+            "handshake_total_bytes_sent": handshake_total_bytes_sent,
+            "handshake_total_bytes_received": handshake_total_bytes_received,
+            "handshake_total_overhead": handshake_total_overhead,
+            "measurement_method_total": measurement_method_total,
             "sni_usado": sni_usado,
             "sni_difiere": sni_difiere,
             "retry": retried
@@ -836,6 +881,7 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
         bytes_sent_list = []
         bytes_received_list = []
         handshake_overhead_list = []
+        handshake_total_overhead_list = []
         
         for prueba in pruebas_grupo:
             if prueba.get("connection_result") == CONNECTION_ACCEPTED:
@@ -851,6 +897,8 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
                     bytes_received_list.append(prueba["bytes_received"])
                 if prueba.get("handshake_overhead") is not None:
                     handshake_overhead_list.append(prueba["handshake_overhead"])
+                if prueba.get("handshake_total_overhead") is not None:
+                    handshake_total_overhead_list.append(prueba["handshake_total_overhead"])
         
         # Calcular estadísticas
         def calc_stats(valores):
@@ -874,6 +922,7 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
         stats_bytes_sent = calc_stats(bytes_sent_list)
         stats_bytes_received = calc_stats(bytes_received_list)
         stats_handshake_overhead = calc_stats(handshake_overhead_list)
+        stats_handshake_total_overhead = calc_stats(handshake_total_overhead_list)
         
         # Contar categorías de error
         error_categories = {}
@@ -897,6 +946,7 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
             "bytes_sent": stats_bytes_sent,
             "bytes_received": stats_bytes_received,
             "handshake_overhead": stats_handshake_overhead,
+            "handshake_total_overhead": stats_handshake_total_overhead,
             "categorias_error": error_categories
         })
     
@@ -937,7 +987,8 @@ def exportar_estadisticas_csv(estadisticas_grupos: List[Dict[str, Any]], output_
             'TCP Media (ms)',
             'Bytes Enviados Media',
             'Bytes Recibidos Media',
-            'Overhead Handshake Media'
+            'Overhead Handshake CH/SH Media',
+            'Overhead Handshake Total Media (OpenSSL)'
         ]
         writer.writerow(headers)
         
@@ -961,7 +1012,8 @@ def exportar_estadisticas_csv(estadisticas_grupos: List[Dict[str, Any]], output_
                 stats['tcp_time_ms']['media'],
                 stats['bytes_sent']['media'],
                 stats['bytes_received']['media'],
-                stats['handshake_overhead']['media']
+                stats['handshake_overhead']['media'],
+                stats['handshake_total_overhead']['media']
             ]
             writer.writerow(row)
     
@@ -987,24 +1039,31 @@ def calcular_promedio_repeticiones(intentos: List[Dict[str, Any]], grupo: str) -
         'handshake_time_ms',
         'bytes_sent',
         'bytes_received',
-        'handshake_overhead'
+        'handshake_overhead',
+        'handshake_total_bytes_sent',
+        'handshake_total_bytes_received',
+        'handshake_total_overhead'
     ]
     
     # Determinar la categoría de error, resultado de conexión y método de medición más comunes
     error_counts = {}
     result_counts = {}
     measurement_counts = {}
+    measurement_total_counts = {}
     for intento in intentos:
         error = intento.get('error_category')
         result = intento.get('connection_result')
         method = intento.get('measurement_method', 'unknown')
+        method_total = intento.get('measurement_method_total', 'unknown')
         error_counts[error] = error_counts.get(error, 0) + 1
         result_counts[result] = result_counts.get(result, 0) + 1
         measurement_counts[method] = measurement_counts.get(method, 0) + 1
+        measurement_total_counts[method_total] = measurement_total_counts.get(method_total, 0) + 1
     
     error_category_promedio = max(error_counts, key=error_counts.get) if error_counts else None
     connection_result_promedio = max(result_counts, key=result_counts.get) if result_counts else None
     measurement_method_promedio = max(measurement_counts, key=measurement_counts.get) if measurement_counts else 'unknown'
+    measurement_method_total_promedio = max(measurement_total_counts, key=measurement_total_counts.get) if measurement_total_counts else 'unknown'
     
     # Para evitar sesgos, promediar métricas numéricas solo dentro del resultado agregado
     if connection_result_promedio == CONNECTION_ACCEPTED:
@@ -1043,6 +1102,7 @@ def calcular_promedio_repeticiones(intentos: List[Dict[str, Any]], grupo: str) -
         'cert_san': referencia.get('cert_san'),
         'cert_fingerprint_sha256': referencia.get('cert_fingerprint_sha256'),
         'measurement_method': measurement_method_promedio,
+        'measurement_method_total': measurement_method_total_promedio,
         'sni_usado': referencia.get('sni_usado'),
         'sni_difiere': referencia.get('sni_difiere'),
         'retry': referencia.get('retry')
