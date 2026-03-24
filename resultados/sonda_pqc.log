@@ -27961,3 +27961,37 @@
 2026-03-23 06:38:12,174 INFO Resultados guardados en /app/resultados/resultados_sonda_pqc.json
 2026-03-23 06:38:12,174 INFO Resumen CSV guardado en /app/resultados/resumen_por_grupo.csv
 2026-03-23 06:38:12,174 INFO ======================================================================
+2026-03-23 17:02:53,576 INFO Iniciando sonda PQC con OpenSSL personalizado
+2026-03-23 17:02:53,576 INFO Binario OpenSSL: /opt/openssl/bin/openssl
+2026-03-23 17:02:53,576 INFO Límite de procesos OpenSSL: 12
+2026-03-23 17:02:53,576 INFO Repeticiones por grupo: 5
+2026-03-23 17:02:53,576 INFO Detectado formato Majestic Million (columna 0: domain)
+2026-03-23 17:02:53,576 INFO Se han cargado 1 hostnames desde /app/data/calibracion_legacy.csv
+2026-03-23 17:02:53,576 INFO Grupos PQC a probar: X25519, X25519MLKEM768, x25519_kyber768, mlkem768, kyber768, p256_kyber768, SecP256r1MLKEM768, x25519_mlkem512, x25519_kyber512, frodo640aes, bikel1, x25519_bikel1, x25519_hqc128
+2026-03-23 17:02:53,576 INFO Iniciando escaneo concurrente con 1 hilos...
+2026-03-23 17:02:54,230 INFO Estadísticas por grupo exportadas a /app/resultados/resumen_por_grupo.csv
+2026-03-23 17:02:54,230 INFO ======================================================================
+2026-03-23 17:02:54,230 INFO Escaneo PQC completado
+2026-03-23 17:02:54,230 INFO Tiempo total: 0.65 segundos
+2026-03-23 17:02:54,230 INFO Hosts con al menos un éxito: 1/1 (100.00%)
+2026-03-23 17:02:54,230 INFO Pruebas exitosas: 2/13 (15.38%)
+2026-03-23 17:02:54,230 INFO Resultados guardados en /app/resultados/resultados_sonda_pqc.json
+2026-03-23 17:02:54,230 INFO Resumen CSV guardado en /app/resultados/resumen_por_grupo.csv
+2026-03-23 17:02:54,230 INFO ======================================================================
+2026-03-23 17:02:57,011 INFO Iniciando sonda PQC con OpenSSL personalizado
+2026-03-23 17:02:57,011 INFO Binario OpenSSL: /opt/openssl/bin/openssl
+2026-03-23 17:02:57,011 INFO Límite de procesos OpenSSL: 12
+2026-03-23 17:02:57,011 INFO Repeticiones por grupo: 5
+2026-03-23 17:02:57,011 INFO Detectado formato Majestic Million (columna 0: domain)
+2026-03-23 17:02:57,011 INFO Se han cargado 1 hostnames desde /app/data/calibracion_moderno.csv
+2026-03-23 17:02:57,011 INFO Grupos PQC a probar: X25519, X25519MLKEM768, x25519_kyber768, mlkem768, kyber768, p256_kyber768, SecP256r1MLKEM768, x25519_mlkem512, x25519_kyber512, frodo640aes, bikel1, x25519_bikel1, x25519_hqc128
+2026-03-23 17:02:57,011 INFO Iniciando escaneo concurrente con 1 hilos...
+2026-03-23 17:02:57,775 INFO Estadísticas por grupo exportadas a /app/resultados/resumen_por_grupo.csv
+2026-03-23 17:02:57,775 INFO ======================================================================
+2026-03-23 17:02:57,775 INFO Escaneo PQC completado
+2026-03-23 17:02:57,775 INFO Tiempo total: 0.76 segundos
+2026-03-23 17:02:57,775 INFO Hosts con al menos un éxito: 1/1 (100.00%)
+2026-03-23 17:02:57,775 INFO Pruebas exitosas: 4/13 (30.77%)
+2026-03-23 17:02:57,775 INFO Resultados guardados en /app/resultados/resultados_sonda_pqc.json
+2026-03-23 17:02:57,775 INFO Resumen CSV guardado en /app/resultados/resumen_por_grupo.csv
+2026-03-23 17:02:57,775 INFO ======================================================================

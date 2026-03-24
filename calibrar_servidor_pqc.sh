@@ -104,8 +104,7 @@ if ! docker run --rm \
     --input-csv "data/${DATASET_CSV}" \
     --max-hostnames "${MAX_HOSTNAMES}" \
     --repeticiones "${REPETICIONES}" \
-    --max-workers "${MAX_WORKERS}" \
-    --log-level "INFO"; then
+    --max-workers "${MAX_WORKERS}"; then
     echo "ERROR - Error al ejecutar pruebas LEGACY"
     trap - EXIT # Desactiva el trap para evitar limpieza no controlada
     "${SCRIPTS_DIR}/detener_servidores.sh"
@@ -146,8 +145,7 @@ if ! docker run --rm \
     --input-csv "data/${DATASET_CSV}" \
     --max-hostnames "${MAX_HOSTNAMES}" \
     --repeticiones "${REPETICIONES}" \
-    --max-workers "${MAX_WORKERS}" \
-    --log-level "INFO"; then
+    --max-workers "${MAX_WORKERS}"; then
     echo "ERROR - Error al ejecutar pruebas MODERNO"
     trap - EXIT # Desactiva el trap para evitar limpieza no controlada
     "${SCRIPTS_DIR}/detener_servidores.sh"
