@@ -664,70 +664,116 @@ def graficar_bytes(df, output_dir):
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
     fig.suptitle('Análisis de Overhead de Bytes por Grupo Criptográfico (Datos Limpios)', 
                  fontsize=16, fontweight='bold')
+
+    # Cohorte común (metodología equivalente a latencia robusta)
+    min_hostnames_concluyente = 30
+    grupos_concluyentes = []
+    hosts_comunes_concluyentes = set()
+    metrica_cohorte = None
+
+    for candidata in ['handshake_overhead', 'bytes_sent', 'bytes_received', 'handshake_total_overhead']:
+        if candidata in df.columns and df[candidata].notna().any():
+            metrica_cohorte = candidata
+            break
+
+    if metrica_cohorte:
+        ranking_base = resumen_justo_metrica(df, metrica_cohorte, grupo_clasico='X25519')
+        if not ranking_base.empty:
+            ranking_concluyente = ranking_base[ranking_base['hostnames'] >= min_hostnames_concluyente].copy()
+            if not ranking_concluyente.empty:
+                hg = _agregar_por_hostname_grupo(df, metrica_cohorte)
+                grupos_concluyentes, hosts_comunes_concluyentes = seleccionar_grupos_y_cohorte_comun(
+                    hg,
+                    ranking_concluyente['grupo'].tolist(),
+                    min_hostnames=min_hostnames_concluyente,
+                    grupo_clasico='X25519'
+                )
+
+    usar_cohorte_comun = bool(grupos_concluyentes) and len(hosts_comunes_concluyentes) >= min_hostnames_concluyente
+    if usar_cohorte_comun:
+        logger.info(
+            "Bytes: usando cohorte común robusta (%d hosts, %d grupos concluyentes)",
+            len(hosts_comunes_concluyentes),
+            len(grupos_concluyentes)
+        )
+    else:
+        logger.info("Bytes: sin cohorte común suficiente, usando agregación por hostname/grupo")
+
+    def resumir_bytes_metrica(metrica_col):
+        if metrica_col not in df.columns:
+            return pd.DataFrame()
+
+        base = df[df[metrica_col].notna()].copy()
+        if base.empty:
+            return pd.DataFrame()
+
+        if usar_cohorte_comun:
+            base = base[
+                base['hostname'].isin(hosts_comunes_concluyentes) &
+                base['grupo'].isin(grupos_concluyentes)
+            ].copy()
+
+        host_group = _agregar_por_hostname_grupo(base, metrica_col)
+        if host_group.empty:
+            return pd.DataFrame()
+
+        resumen = host_group.groupby('grupo').agg(
+            mean=(metrica_col, 'mean'),
+            std=(metrica_col, 'std'),
+            hostnames=('hostname', 'nunique')
+        ).reset_index()
+        resumen['std'] = resumen['std'].fillna(0.0)
+        return resumen.sort_values('mean', ascending=False)
+
+    sufijo_titulo = ' (cohorte común)' if usar_cohorte_comun else ' (agregado por hostname)'
     
     # Bytes Sent
-    if df['bytes_sent'].notna().any():
-        df_sent = df[df['bytes_sent'].notna()].groupby('grupo')['bytes_sent'].agg(['mean', 'std']).sort_values('mean', ascending=False)
-        if not df_sent.empty:
-            axes[0, 0].barh(df_sent.index, df_sent['mean'], xerr=df_sent['std'],
-                             color=[COLORES_GRUPOS.get(g, '#999999') for g in df_sent.index], alpha=0.7, capsize=5)
-            axes[0, 0].set_xlabel('Bytes', fontweight='bold')
-            axes[0, 0].set_title('Bytes Enviados (CH/SH) Promedio', fontweight='bold')
-            axes[0, 0].grid(axis='x', alpha=0.3)
-        else:
-            axes[0, 0].text(0.5, 0.5, 'Sin datos válidos', ha='center', va='center', transform=axes[0, 0].transAxes)
-            axes[0, 0].set_title('Bytes Enviados (CH/SH) Promedio', fontweight='bold')
+    df_sent = resumir_bytes_metrica('bytes_sent')
+    if not df_sent.empty:
+        axes[0, 0].barh(df_sent['grupo'], df_sent['mean'], xerr=df_sent['std'],
+                             color=[COLORES_GRUPOS.get(g, '#999999') for g in df_sent['grupo']], alpha=0.7, capsize=5)
+        axes[0, 0].set_xlabel('Bytes', fontweight='bold')
+        axes[0, 0].set_title(f'Bytes Enviados (CH/SH) Promedio{sufijo_titulo}', fontweight='bold')
+        axes[0, 0].grid(axis='x', alpha=0.3)
     else:
         axes[0, 0].text(0.5, 0.5, 'Sin datos', ha='center', va='center', transform=axes[0, 0].transAxes)
-        axes[0, 0].set_title('Bytes Enviados (CH/SH) Promedio', fontweight='bold')
-    
+        axes[0, 0].set_title(f'Bytes Enviados (CH/SH) Promedio{sufijo_titulo}', fontweight='bold')
+
     # Bytes Received
-    if df['bytes_received'].notna().any():
-        df_recv = df[df['bytes_received'].notna()].groupby('grupo')['bytes_received'].agg(['mean', 'std']).sort_values('mean', ascending=False)
-        if not df_recv.empty:
-            axes[0, 1].barh(df_recv.index, df_recv['mean'], xerr=df_recv['std'],
-                             color=[COLORES_GRUPOS.get(g, '#999999') for g in df_recv.index], alpha=0.7, capsize=5)
-            axes[0, 1].set_xlabel('Bytes', fontweight='bold')
-            axes[0, 1].set_title('Bytes Recibidos (CH/SH) Promedio', fontweight='bold')
-            axes[0, 1].grid(axis='x', alpha=0.3)
-        else:
-            axes[0, 1].text(0.5, 0.5, 'Sin datos válidos', ha='center', va='center', transform=axes[0, 1].transAxes)
-            axes[0, 1].set_title('Bytes Recibidos (CH/SH) Promedio', fontweight='bold')
+    df_recv = resumir_bytes_metrica('bytes_received')
+    if not df_recv.empty:
+        axes[0, 1].barh(df_recv['grupo'], df_recv['mean'], xerr=df_recv['std'],
+                             color=[COLORES_GRUPOS.get(g, '#999999') for g in df_recv['grupo']], alpha=0.7, capsize=5)
+        axes[0, 1].set_xlabel('Bytes', fontweight='bold')
+        axes[0, 1].set_title(f'Bytes Recibidos (CH/SH) Promedio{sufijo_titulo}', fontweight='bold')
+        axes[0, 1].grid(axis='x', alpha=0.3)
     else:
         axes[0, 1].text(0.5, 0.5, 'Sin datos', ha='center', va='center', transform=axes[0, 1].transAxes)
-        axes[0, 1].set_title('Bytes Recibidos (CH/SH) Promedio', fontweight='bold')
-    
+        axes[0, 1].set_title(f'Bytes Recibidos (CH/SH) Promedio{sufijo_titulo}', fontweight='bold')
+
     # Handshake Overhead
-    if df['handshake_overhead'].notna().any():
-        df_ovh = df[df['handshake_overhead'].notna()].groupby('grupo')['handshake_overhead'].agg(['mean', 'std']).sort_values('mean', ascending=False)
-        if not df_ovh.empty:
-            axes[1, 0].barh(df_ovh.index, df_ovh['mean'], xerr=df_ovh['std'],
-                             color=[COLORES_GRUPOS.get(g, '#999999') for g in df_ovh.index], alpha=0.7, capsize=5)
-            axes[1, 0].set_xlabel('Bytes', fontweight='bold')
-            axes[1, 0].set_title('Overhead CH/SH (Intercambio de Claves)', fontweight='bold')
-            axes[1, 0].grid(axis='x', alpha=0.3)
-        else:
-            axes[1, 0].text(0.5, 0.5, 'Sin datos válidos', ha='center', va='center', transform=axes[1, 0].transAxes)
-            axes[1, 0].set_title('Overhead CH/SH (Intercambio de Claves)', fontweight='bold')
+    df_ovh = resumir_bytes_metrica('handshake_overhead')
+    if not df_ovh.empty:
+        axes[1, 0].barh(df_ovh['grupo'], df_ovh['mean'], xerr=df_ovh['std'],
+                             color=[COLORES_GRUPOS.get(g, '#999999') for g in df_ovh['grupo']], alpha=0.7, capsize=5)
+        axes[1, 0].set_xlabel('Bytes', fontweight='bold')
+        axes[1, 0].set_title(f'Overhead CH/SH (Intercambio de Claves){sufijo_titulo}', fontweight='bold')
+        axes[1, 0].grid(axis='x', alpha=0.3)
     else:
         axes[1, 0].text(0.5, 0.5, 'Sin datos', ha='center', va='center', transform=axes[1, 0].transAxes)
-        axes[1, 0].set_title('Overhead CH/SH (Intercambio de Claves)', fontweight='bold')
-    
+        axes[1, 0].set_title(f'Overhead CH/SH (Intercambio de Claves){sufijo_titulo}', fontweight='bold')
+
     # Handshake Total real (resumen OpenSSL)
-    if df['handshake_total_overhead'].notna().any():
-        df_ovh_total = df[df['handshake_total_overhead'].notna()].groupby('grupo')['handshake_total_overhead'].agg(['mean', 'std']).sort_values('mean', ascending=False)
-        if not df_ovh_total.empty:
-            axes[1, 1].barh(df_ovh_total.index, df_ovh_total['mean'], xerr=df_ovh_total['std'],
-                             color=[COLORES_GRUPOS.get(g, '#999999') for g in df_ovh_total.index], alpha=0.7, capsize=5)
-            axes[1, 1].set_xlabel('Bytes', fontweight='bold')
-            axes[1, 1].set_title('Overhead Total del Handshake (OpenSSL)', fontweight='bold')
-            axes[1, 1].grid(axis='x', alpha=0.3)
-        else:
-            axes[1, 1].text(0.5, 0.5, 'Sin datos válidos', ha='center', va='center', transform=axes[1, 1].transAxes)
-            axes[1, 1].set_title('Overhead Total del Handshake (OpenSSL)', fontweight='bold')
+    df_ovh_total = resumir_bytes_metrica('handshake_total_overhead')
+    if not df_ovh_total.empty:
+        axes[1, 1].barh(df_ovh_total['grupo'], df_ovh_total['mean'], xerr=df_ovh_total['std'],
+                             color=[COLORES_GRUPOS.get(g, '#999999') for g in df_ovh_total['grupo']], alpha=0.7, capsize=5)
+        axes[1, 1].set_xlabel('Bytes', fontweight='bold')
+        axes[1, 1].set_title(f'Overhead Total del Handshake (OpenSSL){sufijo_titulo}', fontweight='bold')
+        axes[1, 1].grid(axis='x', alpha=0.3)
     else:
         axes[1, 1].text(0.5, 0.5, 'Sin datos de handshake total', ha='center', va='center', transform=axes[1, 1].transAxes)
-        axes[1, 1].set_title('Overhead Total del Handshake (OpenSSL)', fontweight='bold')
+        axes[1, 1].set_title(f'Overhead Total del Handshake (OpenSSL){sufijo_titulo}', fontweight='bold')
     
     plt.tight_layout()
     output_path = output_dir / 'bytes_limpia.png'

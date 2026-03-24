@@ -29143,3 +29143,520 @@
 2026-03-24 17:38:24,811 INFO Resultados guardados en /app/resultados/resultados_sonda_pqc.json
 2026-03-24 17:38:24,811 INFO Resumen CSV guardado en /app/resultados/resumen_por_grupo.csv
 2026-03-24 17:38:24,811 INFO ======================================================================
+2026-03-24 17:42:17,734 INFO Iniciando sonda PQC con OpenSSL personalizado
+2026-03-24 17:42:17,734 INFO Binario OpenSSL: /opt/openssl/bin/openssl
+2026-03-24 17:42:17,734 INFO Límite de procesos OpenSSL: 12
+2026-03-24 17:42:17,734 INFO Repeticiones por grupo: 1
+2026-03-24 17:42:17,734 INFO Detectado formato Majestic Million (columna 2: Domain)
+2026-03-24 17:42:17,735 INFO Se han cargado 500 hostnames desde /app/data/majestic_million.csv
+2026-03-24 17:42:17,735 INFO Grupos PQC a probar: X25519, X25519MLKEM768, x25519_kyber768, mlkem768, kyber768, p256_kyber768, SecP256r1MLKEM768, x25519_mlkem512, x25519_kyber512, frodo640aes, bikel1, x25519_bikel1, x25519_hqc128
+2026-03-24 17:42:17,735 INFO Iniciando escaneo concurrente con 30 hilos...
+2026-03-24 17:42:23,257 WARNING Timeout TCP para amazon.com:443
+2026-03-24 17:42:24,595 WARNING Escaneo sin éxitos para nginx.org (0/13 pruebas exitosas)
+2026-03-24 17:42:40,336 WARNING Timeout TCP para europa.eu:443
+2026-03-24 17:42:49,904 WARNING Escaneo sin éxitos para amazon.com (0/13 pruebas exitosas)
+2026-03-24 17:43:00,789 WARNING Escaneo sin éxitos para linkedin.com (0/13 pruebas exitosas)
+2026-03-24 17:43:07,364 WARNING Escaneo sin éxitos para miit.gov.cn (0/13 pruebas exitosas)
+2026-03-24 17:43:09,238 WARNING Conexión rechazada para amazonaws.com:443
+2026-03-24 17:43:09,349 WARNING Conexión rechazada para amazonaws.com:443
+2026-03-24 17:43:09,473 WARNING Conexión rechazada para amazonaws.com:443
+2026-03-24 17:43:09,591 WARNING Conexión rechazada para amazonaws.com:443
+2026-03-24 17:43:09,704 WARNING Conexión rechazada para amazonaws.com:443
+2026-03-24 17:43:09,821 WARNING Conexión rechazada para amazonaws.com:443
+2026-03-24 17:43:09,942 WARNING Conexión rechazada para amazonaws.com:443
+2026-03-24 17:43:10,061 WARNING Conexión rechazada para amazonaws.com:443
+2026-03-24 17:43:10,178 WARNING Conexión rechazada para amazonaws.com:443
+2026-03-24 17:43:10,291 WARNING Conexión rechazada para amazonaws.com:443
+2026-03-24 17:43:10,482 WARNING Conexión rechazada para amazonaws.com:443
+2026-03-24 17:43:10,599 WARNING Conexión rechazada para amazonaws.com:443
+2026-03-24 17:43:10,904 WARNING Conexión rechazada para amazonaws.com:443
+2026-03-24 17:43:10,905 WARNING Escaneo sin éxitos para amazonaws.com (0/13 pruebas exitosas)
+2026-03-24 17:43:21,391 WARNING Timeout TCP para macromedia.com:443
+2026-03-24 17:43:22,260 WARNING Escaneo sin éxitos para qq.com (0/13 pruebas exitosas)
+2026-03-24 17:43:23,344 WARNING Escaneo sin éxitos para nih.gov (0/13 pruebas exitosas)
+2026-03-24 17:43:23,568 WARNING Escaneo sin éxitos para microsoft.com (0/13 pruebas exitosas)
+2026-03-24 17:43:24,399 WARNING Timeout TCP para macromedia.com:443
+2026-03-24 17:43:27,412 WARNING Timeout TCP para macromedia.com:443
+2026-03-24 17:43:27,681 WARNING Escaneo sin éxitos para forbes.com (0/13 pruebas exitosas)
+2026-03-24 17:43:29,356 WARNING Escaneo sin éxitos para archive.org (0/13 pruebas exitosas)
+2026-03-24 17:43:30,419 WARNING Timeout TCP para macromedia.com:443
+2026-03-24 17:43:31,856 WARNING Timeout en flickr.com con grupo x25519_kyber768
+2026-03-24 17:43:33,428 WARNING Timeout TCP para macromedia.com:443
+2026-03-24 17:43:36,435 WARNING Timeout TCP para macromedia.com:443
+2026-03-24 17:43:38,715 WARNING Escaneo sin éxitos para ec.europa.eu (0/13 pruebas exitosas)
+2026-03-24 17:43:39,312 WARNING Escaneo sin éxitos para baidu.com (0/13 pruebas exitosas)
+2026-03-24 17:43:39,442 WARNING Timeout TCP para macromedia.com:443
+2026-03-24 17:43:42,450 WARNING Timeout TCP para macromedia.com:443
+2026-03-24 17:43:44,610 WARNING Escaneo sin éxitos para web.archive.org (0/13 pruebas exitosas)
+2026-03-24 17:43:45,459 WARNING Timeout TCP para macromedia.com:443
+2026-03-24 17:43:47,977 WARNING Timeout en flickr.com con grupo mlkem768
+2026-03-24 17:43:48,467 WARNING Timeout TCP para macromedia.com:443
+2026-03-24 17:43:51,475 WARNING Timeout TCP para macromedia.com:443
+2026-03-24 17:43:54,303 WARNING Escaneo sin éxitos para live.com (0/13 pruebas exitosas)
+2026-03-24 17:43:54,662 WARNING Timeout en soundcloud.com con grupo x25519_kyber768
+2026-03-24 17:43:58,930 WARNING Escaneo sin éxitos para office.com (0/13 pruebas exitosas)
+2026-03-24 17:44:01,431 WARNING Escaneo sin éxitos para wixsite.com (0/13 pruebas exitosas)
+2026-03-24 17:44:01,435 WARNING Escaneo sin éxitos para oracle.com (0/13 pruebas exitosas)
+2026-03-24 17:44:01,493 WARNING Escaneo sin éxitos para macromedia.com (0/13 pruebas exitosas)
+2026-03-24 17:44:04,780 WARNING Timeout en flickr.com con grupo kyber768
+2026-03-24 17:44:10,703 WARNING Timeout en soundcloud.com con grupo mlkem768
+2026-03-24 17:44:12,785 WARNING Escaneo sin éxitos para reuters.com (0/13 pruebas exitosas)
+2026-03-24 17:44:20,815 WARNING Timeout en flickr.com con grupo p256_kyber768
+2026-03-24 17:44:22,390 WARNING Escaneo sin éxitos para wiley.com (0/13 pruebas exitosas)
+2026-03-24 17:44:26,740 WARNING Timeout en soundcloud.com con grupo kyber768
+2026-03-24 17:44:31,722 WARNING Escaneo sin éxitos para un.org (0/13 pruebas exitosas)
+2026-03-24 17:44:33,535 WARNING Escaneo sin éxitos para weibo.com (0/13 pruebas exitosas)
+2026-03-24 17:44:34,442 WARNING Escaneo sin éxitos para mit.edu (0/13 pruebas exitosas)
+2026-03-24 17:44:36,505 WARNING Escaneo sin éxitos para msn.com (0/13 pruebas exitosas)
+2026-03-24 17:44:36,933 WARNING Timeout en flickr.com con grupo x25519_mlkem512
+2026-03-24 17:44:38,860 WARNING Escaneo sin éxitos para stanford.edu (0/13 pruebas exitosas)
+2026-03-24 17:44:42,778 WARNING Timeout en soundcloud.com con grupo p256_kyber768
+2026-03-24 17:44:47,542 WARNING Timeout TCP para list-manage.com:443
+2026-03-24 17:44:49,970 WARNING Escaneo sin éxitos para linktr.ee (0/13 pruebas exitosas)
+2026-03-24 17:44:50,581 WARNING Timeout TCP para list-manage.com:443
+2026-03-24 17:44:52,013 WARNING Escaneo sin éxitos para etsy.com (0/13 pruebas exitosas)
+2026-03-24 17:44:52,121 WARNING Escaneo sin éxitos para outlook.com (0/13 pruebas exitosas)
+2026-03-24 17:44:52,980 WARNING Timeout en flickr.com con grupo x25519_kyber512
+2026-03-24 17:44:53,592 WARNING Timeout TCP para list-manage.com:443
+2026-03-24 17:44:53,690 WARNING Escaneo sin éxitos para unsplash.com (0/13 pruebas exitosas)
+2026-03-24 17:44:55,487 WARNING Timeout en washingtonpost.com con grupo x25519_kyber768
+2026-03-24 17:44:56,601 WARNING Timeout TCP para list-manage.com:443
+2026-03-24 17:44:56,746 WARNING Timeout en wsj.com con grupo x25519_kyber768
+2026-03-24 17:44:58,399 WARNING Timeout en statista.com con grupo x25519_kyber768
+2026-03-24 17:44:58,864 WARNING Timeout en soundcloud.com con grupo x25519_mlkem512
+2026-03-24 17:44:59,608 WARNING Timeout TCP para list-manage.com:443
+2026-03-24 17:44:59,975 WARNING Escaneo sin éxitos para bing.com (0/13 pruebas exitosas)
+2026-03-24 17:45:00,805 WARNING Escaneo sin éxitos para mysql.com (0/13 pruebas exitosas)
+2026-03-24 17:45:02,617 WARNING Timeout TCP para list-manage.com:443
+2026-03-24 17:45:08,125 WARNING Timeout TCP para list-manage.com:443
+2026-03-24 17:45:09,012 WARNING Timeout en flickr.com con grupo frodo640aes
+2026-03-24 17:45:11,136 WARNING Timeout TCP para list-manage.com:443
+2026-03-24 17:45:11,150 WARNING Timeout en eventbrite.com con grupo x25519_kyber768
+2026-03-24 17:45:11,521 WARNING Timeout en washingtonpost.com con grupo mlkem768
+2026-03-24 17:45:12,451 WARNING Timeout en canva.com con grupo x25519_kyber768
+2026-03-24 17:45:12,798 WARNING Timeout en wsj.com con grupo mlkem768
+2026-03-24 17:45:12,925 WARNING Escaneo sin éxitos para cloudfront.net (0/13 pruebas exitosas)
+2026-03-24 17:45:14,145 WARNING Timeout TCP para list-manage.com:443
+2026-03-24 17:45:14,893 WARNING Timeout en statista.com con grupo mlkem768
+2026-03-24 17:45:15,273 WARNING Timeout en soundcloud.com con grupo x25519_kyber512
+2026-03-24 17:45:17,156 WARNING Timeout TCP para list-manage.com:443
+2026-03-24 17:45:19,217 WARNING Escaneo sin éxitos para go.com (0/13 pruebas exitosas)
+2026-03-24 17:45:20,165 WARNING Timeout TCP para list-manage.com:443
+2026-03-24 17:45:23,174 WARNING Timeout TCP para list-manage.com:443
+2026-03-24 17:45:23,525 WARNING Escaneo sin éxitos para beian.gov.cn (0/13 pruebas exitosas)
+2026-03-24 17:45:25,053 WARNING Timeout en flickr.com con grupo bikel1
+2026-03-24 17:45:26,183 WARNING Timeout TCP para list-manage.com:443
+2026-03-24 17:45:26,185 WARNING Escaneo sin éxitos para list-manage.com (0/13 pruebas exitosas)
+2026-03-24 17:45:26,442 WARNING Escaneo sin éxitos para businessinsider.com (0/13 pruebas exitosas)
+2026-03-24 17:45:27,347 WARNING Timeout en eventbrite.com con grupo mlkem768
+2026-03-24 17:45:27,682 WARNING Timeout en washingtonpost.com con grupo kyber768
+2026-03-24 17:45:28,617 WARNING Timeout en canva.com con grupo mlkem768
+2026-03-24 17:45:28,944 WARNING Timeout en wsj.com con grupo kyber768
+2026-03-24 17:45:30,916 WARNING Escaneo sin éxitos para oup.com (0/13 pruebas exitosas)
+2026-03-24 17:45:31,354 WARNING Timeout en statista.com con grupo kyber768
+2026-03-24 17:45:31,515 WARNING Timeout en npr.org con grupo x25519_kyber768
+2026-03-24 17:45:31,649 WARNING Timeout en soundcloud.com con grupo frodo640aes
+2026-03-24 17:45:40,350 WARNING Timeout en w.soundcloud.com con grupo x25519_kyber768
+2026-03-24 17:45:40,826 WARNING Escaneo sin éxitos para sharepoint.com (0/13 pruebas exitosas)
+2026-03-24 17:45:41,816 WARNING Timeout en flickr.com con grupo x25519_bikel1
+2026-03-24 17:45:42,508 WARNING Timeout en hp.com con grupo x25519_kyber768
+2026-03-24 17:45:43,657 WARNING Timeout en eventbrite.com con grupo kyber768
+2026-03-24 17:45:43,707 WARNING Timeout en telegraph.co.uk con grupo x25519_kyber768
+2026-03-24 17:45:44,810 WARNING Timeout en canva.com con grupo kyber768
+2026-03-24 17:45:45,087 WARNING Timeout en wsj.com con grupo p256_kyber768
+2026-03-24 17:45:46,218 WARNING Timeout en washingtonpost.com con grupo p256_kyber768
+2026-03-24 17:45:47,389 WARNING Timeout en statista.com con grupo p256_kyber768
+2026-03-24 17:45:47,548 WARNING Timeout en npr.org con grupo mlkem768
+2026-03-24 17:45:47,683 WARNING Timeout en soundcloud.com con grupo bikel1
+2026-03-24 17:45:49,086 WARNING Escaneo sin éxitos para trustpilot.com (0/13 pruebas exitosas)
+2026-03-24 17:45:57,026 WARNING Timeout en w.soundcloud.com con grupo mlkem768
+2026-03-24 17:45:57,243 WARNING Escaneo sin éxitos para outlook.live.com (0/13 pruebas exitosas)
+2026-03-24 17:45:58,388 WARNING Timeout en flickr.com con grupo x25519_hqc128
+2026-03-24 17:45:59,244 WARNING Escaneo sin éxitos para baike.baidu.com (0/13 pruebas exitosas)
+2026-03-24 17:46:00,845 WARNING Timeout en canva.com con grupo p256_kyber768
+2026-03-24 17:46:02,200 WARNING Timeout en eventbrite.com con grupo p256_kyber768
+2026-03-24 17:46:02,243 WARNING Timeout en telegraph.co.uk con grupo mlkem768
+2026-03-24 17:46:03,542 WARNING Timeout en hp.com con grupo mlkem768
+2026-03-24 17:46:06,084 WARNING Timeout en npr.org con grupo kyber768
+2026-03-24 17:46:06,184 WARNING Timeout en wsj.com con grupo x25519_mlkem512
+2026-03-24 17:46:06,749 WARNING Escaneo sin éxitos para outlook.office.com (0/13 pruebas exitosas)
+2026-03-24 17:46:06,937 WARNING Timeout en soundcloud.com con grupo x25519_bikel1
+2026-03-24 17:46:09,193 WARNING Timeout en statista.com con grupo x25519_mlkem512
+2026-03-24 17:46:10,318 WARNING Escaneo sin éxitos para unesco.org (0/13 pruebas exitosas)
+2026-03-24 17:46:12,173 WARNING Timeout en washingtonpost.com con grupo x25519_mlkem512
+2026-03-24 17:46:12,230 WARNING Escaneo sin éxitos para gc.ca (0/13 pruebas exitosas)
+2026-03-24 17:46:13,818 WARNING Escaneo sin éxitos para ted.com (0/13 pruebas exitosas)
+2026-03-24 17:46:13,968 WARNING Timeout en w.soundcloud.com con grupo kyber768
+2026-03-24 17:46:18,332 WARNING Timeout en telegraph.co.uk con grupo kyber768
+2026-03-24 17:46:19,338 WARNING Escaneo sin éxitos para britannica.com (0/13 pruebas exitosas)
+2026-03-24 17:46:19,606 WARNING Timeout en hp.com con grupo kyber768
+2026-03-24 17:46:20,019 WARNING Timeout en tripadvisor.com con grupo x25519_kyber768
+2026-03-24 17:46:20,068 WARNING Timeout en canva.com con grupo x25519_mlkem512
+2026-03-24 17:46:21,132 WARNING Timeout en networkadvertising.org con grupo x25519_kyber768
+2026-03-24 17:46:22,203 WARNING Timeout en eventbrite.com con grupo x25519_mlkem512
+2026-03-24 17:46:22,778 WARNING Timeout en npr.org con grupo p256_kyber768
+2026-03-24 17:46:22,791 WARNING Timeout en wsj.com con grupo x25519_kyber512
+2026-03-24 17:46:23,078 WARNING Timeout en surveymonkey.com con grupo x25519_kyber768
+2026-03-24 17:46:26,646 WARNING Timeout en soundcloud.com con grupo x25519_hqc128
+2026-03-24 17:46:29,953 WARNING Timeout en statista.com con grupo x25519_kyber512
+2026-03-24 17:46:30,016 WARNING Timeout en washingtonpost.com con grupo x25519_kyber512
+2026-03-24 17:46:35,811 WARNING Timeout en w.soundcloud.com con grupo p256_kyber768
+2026-03-24 17:46:36,045 WARNING Timeout en telegraph.co.uk con grupo p256_kyber768
+2026-03-24 17:46:36,419 WARNING Timeout en hp.com con grupo p256_kyber768
+2026-03-24 17:46:37,073 WARNING Timeout en tripadvisor.com con grupo mlkem768
+2026-03-24 17:46:37,141 WARNING Escaneo sin éxitos para ca.gov (0/13 pruebas exitosas)
+2026-03-24 17:46:37,248 WARNING Timeout en canva.com con grupo x25519_kyber512
+2026-03-24 17:46:38,798 WARNING Escaneo sin éxitos para cornell.edu (0/13 pruebas exitosas)
+2026-03-24 17:46:39,049 WARNING Timeout en networkadvertising.org con grupo mlkem768
+2026-03-24 17:46:39,130 WARNING Timeout en eventbrite.com con grupo x25519_kyber512
+2026-03-24 17:46:39,248 WARNING Timeout en booking.com con grupo x25519_kyber768
+2026-03-24 17:46:41,849 WARNING Timeout en wsj.com con grupo frodo640aes
+2026-03-24 17:46:43,176 WARNING Timeout en surveymonkey.com con grupo mlkem768
+2026-03-24 17:46:44,009 WARNING Escaneo sin éxitos para gouv.fr (0/13 pruebas exitosas)
+2026-03-24 17:46:46,206 WARNING Timeout en npr.org con grupo x25519_mlkem512
+2026-03-24 17:46:48,881 WARNING Timeout en statista.com con grupo frodo640aes
+2026-03-24 17:46:53,173 WARNING Timeout en w.soundcloud.com con grupo x25519_mlkem512
+2026-03-24 17:46:53,357 WARNING Timeout en tripadvisor.com con grupo kyber768
+2026-03-24 17:46:53,411 WARNING Timeout en hp.com con grupo x25519_mlkem512
+2026-03-24 17:46:55,200 WARNING Timeout en networkadvertising.org con grupo kyber768
+2026-03-24 17:46:55,225 WARNING Timeout en eventbrite.com con grupo frodo640aes
+2026-03-24 17:46:55,319 WARNING Timeout en telegraph.co.uk con grupo x25519_mlkem512
+2026-03-24 17:46:55,370 WARNING Timeout en booking.com con grupo mlkem768
+2026-03-24 17:46:55,416 WARNING Escaneo sin éxitos para independent.co.uk (0/13 pruebas exitosas)
+2026-03-24 17:46:56,856 WARNING Timeout en canva.com con grupo frodo640aes
+2026-03-24 17:46:59,266 WARNING Timeout en wsj.com con grupo bikel1
+2026-03-24 17:47:00,960 WARNING Timeout en surveymonkey.com con grupo kyber768
+2026-03-24 17:47:03,708 WARNING Timeout en npr.org con grupo x25519_kyber512
+2026-03-24 17:47:04,904 WARNING Timeout en hbr.org con grupo x25519_kyber768
+2026-03-24 17:47:09,668 WARNING Timeout en statista.com con grupo bikel1
+2026-03-24 17:47:09,989 WARNING Timeout en w.soundcloud.com con grupo x25519_kyber512
+2026-03-24 17:47:10,143 WARNING Escaneo sin éxitos para dailymotion.com (0/13 pruebas exitosas)
+2026-03-24 17:47:10,377 WARNING Timeout en tripadvisor.com con grupo p256_kyber768
+2026-03-24 17:47:11,261 WARNING Timeout en hp.com con grupo x25519_kyber512
+2026-03-24 17:47:11,608 WARNING Timeout en networkadvertising.org con grupo p256_kyber768
+2026-03-24 17:47:12,034 WARNING Timeout en telegraph.co.uk con grupo x25519_kyber512
+2026-03-24 17:47:12,049 WARNING Timeout en booking.com con grupo kyber768
+2026-03-24 17:47:12,105 WARNING Escaneo sin éxitos para imgur.com (0/13 pruebas exitosas)
+2026-03-24 17:47:13,796 WARNING Timeout en eventbrite.com con grupo bikel1
+2026-03-24 17:47:14,036 WARNING Timeout TCP para mckinsey.com:443
+2026-03-24 17:47:16,506 WARNING Timeout en canva.com con grupo bikel1
+2026-03-24 17:47:17,046 WARNING Timeout TCP para mckinsey.com:443
+2026-03-24 17:47:17,650 WARNING Timeout en wsj.com con grupo x25519_bikel1
+2026-03-24 17:47:20,053 WARNING Timeout TCP para mckinsey.com:443
+2026-03-24 17:47:20,933 WARNING Timeout en surveymonkey.com con grupo p256_kyber768
+2026-03-24 17:47:21,553 WARNING Timeout en npr.org con grupo frodo640aes
+2026-03-24 17:47:23,060 WARNING Timeout TCP para mckinsey.com:443
+2026-03-24 17:47:26,071 WARNING Timeout TCP para mckinsey.com:443
+2026-03-24 17:47:26,424 WARNING Timeout en hbr.org con grupo mlkem768
+2026-03-24 17:47:26,668 WARNING Timeout en statista.com con grupo x25519_bikel1
+2026-03-24 17:47:27,167 WARNING Timeout en w.soundcloud.com con grupo frodo640aes
+2026-03-24 17:47:28,126 WARNING Timeout en hp.com con grupo frodo640aes
+2026-03-24 17:47:28,147 WARNING Timeout en tripadvisor.com con grupo x25519_mlkem512
+2026-03-24 17:47:28,441 WARNING Timeout en telegraph.co.uk con grupo frodo640aes
+2026-03-24 17:47:28,606 WARNING Timeout en booking.com con grupo p256_kyber768
+2026-03-24 17:47:29,081 WARNING Timeout TCP para mckinsey.com:443
+2026-03-24 17:47:31,415 WARNING Timeout en eventbrite.com con grupo x25519_bikel1
+2026-03-24 17:47:31,458 WARNING Escaneo sin éxitos para cambridge.org (0/13 pruebas exitosas)
+2026-03-24 17:47:32,116 WARNING Timeout TCP para mckinsey.com:443
+2026-03-24 17:47:33,681 WARNING Timeout en networkadvertising.org con grupo x25519_mlkem512
+2026-03-24 17:47:34,340 WARNING Escaneo sin éxitos para prnewswire.com (0/13 pruebas exitosas)
+2026-03-24 17:47:35,128 WARNING Timeout TCP para mckinsey.com:443
+2026-03-24 17:47:36,584 WARNING Timeout en canva.com con grupo x25519_bikel1
+2026-03-24 17:47:37,985 WARNING Timeout en wsj.com con grupo x25519_hqc128
+2026-03-24 17:47:38,139 WARNING Timeout TCP para mckinsey.com:443
+2026-03-24 17:47:40,353 WARNING Timeout en npr.org con grupo bikel1
+2026-03-24 17:47:41,147 WARNING Timeout TCP para mckinsey.com:443
+2026-03-24 17:47:43,744 WARNING Timeout en surveymonkey.com con grupo x25519_mlkem512
+2026-03-24 17:47:44,152 WARNING Timeout en hbr.org con grupo kyber768
+2026-03-24 17:47:44,153 WARNING Timeout TCP para mckinsey.com:443
+2026-03-24 17:47:44,196 WARNING Timeout en statista.com con grupo x25519_hqc128
+2026-03-24 17:47:44,276 WARNING Timeout en w.soundcloud.com con grupo bikel1
+2026-03-24 17:47:44,702 WARNING Escaneo sin éxitos para samsung.com (0/13 pruebas exitosas)
+2026-03-24 17:47:45,153 WARNING Timeout en tripadvisor.com con grupo x25519_kyber512
+2026-03-24 17:47:45,312 WARNING Timeout en hp.com con grupo bikel1
+2026-03-24 17:47:46,262 WARNING Timeout en telegraph.co.uk con grupo bikel1
+2026-03-24 17:47:47,163 WARNING Timeout TCP para mckinsey.com:443
+2026-03-24 17:47:50,170 WARNING Timeout TCP para mckinsey.com:443
+2026-03-24 17:47:50,171 WARNING Escaneo sin éxitos para mckinsey.com (0/13 pruebas exitosas)
+2026-03-24 17:47:50,565 WARNING Timeout en eventbrite.com con grupo x25519_hqc128
+2026-03-24 17:47:50,797 WARNING Timeout en booking.com con grupo x25519_mlkem512
+2026-03-24 17:47:55,165 WARNING Timeout en canva.com con grupo x25519_hqc128
+2026-03-24 17:47:55,213 WARNING Timeout en networkadvertising.org con grupo x25519_kyber512
+2026-03-24 17:48:00,160 WARNING Timeout en npr.org con grupo x25519_bikel1
+2026-03-24 17:48:00,340 WARNING Timeout en nationalgeographic.com con grupo x25519_kyber768
+2026-03-24 17:48:01,427 WARNING Timeout en hbr.org con grupo p256_kyber768
+2026-03-24 17:48:01,428 WARNING Timeout en surveymonkey.com con grupo x25519_kyber512
+2026-03-24 17:48:01,460 WARNING Timeout en w.soundcloud.com con grupo x25519_bikel1
+2026-03-24 17:48:02,277 WARNING Timeout en tripadvisor.com con grupo frodo640aes
+2026-03-24 17:48:02,594 WARNING Timeout en hp.com con grupo x25519_bikel1
+2026-03-24 17:48:03,828 WARNING Escaneo sin éxitos para aliyun.com (0/13 pruebas exitosas)
+2026-03-24 17:48:04,153 WARNING Escaneo sin éxitos para princeton.edu (0/13 pruebas exitosas)
+2026-03-24 17:48:04,990 WARNING Escaneo sin éxitos para latimes.com (0/13 pruebas exitosas)
+2026-03-24 17:48:05,018 WARNING Escaneo sin éxitos para huawei.com (0/13 pruebas exitosas)
+2026-03-24 17:48:05,148 WARNING Timeout en telegraph.co.uk con grupo x25519_bikel1
+2026-03-24 17:48:08,933 WARNING Timeout en booking.com con grupo x25519_kyber512
+2026-03-24 17:48:12,424 WARNING Timeout en networkadvertising.org con grupo frodo640aes
+2026-03-24 17:48:12,563 WARNING Escaneo sin éxitos para 163.com (0/13 pruebas exitosas)
+2026-03-24 17:48:17,138 WARNING Timeout en npr.org con grupo x25519_hqc128
+2026-03-24 17:48:17,482 WARNING Timeout en nationalgeographic.com con grupo mlkem768
+2026-03-24 17:48:17,999 WARNING Timeout en surveymonkey.com con grupo frodo640aes
+2026-03-24 17:48:18,030 WARNING Timeout en w.soundcloud.com con grupo x25519_hqc128
+2026-03-24 17:48:19,022 WARNING Timeout en hp.com con grupo x25519_hqc128
+2026-03-24 17:48:19,077 WARNING Escaneo sin éxitos para office365.com (0/13 pruebas exitosas)
+2026-03-24 17:48:20,154 WARNING Escaneo sin éxitos para epa.gov (0/13 pruebas exitosas)
+2026-03-24 17:48:20,707 WARNING Timeout en hbr.org con grupo x25519_mlkem512
+2026-03-24 17:48:20,787 WARNING Escaneo sin éxitos para mayoclinic.org (0/13 pruebas exitosas)
+2026-03-24 17:48:21,209 WARNING Timeout en tripadvisor.com con grupo bikel1
+2026-03-24 17:48:21,458 WARNING Timeout en telegraph.co.uk con grupo x25519_hqc128
+2026-03-24 17:48:26,164 WARNING Timeout en booking.com con grupo frodo640aes
+2026-03-24 17:48:29,104 WARNING Timeout en networkadvertising.org con grupo bikel1
+2026-03-24 17:48:29,461 WARNING Escaneo sin éxitos para usda.gov (0/13 pruebas exitosas)
+2026-03-24 17:48:29,466 WARNING Escaneo sin éxitos para weforum.org (0/13 pruebas exitosas)
+2026-03-24 17:48:29,989 WARNING Escaneo sin éxitos para webmd.com (0/13 pruebas exitosas)
+2026-03-24 17:48:32,821 WARNING Escaneo sin éxitos para youronlinechoices.com (0/13 pruebas exitosas)
+2026-03-24 17:48:33,420 WARNING Escaneo sin éxitos para nbcnews.com (0/13 pruebas exitosas)
+2026-03-24 17:48:33,922 WARNING Timeout en nationalgeographic.com con grupo kyber768
+2026-03-24 17:48:34,033 WARNING Timeout en surveymonkey.com con grupo bikel1
+2026-03-24 17:48:36,155 WARNING Timeout en academia.edu con grupo x25519_kyber768
+2026-03-24 17:48:36,741 WARNING Timeout en hbr.org con grupo x25519_kyber512
+2026-03-24 17:48:37,255 WARNING Timeout en tripadvisor.com con grupo x25519_bikel1
+2026-03-24 17:48:39,802 WARNING Escaneo sin éxitos para quora.com (0/13 pruebas exitosas)
+2026-03-24 17:48:40,055 WARNING Timeout en dribbble.com con grupo x25519_kyber768
+2026-03-24 17:48:40,489 WARNING Timeout en healthline.com con grupo x25519_kyber768
+2026-03-24 17:48:42,121 WARNING Escaneo sin éxitos para deloitte.com (0/13 pruebas exitosas)
+2026-03-24 17:48:43,684 WARNING Timeout en booking.com con grupo bikel1
+2026-03-24 17:48:45,364 WARNING Escaneo sin éxitos para noaa.gov (0/13 pruebas exitosas)
+2026-03-24 17:48:45,636 WARNING Timeout en networkadvertising.org con grupo x25519_bikel1
+2026-03-24 17:48:45,936 WARNING Escaneo sin éxitos para youku.com (0/13 pruebas exitosas)
+2026-03-24 17:48:49,868 WARNING Escaneo sin éxitos para theatlantic.com (0/13 pruebas exitosas)
+2026-03-24 17:48:49,948 WARNING Timeout en nationalgeographic.com con grupo p256_kyber768
+2026-03-24 17:48:50,118 WARNING Timeout en surveymonkey.com con grupo x25519_bikel1
+2026-03-24 17:48:52,966 WARNING Timeout en academia.edu con grupo mlkem768
+2026-03-24 17:48:53,239 WARNING Timeout en hbr.org con grupo frodo640aes
+2026-03-24 17:48:54,154 WARNING Timeout en huffingtonpost.com con grupo x25519_kyber768
+2026-03-24 17:48:56,117 WARNING Timeout en tripadvisor.com con grupo x25519_hqc128
+2026-03-24 17:48:56,554 WARNING Timeout en dribbble.com con grupo mlkem768
+2026-03-24 17:48:56,890 WARNING Timeout en healthline.com con grupo mlkem768
+2026-03-24 17:49:02,004 WARNING Escaneo sin éxitos para cisco.com (0/13 pruebas exitosas)
+2026-03-24 17:49:02,628 WARNING Timeout en booking.com con grupo x25519_bikel1
+2026-03-24 17:49:04,840 WARNING Timeout en networkadvertising.org con grupo x25519_hqc128
+2026-03-24 17:49:06,540 WARNING Timeout en surveymonkey.com con grupo x25519_hqc128
+2026-03-24 17:49:08,897 WARNING Timeout en nationalgeographic.com con grupo x25519_mlkem512
+2026-03-24 17:49:09,074 WARNING Timeout en academia.edu con grupo kyber768
+2026-03-24 17:49:09,279 WARNING Timeout en hbr.org con grupo bikel1
+2026-03-24 17:49:10,187 WARNING Timeout en huffingtonpost.com con grupo mlkem768
+2026-03-24 17:49:13,201 WARNING Timeout en healthline.com con grupo kyber768
+2026-03-24 17:49:15,808 WARNING Timeout en arcgis.com con grupo X25519
+2026-03-24 17:49:18,168 WARNING Timeout en dribbble.com con grupo kyber768
+2026-03-24 17:49:19,041 WARNING Timeout en booking.com con grupo x25519_hqc128
+2026-03-24 17:49:22,956 WARNING Escaneo sin éxitos para yale.edu (0/13 pruebas exitosas)
+2026-03-24 17:49:23,481 WARNING Timeout en deviantart.com con grupo x25519_kyber768
+2026-03-24 17:49:25,103 WARNING Timeout en nationalgeographic.com con grupo x25519_kyber512
+2026-03-24 17:49:25,351 WARNING Escaneo sin éxitos para bp.blogspot.com (0/13 pruebas exitosas)
+2026-03-24 17:49:25,403 WARNING Timeout en academia.edu con grupo p256_kyber768
+2026-03-24 17:49:25,450 WARNING Timeout en hbr.org con grupo x25519_bikel1
+2026-03-24 17:49:25,911 WARNING Escaneo sin éxitos para sun.com (0/13 pruebas exitosas)
+2026-03-24 17:49:28,249 WARNING Timeout en bmj.com con grupo x25519_kyber768
+2026-03-24 17:49:31,230 WARNING Timeout en huffingtonpost.com con grupo kyber768
+2026-03-24 17:49:31,831 WARNING Timeout en healthline.com con grupo p256_kyber768
+2026-03-24 17:49:31,908 WARNING Timeout TCP para tencent.com:443
+2026-03-24 17:49:33,241 WARNING Timeout en typeform.com con grupo x25519_kyber768
+2026-03-24 17:49:35,128 WARNING Timeout en dribbble.com con grupo p256_kyber768
+2026-03-24 17:49:35,456 WARNING Timeout en arcgis.com con grupo x25519_kyber768
+2026-03-24 17:49:40,177 WARNING Timeout en deviantart.com con grupo mlkem768
+2026-03-24 17:49:41,819 WARNING Timeout en nationalgeographic.com con grupo frodo640aes
+2026-03-24 17:49:42,494 WARNING Timeout en hbr.org con grupo x25519_hqc128
+2026-03-24 17:49:42,551 WARNING Escaneo sin éxitos para nist.gov (0/13 pruebas exitosas)
+2026-03-24 17:49:43,018 WARNING Escaneo sin éxitos para nvidia.com (0/13 pruebas exitosas)
+2026-03-24 17:49:43,358 WARNING Escaneo sin éxitos para psu.edu (0/13 pruebas exitosas)
+2026-03-24 17:49:44,925 WARNING Timeout en bmj.com con grupo mlkem768
+2026-03-24 17:49:44,952 WARNING Escaneo sin éxitos para or.kr (0/13 pruebas exitosas)
+2026-03-24 17:49:46,292 WARNING Timeout en academia.edu con grupo x25519_mlkem512
+2026-03-24 17:49:47,668 WARNING Timeout en huffingtonpost.com con grupo p256_kyber768
+2026-03-24 17:49:50,441 WARNING Timeout en typeform.com con grupo mlkem768
+2026-03-24 17:49:50,834 WARNING Escaneo sin éxitos para eff.org (0/13 pruebas exitosas)
+2026-03-24 17:49:51,444 WARNING Timeout en healthline.com con grupo x25519_mlkem512
+2026-03-24 17:49:52,282 WARNING Timeout en fortune.com con grupo x25519_kyber768
+2026-03-24 17:49:52,285 WARNING Escaneo sin éxitos para go.id (0/13 pruebas exitosas)
+2026-03-24 17:49:52,510 WARNING Timeout en arcgis.com con grupo mlkem768
+2026-03-24 17:49:56,435 WARNING Timeout en dribbble.com con grupo x25519_mlkem512
+2026-03-24 17:49:57,735 WARNING Timeout en deviantart.com con grupo kyber768
+2026-03-24 17:49:59,148 WARNING Timeout en nationalgeographic.com con grupo bikel1
+2026-03-24 17:50:02,381 WARNING Timeout en bmj.com con grupo kyber768
+2026-03-24 17:50:02,922 WARNING Timeout en coursera.org con grupo x25519_kyber768
+2026-03-24 17:50:03,061 WARNING Timeout en academia.edu con grupo x25519_kyber512
+2026-03-24 17:50:04,966 WARNING Escaneo sin éxitos para postgresql.org (0/13 pruebas exitosas)
+2026-03-24 17:50:06,218 WARNING Timeout en huffingtonpost.com con grupo x25519_mlkem512
+2026-03-24 17:50:07,514 WARNING Timeout en typeform.com con grupo kyber768
+2026-03-24 17:50:08,013 WARNING Timeout en healthline.com con grupo x25519_kyber512
+2026-03-24 17:50:08,041 WARNING Escaneo sin éxitos para uci.edu (0/13 pruebas exitosas)
+2026-03-24 17:50:09,144 WARNING Timeout en fortune.com con grupo mlkem768
+2026-03-24 17:50:09,306 WARNING Timeout en arcgis.com con grupo kyber768
+2026-03-24 17:50:11,768 WARNING Escaneo sin éxitos para tencent.com (0/13 pruebas exitosas)
+2026-03-24 17:50:13,766 WARNING Timeout en dribbble.com con grupo x25519_kyber512
+2026-03-24 17:50:15,171 WARNING Timeout en deviantart.com con grupo p256_kyber768
+2026-03-24 17:50:16,592 WARNING Timeout en nationalgeographic.com con grupo x25519_bikel1
+2026-03-24 17:50:19,370 WARNING Timeout en bmj.com con grupo p256_kyber768
+2026-03-24 17:50:19,568 WARNING Timeout en coursera.org con grupo mlkem768
+2026-03-24 17:50:19,605 WARNING Timeout en academia.edu con grupo frodo640aes
+2026-03-24 17:50:23,155 WARNING Timeout en huffingtonpost.com con grupo x25519_kyber512
+2026-03-24 17:50:24,333 WARNING Timeout en typeform.com con grupo p256_kyber768
+2026-03-24 17:50:25,426 WARNING Timeout en healthline.com con grupo frodo640aes
+2026-03-24 17:50:27,014 WARNING Timeout en fortune.com con grupo kyber768
+2026-03-24 17:50:28,346 WARNING Timeout en arcgis.com con grupo p256_kyber768
+2026-03-24 17:50:30,195 WARNING Escaneo sin éxitos para canada.ca (0/13 pruebas exitosas)
+2026-03-24 17:50:30,751 WARNING Timeout en dribbble.com con grupo frodo640aes
+2026-03-24 17:50:31,159 WARNING Escaneo sin éxitos para admin.ch (0/13 pruebas exitosas)
+2026-03-24 17:50:31,506 WARNING Timeout en gofundme.com con grupo x25519_kyber768
+2026-03-24 17:50:31,572 WARNING Escaneo sin éxitos para fao.org (0/13 pruebas exitosas)
+2026-03-24 17:50:32,312 WARNING Escaneo sin éxitos para microsoftonline.com (0/13 pruebas exitosas)
+2026-03-24 17:50:33,578 WARNING Timeout en nationalgeographic.com con grupo x25519_hqc128
+2026-03-24 17:50:35,541 WARNING Timeout en deviantart.com con grupo x25519_mlkem512
+2026-03-24 17:50:36,064 WARNING Timeout en coursera.org con grupo kyber768
+2026-03-24 17:50:36,123 WARNING Timeout en academia.edu con grupo bikel1
+2026-03-24 17:50:37,563 WARNING Escaneo sin éxitos para umn.edu (0/13 pruebas exitosas)
+2026-03-24 17:50:39,127 WARNING Timeout en bmj.com con grupo x25519_mlkem512
+2026-03-24 17:50:40,454 WARNING Timeout en huffingtonpost.com con grupo frodo640aes
+2026-03-24 17:50:42,169 WARNING Timeout en healthline.com con grupo bikel1
+2026-03-24 17:50:44,462 WARNING Timeout en fortune.com con grupo p256_kyber768
+2026-03-24 17:50:44,608 WARNING Timeout en typeform.com con grupo x25519_mlkem512
+2026-03-24 17:50:47,182 WARNING Timeout en arcgis.com con grupo x25519_mlkem512
+2026-03-24 17:50:47,688 WARNING Timeout en dribbble.com con grupo bikel1
+2026-03-24 17:50:48,503 WARNING Escaneo sin éxitos para elsevier.com (0/13 pruebas exitosas)
+2026-03-24 17:50:49,498 WARNING Timeout en gofundme.com con grupo mlkem768
+2026-03-24 17:50:51,578 WARNING Timeout en deviantart.com con grupo x25519_kyber512
+2026-03-24 17:50:53,033 WARNING Timeout en coursera.org con grupo p256_kyber768
+2026-03-24 17:50:53,148 WARNING Timeout en academia.edu con grupo x25519_bikel1
+2026-03-24 17:50:55,989 WARNING Timeout en bmj.com con grupo x25519_kyber512
+2026-03-24 17:50:57,993 WARNING Timeout en merriam-webster.com con grupo x25519_kyber768
+2026-03-24 17:50:58,563 WARNING Timeout en huffingtonpost.com con grupo bikel1
+2026-03-24 17:50:59,171 WARNING Escaneo sin éxitos para ucla.edu (0/13 pruebas exitosas)
+2026-03-24 17:50:59,972 WARNING Escaneo sin éxitos para tripod.com (0/13 pruebas exitosas)
+2026-03-24 17:51:00,488 WARNING Timeout en healthline.com con grupo x25519_bikel1
+2026-03-24 17:51:01,704 WARNING Timeout en typeform.com con grupo x25519_kyber512
+2026-03-24 17:51:03,716 WARNING Timeout en fortune.com con grupo x25519_mlkem512
+2026-03-24 17:51:04,425 WARNING Timeout en arcgis.com con grupo x25519_kyber512
+2026-03-24 17:51:05,376 WARNING Timeout en dribbble.com con grupo x25519_bikel1
+2026-03-24 17:51:05,443 WARNING Escaneo sin éxitos para in.net (0/13 pruebas exitosas)
+2026-03-24 17:51:05,493 WARNING Escaneo sin éxitos para zhihu.com (0/13 pruebas exitosas)
+2026-03-24 17:51:06,170 WARNING Escaneo sin éxitos para dell.com (0/13 pruebas exitosas)
+2026-03-24 17:51:07,880 WARNING Timeout en gofundme.com con grupo kyber768
+2026-03-24 17:51:09,003 WARNING Escaneo sin éxitos para nps.gov (0/13 pruebas exitosas)
+2026-03-24 17:51:09,340 WARNING Timeout en deviantart.com con grupo frodo640aes
+2026-03-24 17:51:10,386 WARNING Timeout en academia.edu con grupo x25519_hqc128
+2026-03-24 17:51:12,537 WARNING Timeout en coursera.org con grupo x25519_mlkem512
+2026-03-24 17:51:14,019 WARNING Timeout en bmj.com con grupo frodo640aes
+2026-03-24 17:51:16,169 WARNING Timeout en huffingtonpost.com con grupo x25519_bikel1
+2026-03-24 17:51:17,503 WARNING Timeout en merriam-webster.com con grupo mlkem768
+2026-03-24 17:51:18,239 WARNING Timeout en healthline.com con grupo x25519_hqc128
+2026-03-24 17:51:19,823 WARNING Timeout en typeform.com con grupo frodo640aes
+2026-03-24 17:51:21,513 WARNING Timeout en fortune.com con grupo x25519_kyber512
+2026-03-24 17:51:21,787 WARNING Escaneo sin éxitos para cmu.edu (0/13 pruebas exitosas)
+2026-03-24 17:51:22,969 WARNING Timeout en dribbble.com con grupo x25519_hqc128
+2026-03-24 17:51:23,874 WARNING Timeout en arcgis.com con grupo frodo640aes
+2026-03-24 17:51:25,504 WARNING Timeout en gofundme.com con grupo p256_kyber768
+2026-03-24 17:51:26,896 WARNING Escaneo sin éxitos para irs.gov (0/13 pruebas exitosas)
+2026-03-24 17:51:28,847 WARNING Timeout en deviantart.com con grupo bikel1
+2026-03-24 17:51:31,172 WARNING Timeout en coursera.org con grupo x25519_kyber512
+2026-03-24 17:51:31,765 WARNING Timeout en bmj.com con grupo bikel1
+2026-03-24 17:51:33,218 WARNING Timeout en huffingtonpost.com con grupo x25519_hqc128
+2026-03-24 17:51:34,415 WARNING Escaneo sin éxitos para mps.gov.cn (0/13 pruebas exitosas)
+2026-03-24 17:51:35,112 WARNING Timeout en merriam-webster.com con grupo kyber768
+2026-03-24 17:51:36,183 WARNING Escaneo sin éxitos para globenewswire.com (0/13 pruebas exitosas)
+2026-03-24 17:51:36,727 WARNING Timeout en typeform.com con grupo bikel1
+2026-03-24 17:51:37,400 WARNING Escaneo sin éxitos para sciencemag.org (0/13 pruebas exitosas)
+2026-03-24 17:51:37,622 WARNING Escaneo sin éxitos para zoom.com (0/13 pruebas exitosas)
+2026-03-24 17:51:38,157 WARNING Timeout en fortune.com con grupo frodo640aes
+2026-03-24 17:51:40,969 WARNING Timeout en arcgis.com con grupo bikel1
+2026-03-24 17:51:42,789 WARNING Escaneo sin éxitos para aliexpress.com (0/13 pruebas exitosas)
+2026-03-24 17:51:42,922 WARNING Escaneo sin éxitos para jhu.edu (0/13 pruebas exitosas)
+2026-03-24 17:51:43,240 WARNING Escaneo sin éxitos para azurewebsites.net (0/13 pruebas exitosas)
+2026-03-24 17:51:43,833 WARNING Timeout en gofundme.com con grupo x25519_mlkem512
+2026-03-24 17:51:44,169 WARNING Escaneo sin éxitos para arstechnica.com (0/13 pruebas exitosas)
+2026-03-24 17:51:44,339 WARNING Escaneo sin éxitos para hilton.com (0/13 pruebas exitosas)
+2026-03-24 17:51:45,544 WARNING Escaneo sin éxitos para mitre.org (0/13 pruebas exitosas)
+2026-03-24 17:51:45,704 WARNING Timeout en deviantart.com con grupo x25519_bikel1
+2026-03-24 17:51:47,821 WARNING Timeout en coursera.org con grupo frodo640aes
+2026-03-24 17:51:48,164 WARNING Escaneo sin éxitos para in.ua (0/13 pruebas exitosas)
+2026-03-24 17:51:48,198 WARNING Timeout en bmj.com con grupo x25519_bikel1
+2026-03-24 17:51:52,767 WARNING Timeout en typeform.com con grupo x25519_bikel1
+2026-03-24 17:51:54,456 WARNING Timeout en merriam-webster.com con grupo p256_kyber768
+2026-03-24 17:51:54,877 WARNING Timeout en fortune.com con grupo bikel1
+2026-03-24 17:51:56,701 WARNING Escaneo sin éxitos para ed.gov (0/13 pruebas exitosas)
+2026-03-24 17:51:57,593 WARNING Timeout en arcgis.com con grupo x25519_bikel1
+2026-03-24 17:51:57,610 WARNING Escaneo sin éxitos para w3schools.com (0/13 pruebas exitosas)
+2026-03-24 17:52:00,452 WARNING Timeout en gofundme.com con grupo x25519_kyber512
+2026-03-24 17:52:04,045 WARNING Timeout en coursera.org con grupo bikel1
+2026-03-24 17:52:04,053 WARNING Escaneo sin éxitos para lnkd.in (0/13 pruebas exitosas)
+2026-03-24 17:52:04,378 WARNING Timeout en bmj.com con grupo x25519_hqc128
+2026-03-24 17:52:04,894 WARNING Escaneo sin éxitos para meetup.com (0/13 pruebas exitosas)
+2026-03-24 17:52:05,886 WARNING Escaneo sin éxitos para science.org (0/13 pruebas exitosas)
+2026-03-24 17:52:06,734 WARNING Timeout en deviantart.com con grupo x25519_hqc128
+2026-03-24 17:52:08,800 WARNING Timeout en typeform.com con grupo x25519_hqc128
+2026-03-24 17:52:11,502 WARNING Timeout en fortune.com con grupo x25519_bikel1
+2026-03-24 17:52:13,635 WARNING Timeout en arcgis.com con grupo x25519_hqc128
+2026-03-24 17:52:16,515 WARNING Timeout en gofundme.com con grupo frodo640aes
+2026-03-24 17:52:17,019 WARNING Escaneo sin éxitos para bls.gov (0/13 pruebas exitosas)
+2026-03-24 17:52:17,359 WARNING Timeout en marketwatch.com con grupo x25519_kyber768
+2026-03-24 17:52:18,174 WARNING Escaneo sin éxitos para people.com.cn (0/13 pruebas exitosas)
+2026-03-24 17:52:18,326 WARNING Timeout en merriam-webster.com con grupo x25519_mlkem512
+2026-03-24 17:52:20,409 WARNING Timeout en coursera.org con grupo x25519_bikel1
+2026-03-24 17:52:26,490 WARNING Timeout en ssrn.com con grupo x25519_kyber768
+2026-03-24 17:52:27,247 WARNING Escaneo sin éxitos para airbnb.com (0/13 pruebas exitosas)
+2026-03-24 17:52:27,540 WARNING Timeout en fortune.com con grupo x25519_hqc128
+2026-03-24 17:52:32,544 WARNING Timeout en medicalnewstoday.com con grupo mlkem768
+2026-03-24 17:52:32,688 WARNING Escaneo sin éxitos para go.kr (0/13 pruebas exitosas)
+2026-03-24 17:52:33,397 WARNING Timeout en marketwatch.com con grupo mlkem768
+2026-03-24 17:52:34,362 WARNING Timeout en merriam-webster.com con grupo x25519_kyber512
+2026-03-24 17:52:35,071 WARNING Timeout en gofundme.com con grupo bikel1
+2026-03-24 17:52:35,806 WARNING Timeout en atlassian.com con grupo x25519_kyber768
+2026-03-24 17:52:36,607 WARNING Timeout en coursera.org con grupo x25519_hqc128
+2026-03-24 17:52:43,183 WARNING Timeout en ssrn.com con grupo mlkem768
+2026-03-24 17:52:48,579 WARNING Timeout en medicalnewstoday.com con grupo kyber768
+2026-03-24 17:52:49,437 WARNING Timeout en marketwatch.com con grupo kyber768
+2026-03-24 17:52:50,402 WARNING Timeout en merriam-webster.com con grupo frodo640aes
+2026-03-24 17:52:51,110 WARNING Timeout en gofundme.com con grupo x25519_bikel1
+2026-03-24 17:52:51,844 WARNING Timeout en atlassian.com con grupo mlkem768
+2026-03-24 17:52:59,223 WARNING Timeout en ssrn.com con grupo kyber768
+2026-03-24 17:53:04,615 WARNING Timeout en medicalnewstoday.com con grupo p256_kyber768
+2026-03-24 17:53:05,483 WARNING Timeout en marketwatch.com con grupo p256_kyber768
+2026-03-24 17:53:06,450 WARNING Timeout en merriam-webster.com con grupo bikel1
+2026-03-24 17:53:07,147 WARNING Timeout en gofundme.com con grupo x25519_hqc128
+2026-03-24 17:53:07,954 WARNING Timeout en atlassian.com con grupo kyber768
+2026-03-24 17:53:15,261 WARNING Timeout en ssrn.com con grupo p256_kyber768
+2026-03-24 17:53:20,716 WARNING Timeout en medicalnewstoday.com con grupo x25519_mlkem512
+2026-03-24 17:53:21,567 WARNING Timeout en marketwatch.com con grupo x25519_mlkem512
+2026-03-24 17:53:22,488 WARNING Timeout en merriam-webster.com con grupo x25519_bikel1
+2026-03-24 17:53:23,990 WARNING Timeout en atlassian.com con grupo p256_kyber768
+2026-03-24 17:53:31,362 WARNING Timeout en ssrn.com con grupo x25519_mlkem512
+2026-03-24 17:53:36,750 WARNING Timeout en medicalnewstoday.com con grupo x25519_kyber512
+2026-03-24 17:53:37,618 WARNING Timeout en marketwatch.com con grupo x25519_kyber512
+2026-03-24 17:53:38,531 WARNING Timeout en merriam-webster.com con grupo x25519_hqc128
+2026-03-24 17:53:40,277 WARNING Timeout en atlassian.com con grupo x25519_mlkem512
+2026-03-24 17:53:47,400 WARNING Timeout en ssrn.com con grupo x25519_kyber512
+2026-03-24 17:53:52,784 WARNING Timeout en medicalnewstoday.com con grupo frodo640aes
+2026-03-24 17:53:53,656 WARNING Timeout en marketwatch.com con grupo frodo640aes
+2026-03-24 17:53:56,318 WARNING Timeout en atlassian.com con grupo x25519_kyber512
+2026-03-24 17:54:03,430 WARNING Timeout en ssrn.com con grupo frodo640aes
+2026-03-24 17:54:08,823 WARNING Timeout en medicalnewstoday.com con grupo bikel1
+2026-03-24 17:54:09,692 WARNING Timeout en marketwatch.com con grupo bikel1
+2026-03-24 17:54:12,429 WARNING Timeout en atlassian.com con grupo frodo640aes
+2026-03-24 17:54:19,466 WARNING Timeout en ssrn.com con grupo bikel1
+2026-03-24 17:54:24,868 WARNING Timeout en medicalnewstoday.com con grupo x25519_bikel1
+2026-03-24 17:54:25,728 WARNING Timeout en marketwatch.com con grupo x25519_bikel1
+2026-03-24 17:54:28,471 WARNING Timeout en atlassian.com con grupo bikel1
+2026-03-24 17:54:35,514 WARNING Timeout en ssrn.com con grupo x25519_bikel1
+2026-03-24 17:54:40,906 WARNING Timeout en medicalnewstoday.com con grupo x25519_hqc128
+2026-03-24 17:54:41,765 WARNING Timeout en marketwatch.com con grupo x25519_hqc128
+2026-03-24 17:54:44,644 WARNING Timeout en atlassian.com con grupo x25519_bikel1
+2026-03-24 17:54:51,546 WARNING Timeout en ssrn.com con grupo x25519_hqc128
+2026-03-24 17:55:00,686 WARNING Timeout en atlassian.com con grupo x25519_hqc128
+2026-03-24 17:55:00,865 INFO Estadísticas por grupo exportadas a /app/resultados/resumen_por_grupo.csv
+2026-03-24 17:55:00,865 INFO ======================================================================
+2026-03-24 17:55:00,865 INFO Escaneo PQC completado
+2026-03-24 17:55:00,865 INFO Tiempo total: 762.96 segundos
+2026-03-24 17:55:00,865 INFO Hosts con al menos un éxito: 379/500 (75.80%)
+2026-03-24 17:55:00,865 INFO Pruebas exitosas: 732/6500 (11.26%)
+2026-03-24 17:55:00,865 INFO Resultados guardados en /app/resultados/resultados_sonda_pqc.json
+2026-03-24 17:55:00,865 INFO Resumen CSV guardado en /app/resultados/resumen_por_grupo.csv
+2026-03-24 17:55:00,865 INFO ======================================================================

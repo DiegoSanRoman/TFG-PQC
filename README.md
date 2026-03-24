@@ -579,6 +579,8 @@ TFG-PQC/
 
 **Cómo se genera:** función `graficar_bytes`, con control robusto para datos faltantes.
 
+**Metodología de comparación:** para mantener consistencia con latencia, el análisis de bytes agrega primero por `(hostname, grupo)` y, cuando hay muestra suficiente, restringe a cohorte común comparable (hosts compartidos con `X25519`).
+
 **Utilidad en el proyecto:** cuantificar coste de tráfico criptográfico y comparar eficiencia de grupos.
 
 ---
