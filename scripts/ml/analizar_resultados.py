@@ -341,7 +341,10 @@ def cargar_y_procesar():
     # Nota: tiempo_conexion_segundos se mide alrededor de la ejecución de OpenSSL,
     # por lo que ya excluye el pre-check DNS en la ruta normal.
     df['tiempo_total_ms'] = df['tiempo_conexion_segundos'] * 1000
-    df['tiempo_conexion_sin_dns_ms'] = df['tiempo_total_ms']
+    # Nombre explícito para evitar la interpretación errónea de "total - dns"
+    df['openssl_execution_time_ms'] = df['tiempo_total_ms']
+    # Alias legacy (compatibilidad temporal con artefactos/scripts antiguos)
+    df['tiempo_conexion_sin_dns_ms'] = df['openssl_execution_time_ms']
     # Referencia opcional: aproximación end-to-end incluyendo DNS cuando exista.
     df['tiempo_total_con_dns_ms'] = df['tiempo_total_ms'] + df['dns_time_ms']
     
@@ -570,12 +573,12 @@ def graficar_latencia(df, output_dir, df_ranking=None):
         axes[0].set_title('Tiempo de Handshake TLS (mediana)', fontweight='bold')
     axes[0].grid(axis='x', alpha=0.3)
 
-    # Delta robusto por hostname vs X25519 para OpenSSL total (sin DNS precheck)
+    # Delta robusto por hostname vs X25519 para tiempo de ejecución de OpenSSL
     # Se aplica la misma lógica de grupos concluyentes + cohorte común que en Handshake TLS justo.
     usar_cohorte_comun = bool(grupos_concluyentes) and len(hosts_comunes_concluyentes) >= min_hostnames_concluyente
     delta_sin_dns = resumen_delta_vs_clasico_restringido(
         df,
-        'tiempo_conexion_sin_dns_ms',
+        'openssl_execution_time_ms',
         grupo_clasico='X25519',
         grupos_permitidos=grupos_concluyentes if grupos_concluyentes else None,
         hosts_permitidos=hosts_comunes_concluyentes if usar_cohorte_comun else None,
@@ -596,14 +599,14 @@ def graficar_latencia(df, output_dir, df_ranking=None):
         )
         axes[1].axvline(0, color='black', linewidth=1, alpha=0.6)
         axes[1].set_xlabel('Δ Tiempo (ms) vs X25519', fontweight='bold')
-        axes[1].set_title('OpenSSL total (mediana/IQR por host, vs X25519)', fontweight='bold')
+        axes[1].set_title('OpenSSL execution time (mediana/IQR por host, vs X25519)', fontweight='bold')
 
         delta_sin_dns_path = output_dir / 'delta_open_ssl_vs_x25519.csv'
         delta_sin_dns.to_csv(delta_sin_dns_path, index=False)
         logger.info(f"✓ Guardado: {delta_sin_dns_path}")
     else:
         axes[1].text(0.5, 0.5, 'Sin datos comparables para delta vs X25519', ha='center', va='center', transform=axes[1].transAxes)
-        axes[1].set_title('OpenSSL total (vs X25519)', fontweight='bold')
+        axes[1].set_title('OpenSSL execution time (vs X25519)', fontweight='bold')
     axes[1].grid(axis='x', alpha=0.3)
 
     # Delta robusto por hostname vs X25519 para handshake TLS
@@ -744,7 +747,7 @@ def main():
     columnas_outliers = [
         'tcp_time_ms',
         'handshake_time_ms',
-        'tiempo_conexion_sin_dns_ms',
+        'openssl_execution_time_ms',
         'tiempo_conexion_segundos',
         'bytes_sent',
         'bytes_received',

@@ -666,6 +666,11 @@ Esta sección describe para **cada métrica**: cómo se obtiene, qué significa 
 - **Qué significa:** duración total de la prueba por grupo.
 - **Utilidad:** KPI global de rendimiento percibido.
 
+### `openssl_execution_time_ms`
+- **Cómo se obtiene:** `tiempo_conexion_segundos * 1000`.
+- **Qué significa:** tiempo de ejecución de OpenSSL para la prueba TLS, ya sin pre-check DNS.
+- **Utilidad:** evitar ambigüedad metodológica frente al nombre legacy `tiempo_conexion_sin_dns_ms`.
+
 ---
 
 ## 7.3 Métricas de volumen (bytes)
