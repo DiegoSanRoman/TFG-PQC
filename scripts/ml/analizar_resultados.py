@@ -317,6 +317,7 @@ def cargar_y_procesar():
                 'hostname': hostname,
                 'grupo': prueba.get('grupo'),
                 'connection_result': prueba.get('connection_result'),
+                'retry': prueba.get('retry', False),
                 'dns_time_ms': prueba.get('dns_time_ms'),
                 'tcp_time_ms': prueba.get('tcp_time_ms'),
                 'handshake_time_ms': prueba.get('handshake_time_ms'),
@@ -800,6 +801,13 @@ def main():
     
     # Cargar datos
     df_total, df_exitos = cargar_y_procesar()
+
+    # Filtrar conexiones que necesitaron retry (latencia inflada por timeout acumulado)
+    n_antes = len(df_exitos)
+    df_exitos = df_exitos[df_exitos['retry'] != True].copy()
+    n_filtrados = n_antes - len(df_exitos)
+    if n_filtrados > 0:
+        logger.info(f"Filtrados {n_filtrados} registros con retry=True de la latencia")
     
     # Limpiar outliers de forma robusta por grupo (bytes + latencia sin DNS)
     logger.info("\n🧹 Limpiando outliers por grupo (latencia + bytes)...")
