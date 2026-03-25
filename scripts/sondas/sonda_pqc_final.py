@@ -128,15 +128,17 @@ def parse_trace_bytes(trace_output: str) -> Dict[str, Any]:
     '''
     Parsea bytes de handshake TLS desde la salida de OpenSSL con -trace.
     :param trace_output: Salida de stderr + stdout de OpenSSL con -trace
-        :return: Dict con:
-            - bytes_sent/bytes_received/handshake_overhead: métricas de intercambio de claves visibles en trace (CH/SH + CCS/Alert)
+                :return: Dict con:
+                        - bytes_sent/bytes_received/handshake_overhead: métricas de registros TLS visibles en trace
+                            (Handshake/CCS/Alert/ApplicationData). En TLS 1.3 esto incluye el handshake cifrado
+                            posterior a ServerHello (p.ej. EncryptedExtensions/Certificate/CertificateVerify/Finished).
             - handshake_total_bytes_sent/handshake_total_bytes_received/handshake_total_overhead: métricas de handshake total reportadas por OpenSSL
             - measurement_method / measurement_method_total: calidad/fuente de medición
     '''
     bytes_sent = 0
     bytes_received = 0
     measurement_method = "unknown"  # "traced", "partial", "unknown"
-    handshake_content_types = {"handshake", "changecipherspec", "alert"}
+    handshake_content_types = {"handshake", "changecipherspec", "alert", "application_data"}
     max_record_length = 20000
     
     # Parsear desde -trace buscando patrones "Length = N" después de "Sent/Received TLS Record"
@@ -1001,7 +1003,7 @@ def exportar_estadisticas_csv(estadisticas_grupos: List[Dict[str, Any]], output_
             'TCP Media (ms)',
             'Bytes Enviados Media',
             'Bytes Recibidos Media',
-            'Overhead Handshake CH/SH Media',
+            'Overhead Handshake Trace TLS Media',
             'Overhead Handshake Total Media (OpenSSL)'
         ]
         writer.writerow(headers)

@@ -573,9 +573,9 @@ TFG-PQC/
 
 ### `imagenes/bytes_limpia.png`
 **Qué representa:** análisis de volumen de handshake por grupo:
-1) bytes enviados (CH/SH),
-2) bytes recibidos (CH/SH),
-3) overhead CH/SH (intercambio de claves),
+1) bytes enviados (trace TLS),
+2) bytes recibidos (trace TLS),
+3) overhead de handshake (trace TLS),
 4) overhead total del handshake (resumen OpenSSL).
 
 **Cómo se genera:** función `graficar_bytes`, con control robusto para datos faltantes.
@@ -693,18 +693,18 @@ Esta sección describe para **cada métrica**: cómo se obtiene, qué significa 
 ## 7.3 Métricas de volumen (bytes)
 
 ### `bytes_sent`
-- **Cómo se obtiene:** parseando `-trace` de OpenSSL; suma de longitudes en registros TLS salientes de tipo Handshake/ChangeCipherSpec/Alert (+5 bytes de cabecera TLS por registro).
-- **Qué significa:** tráfico saliente visible del intercambio de claves (CH/SH) sin datos de aplicación HTTP.
+- **Cómo se obtiene:** parseando `-trace` de OpenSSL; suma de longitudes en registros TLS salientes de tipo Handshake/ChangeCipherSpec/Alert/ApplicationData (+5 bytes de cabecera TLS por registro).
+- **Qué significa:** tráfico saliente visible del handshake TLS en el trace (incluye handshake cifrado en TLS 1.3).
 - **Utilidad:** medir el componente diferenciador entre grupos criptográficos.
 
 ### `bytes_received`
-- **Cómo se obtiene:** parseando `-trace` de OpenSSL en registros TLS entrantes de tipo Handshake/ChangeCipherSpec/Alert (+5 bytes de cabecera TLS).
-- **Qué significa:** tráfico entrante visible del intercambio de claves (CH/SH).
+- **Cómo se obtiene:** parseando `-trace` de OpenSSL en registros TLS entrantes de tipo Handshake/ChangeCipherSpec/Alert/ApplicationData (+5 bytes de cabecera TLS).
+- **Qué significa:** tráfico entrante visible del handshake TLS en el trace (incluye handshake cifrado en TLS 1.3).
 - **Utilidad:** medir coste de descarga del componente criptográfico diferenciador entre grupos.
 
 ### `handshake_overhead`
 - **Cómo se obtiene:** `bytes_sent + bytes_received`.
-- **Qué significa:** tamaño total del intercambio CH/SH capturado por `-trace`.
+- **Qué significa:** tamaño total del handshake visible en `-trace`.
 - **Utilidad:** comparar el overhead atribuible al grupo de intercambio de claves.
 
 ### `handshake_total_bytes_sent`
@@ -724,7 +724,7 @@ Esta sección describe para **cada métrica**: cómo se obtiene, qué significa 
 
 ### `measurement_method`
 - **Cómo se obtiene:** estado del parser de trace (`traced`, `partial`, `unknown`).
-- **Qué significa:** calidad/completitud de la medición CH/SH en `-trace`.
+- **Qué significa:** calidad/completitud de la medición del handshake en `-trace`.
 - **Utilidad:** filtrar/ponderar confianza en el análisis de overhead del intercambio de claves.
 
 ### `measurement_method_total`
@@ -734,7 +734,7 @@ Esta sección describe para **cada métrica**: cómo se obtiene, qué significa 
 
 ### Nota metodológica TLS 1.3
 - En TLS 1.3, gran parte del handshake tras `ServerHello` viaja cifrada con `Content Type = ApplicationData`.
-- Por ello, la métrica `handshake_overhead` (CH/SH) **no** representa todo el handshake TLS 1.3 completo.
+- El parser de `-trace` contabiliza también `ApplicationData`, por lo que `handshake_overhead` captura ese tramo cifrado.
 - Para “overhead total del handshake” se debe usar `handshake_total_overhead` (resumen OpenSSL).
 
 ---

@@ -746,11 +746,11 @@ def graficar_bytes(df, output_dir):
         axes[0, 0].barh(df_sent['grupo'], df_sent['mean'], xerr=df_sent['std'],
                              color=[COLORES_GRUPOS.get(g, '#999999') for g in df_sent['grupo']], alpha=0.7, capsize=5)
         axes[0, 0].set_xlabel('Bytes', fontweight='bold')
-        axes[0, 0].set_title(f'Bytes Enviados (CH/SH) Promedio{sufijo_titulo}', fontweight='bold')
+        axes[0, 0].set_title(f'Bytes Enviados (Trace TLS) Promedio{sufijo_titulo}', fontweight='bold')
         axes[0, 0].grid(axis='x', alpha=0.3)
     else:
         axes[0, 0].text(0.5, 0.5, 'Sin datos', ha='center', va='center', transform=axes[0, 0].transAxes)
-        axes[0, 0].set_title(f'Bytes Enviados (CH/SH) Promedio{sufijo_titulo}', fontweight='bold')
+        axes[0, 0].set_title(f'Bytes Enviados (Trace TLS) Promedio{sufijo_titulo}', fontweight='bold')
 
     # Bytes Received
     df_recv = resumir_bytes_metrica('bytes_received')
@@ -758,11 +758,11 @@ def graficar_bytes(df, output_dir):
         axes[0, 1].barh(df_recv['grupo'], df_recv['mean'], xerr=df_recv['std'],
                              color=[COLORES_GRUPOS.get(g, '#999999') for g in df_recv['grupo']], alpha=0.7, capsize=5)
         axes[0, 1].set_xlabel('Bytes', fontweight='bold')
-        axes[0, 1].set_title(f'Bytes Recibidos (CH/SH) Promedio{sufijo_titulo}', fontweight='bold')
+        axes[0, 1].set_title(f'Bytes Recibidos (Trace TLS) Promedio{sufijo_titulo}', fontweight='bold')
         axes[0, 1].grid(axis='x', alpha=0.3)
     else:
         axes[0, 1].text(0.5, 0.5, 'Sin datos', ha='center', va='center', transform=axes[0, 1].transAxes)
-        axes[0, 1].set_title(f'Bytes Recibidos (CH/SH) Promedio{sufijo_titulo}', fontweight='bold')
+        axes[0, 1].set_title(f'Bytes Recibidos (Trace TLS) Promedio{sufijo_titulo}', fontweight='bold')
 
     # Handshake Overhead
     df_ovh = resumir_bytes_metrica('handshake_overhead')
@@ -770,11 +770,11 @@ def graficar_bytes(df, output_dir):
         axes[1, 0].barh(df_ovh['grupo'], df_ovh['mean'], xerr=df_ovh['std'],
                              color=[COLORES_GRUPOS.get(g, '#999999') for g in df_ovh['grupo']], alpha=0.7, capsize=5)
         axes[1, 0].set_xlabel('Bytes', fontweight='bold')
-        axes[1, 0].set_title(f'Overhead CH/SH (Intercambio de Claves){sufijo_titulo}', fontweight='bold')
+        axes[1, 0].set_title(f'Overhead Handshake (Trace TLS){sufijo_titulo}', fontweight='bold')
         axes[1, 0].grid(axis='x', alpha=0.3)
     else:
         axes[1, 0].text(0.5, 0.5, 'Sin datos', ha='center', va='center', transform=axes[1, 0].transAxes)
-        axes[1, 0].set_title(f'Overhead CH/SH (Intercambio de Claves){sufijo_titulo}', fontweight='bold')
+        axes[1, 0].set_title(f'Overhead Handshake (Trace TLS){sufijo_titulo}', fontweight='bold')
 
     # Handshake Total real (resumen OpenSSL)
     df_ovh_total = resumir_bytes_metrica('handshake_total_overhead')
