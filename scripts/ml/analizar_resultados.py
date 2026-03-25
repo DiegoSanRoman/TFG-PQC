@@ -4,6 +4,11 @@ Script analizar_resultados.py
 Analizar resultados de las pruebas de conexión TLS a los servidores PQC.
 Lee el JSON generado por hostname_conexion.py, procesa los datos, limpia outliers, y genera gráficas comparativas de latencia y overhead de bytes por grupo criptográfico. 
 Las gráficas se guardan en la carpeta "imagenes" y se muestran estadísticas de cada grupo. Se aplica un filtro de muestras mínimas para asegurar comparaciones significativas. Se utiliza logging para mostrar el progreso y resultados del análisis.
+
+NOTA METODOLÓGICA:
+- Latencia y Bytes: Se usa mediana + IQR (Interquartile Range) para consistencia.
+  Esto es robusto ante outliers (valores extremos de red).
+- Media y Desv.Est. serían más sensibles a outliers, especialmente en latencias de red.
 """
 
 # Importar librerías
@@ -731,12 +736,15 @@ def graficar_bytes(df, output_dir):
         if host_group.empty:
             return pd.DataFrame()
 
+        # Usar mediana e IQR para consistencia metodológica con latencia (robusto ante outliers)
         resumen = host_group.groupby('grupo').agg(
-            mean=(metrica_col, 'mean'),
-            std=(metrica_col, 'std'),
+            mean=(metrica_col, 'median'),
+            q1=(metrica_col, lambda s: s.quantile(0.25)),
+            q3=(metrica_col, lambda s: s.quantile(0.75)),
             hostnames=('hostname', 'nunique')
         ).reset_index()
-        resumen['std'] = resumen['std'].fillna(0.0)
+        resumen['iqr'] = resumen['q3'] - resumen['q1']
+        resumen = resumen.drop(columns=['q1', 'q3'])
         return resumen.sort_values('mean', ascending=False)
 
     sufijo_titulo = ' (cohorte común)' if usar_cohorte_comun else ' (agregado por hostname)'
@@ -744,7 +752,7 @@ def graficar_bytes(df, output_dir):
     # Bytes Sent
     df_sent = resumir_bytes_metrica('bytes_sent')
     if not df_sent.empty:
-        axes[0, 0].barh(df_sent['grupo'], df_sent['mean'], xerr=df_sent['std'],
+        axes[0, 0].barh(df_sent['grupo'], df_sent['mean'], xerr=df_sent['iqr'],
                              color=[COLORES_GRUPOS.get(g, '#999999') for g in df_sent['grupo']], alpha=0.7, capsize=5)
         axes[0, 0].set_xlabel('Bytes', fontweight='bold')
         axes[0, 0].set_title(f'Bytes Enviados (Trace TLS) Promedio{sufijo_titulo}', fontweight='bold')
@@ -756,7 +764,7 @@ def graficar_bytes(df, output_dir):
     # Bytes Received
     df_recv = resumir_bytes_metrica('bytes_received')
     if not df_recv.empty:
-        axes[0, 1].barh(df_recv['grupo'], df_recv['mean'], xerr=df_recv['std'],
+        axes[0, 1].barh(df_recv['grupo'], df_recv['mean'], xerr=df_recv['iqr'],
                              color=[COLORES_GRUPOS.get(g, '#999999') for g in df_recv['grupo']], alpha=0.7, capsize=5)
         axes[0, 1].set_xlabel('Bytes', fontweight='bold')
         axes[0, 1].set_title(f'Bytes Recibidos (Trace TLS) Promedio{sufijo_titulo}', fontweight='bold')
@@ -768,7 +776,7 @@ def graficar_bytes(df, output_dir):
     # Handshake Overhead
     df_ovh = resumir_bytes_metrica('handshake_overhead')
     if not df_ovh.empty:
-        axes[1, 0].barh(df_ovh['grupo'], df_ovh['mean'], xerr=df_ovh['std'],
+        axes[1, 0].barh(df_ovh['grupo'], df_ovh['mean'], xerr=df_ovh['iqr'],
                              color=[COLORES_GRUPOS.get(g, '#999999') for g in df_ovh['grupo']], alpha=0.7, capsize=5)
         axes[1, 0].set_xlabel('Bytes', fontweight='bold')
         axes[1, 0].set_title(f'Overhead Handshake (Trace TLS){sufijo_titulo}', fontweight='bold')
@@ -780,7 +788,7 @@ def graficar_bytes(df, output_dir):
     # Handshake Total real (resumen OpenSSL)
     df_ovh_total = resumir_bytes_metrica('handshake_total_overhead')
     if not df_ovh_total.empty:
-        axes[1, 1].barh(df_ovh_total['grupo'], df_ovh_total['mean'], xerr=df_ovh_total['std'],
+        axes[1, 1].barh(df_ovh_total['grupo'], df_ovh_total['mean'], xerr=df_ovh_total['iqr'],
                              color=[COLORES_GRUPOS.get(g, '#999999') for g in df_ovh_total['grupo']], alpha=0.7, capsize=5)
         axes[1, 1].set_xlabel('Bytes', fontweight='bold')
         axes[1, 1].set_title(f'Overhead Total del Handshake (OpenSSL){sufijo_titulo}', fontweight='bold')
