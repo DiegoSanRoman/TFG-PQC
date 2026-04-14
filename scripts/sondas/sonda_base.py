@@ -37,6 +37,7 @@ from utils import (                                                 # noqa: E402
     obtener_informacion_clave,
     obtener_versiones_tls_soportadas,
     obtener_cadena_certificados,
+    es_hostname_valido,
 )
 
 logger = logging.getLogger(__name__)
@@ -305,7 +306,11 @@ def leer_hostnames_csv(ruta_csv: Path, longitud_max: int) -> List[str]:
             for fila in lector:
                 # La columna B es el índice 1 (columna A es índice 0)
                 if len(fila) >= 2 and fila[1]:  # Verificar que existe columna B y no está vacía
-                    hostnames.append(fila[1])
+                    h = fila[1].strip()
+                    if es_hostname_valido(h):
+                        hostnames.append(h)
+                    else:
+                        logger.debug("Hostname ignorado (inválido): %s", fila[1])
                     # Detener si alcanzamos el límite
                     if len(hostnames) >= longitud_max:
                         break

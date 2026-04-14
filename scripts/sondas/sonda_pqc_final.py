@@ -9,7 +9,8 @@ híbridos y puros contra servidores HTTPS.
 # Importaciones necesarias
 import subprocess                                           # Para ejecutar comandos del sistema
 import json                                                 # Para guardar resultados en JSON
-import os                                                   # Para operaciones del sistema  
+import os                                                   # Para operaciones del sistema
+import sys                                                  # Para manipular sys.path
 import time                                                 # Para medir tiempo de conexión
 import csv                                                  # Para leer y escribir archivos CSV
 import statistics                                           # Para cálculos estadísticos
@@ -24,24 +25,25 @@ from concurrent.futures import ThreadPoolExecutor, as_completed  # Para concurre
 from tqdm import tqdm                                       # Para barras de progreso
 from typing import List, Dict, Any, Optional                # Para type hints
 
+# Importar constantes y utilidades compartidas desde scripts/
+_SCRIPTS_DIR = Path(__file__).parent.parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+from constants import (                                     # noqa: E402
+    ERROR_DNS,
+    ERROR_TCP_REFUSED,
+    ERROR_TCP_TIMEOUT,
+    ERROR_TCP_OTHER,
+    ERROR_TLS_TIMEOUT,
+    ERROR_TLS_ALERT,
+    ERROR_UNKNOWN,
+    CONNECTION_ACCEPTED,
+    CONNECTION_REJECTED,
+)
+from utils import es_hostname_valido                        # noqa: E402
+
 # Configurar logging
 logger = logging.getLogger(__name__)
-
-# ============================================
-# CONSTANTES DE CLASIFICACIÓN
-# ============================================
-# Categorías de error normalizadas
-ERROR_DNS = "ERROR_DNS"                    # Fallo en resolución DNS
-ERROR_TCP_REFUSED = "ERROR_TCP_REFUSED"    # Puerto cerrado o conexión rechazada
-ERROR_TCP_TIMEOUT = "ERROR_TCP_TIMEOUT"    # Timeout en conexión TCP
-ERROR_TCP_OTHER = "ERROR_TCP_OTHER"        # Otros errores TCP/red
-ERROR_TLS_TIMEOUT = "ERROR_TLS_TIMEOUT"    # Timeout durante handshake TLS
-ERROR_TLS_ALERT = "ERROR_TLS_ALERT"        # Alert TLS recibido del servidor
-ERROR_UNKNOWN = "ERROR_UNKNOWN"            # Error desconocido o inesperado
-
-# Resultados de conexión
-CONNECTION_ACCEPTED = "ACEPTADO"           # Handshake TLS exitoso
-CONNECTION_REJECTED = "RECHAZADO"          # Servidor rechazó el handshake explícitamente
 
 # ============================================
 # CONSTANTES DE RUTAS
@@ -94,13 +96,17 @@ def leer_hostnames_csv(ruta_csv: Path, longitud_max: int, domain_column: Optiona
                     logger.info("Detectado formato Tranco (columna B, índice 1)")
                     # La primera fila es dato, procesar
                     if len(primera_fila) > domain_column and primera_fila[domain_column]:
-                        hostnames.append(primera_fila[domain_column])
+                        _h = primera_fila[domain_column].strip()
+                        if es_hostname_valido(_h):
+                            hostnames.append(_h)
                 else:
                     # Default: columna B (compatibilidad con Tranco)
                     domain_column = 1
                     logger.warning("Formato desconocido, usando columna B por defecto")
                     if len(primera_fila) > domain_column and primera_fila[domain_column]:
-                        hostnames.append(primera_fila[domain_column])
+                        _h = primera_fila[domain_column].strip()
+                        if es_hostname_valido(_h):
+                            hostnames.append(_h)
             else:
                 # Columna especificada manualmente
                 logger.info("Usando columna especificada: %d", domain_column)
@@ -109,12 +115,18 @@ def leer_hostnames_csv(ruta_csv: Path, longitud_max: int, domain_column: Optiona
                     logger.info("Saltando fila de encabezados")
                 else:
                     if len(primera_fila) > domain_column and primera_fila[domain_column]:
-                        hostnames.append(primera_fila[domain_column])
-            
+                        _h = primera_fila[domain_column].strip()
+                        if es_hostname_valido(_h):
+                            hostnames.append(_h)
+
             # Leer el resto de filas
             for fila in lector:
                 if len(fila) > domain_column and fila[domain_column]:
-                    hostnames.append(fila[domain_column])
+                    _h = fila[domain_column].strip()
+                    if es_hostname_valido(_h):
+                        hostnames.append(_h)
+                    else:
+                        logger.debug("Hostname ignorado (inválido): %s", fila[domain_column])
                     # Detener si alcanzamos el límite
                     if len(hostnames) >= longitud_max:
                         break
@@ -139,8 +151,30 @@ def parse_trace_bytes(trace_output: str) -> Dict[str, Any]:
     bytes_received = 0
     measurement_method = "unknown"  # "traced", "partial", "unknown"
     handshake_content_types = {"handshake", "changecipherspec", "alert", "application_data"}
+    # Umbral máximo razonable para descartar registros de datos de aplicación
     max_record_length = 20000
-    
+
+    def _extract_record_bytes(lines: list, start_idx: int) -> int:
+        '''
+        Escanea las líneas siguientes a un encabezado "Sent/Received TLS Record" buscando
+        Content Type y Length. Devuelve (Length + 5 bytes de cabecera TLS) si el registro
+        es de tipo handshake; 0 si no aplica o no se encuentran los campos.
+        Los +5 son: 1 byte tipo + 2 bytes versión + 2 bytes longitud.
+        '''
+        content_type = None
+        for j in range(start_idx + 1, min(start_idx + 10, len(lines))):
+            ct_match = re.search(r'^\s*Content\s*Type\s*=\s*(.+)$', lines[j], re.IGNORECASE)
+            if ct_match:
+                content_type = ct_match.group(1).strip().lower()
+            len_match = re.search(r'^\s*Length\s*=\s*(\d+)', lines[j])
+            if len_match:
+                length = int(len_match.group(1))
+                if (length <= max_record_length and content_type
+                        and any(token in content_type for token in handshake_content_types)):
+                    return length + 5
+                break  # Length encontrado pero no cumple criterios
+        return 0
+
     # Parsear desde -trace buscando patrones "Length = N" después de "Sent/Received TLS Record"
     # Formato OpenSSL:
     #   Sent TLS Record
@@ -149,42 +183,18 @@ def parse_trace_bytes(trace_output: str) -> Dict[str, Any]:
     #     Content Type = ...
     #     Length = 1560    <-- Este es el valor que necesitamos
     lines = trace_output.split('\n')
-    
+
     for i, line in enumerate(lines):
-        # Buscar "Sent TLS Record" o "Sent Record"
         if ('Sent' in line and 'Record' in line) or 'Sent TLS Record' in line:
-            content_type = None
-            # Buscar "Length = N" en las siguientes líneas (típicamente línea +3 o +4)
-            for j in range(i + 1, min(i + 10, len(lines))):
-                content_match = re.search(r'^\s*Content\s*Type\s*=\s*(.+)$', lines[j], re.IGNORECASE)
-                if content_match:
-                    content_type = content_match.group(1).strip().lower()
-
-                # Patrón: "  Length = 1560" (con espacios iniciales)
-                match = re.search(r'^\s*Length\s*=\s*(\d+)', lines[j])
-                if match:
-                    length = int(match.group(1))
-                    if length <= max_record_length and content_type and any(token in content_type for token in handshake_content_types):
-                        # +5 bytes por TLS record header (1 byte tipo + 2 bytes versión + 2 bytes longitud)
-                        bytes_sent += length + 5
-                        measurement_method = "traced"
-                    break
-        
-        # Buscar "Received TLS Record" o "Received Record"
+            record_bytes = _extract_record_bytes(lines, i)
+            if record_bytes:
+                bytes_sent += record_bytes
+                measurement_method = "traced"
         elif ('Received' in line and 'Record' in line) or 'Received TLS Record' in line:
-            content_type = None
-            for j in range(i + 1, min(i + 10, len(lines))):
-                content_match = re.search(r'^\s*Content\s*Type\s*=\s*(.+)$', lines[j], re.IGNORECASE)
-                if content_match:
-                    content_type = content_match.group(1).strip().lower()
-
-                match = re.search(r'^\s*Length\s*=\s*(\d+)', lines[j])
-                if match:
-                    length = int(match.group(1))
-                    if length <= max_record_length and content_type and any(token in content_type for token in handshake_content_types):
-                        bytes_received += length + 5
-                        measurement_method = "traced"
-                    break
+            record_bytes = _extract_record_bytes(lines, i)
+            if record_bytes:
+                bytes_received += record_bytes
+                measurement_method = "traced"
     
     # Si solo capturamos uno de los dos (enviado o recibido), marcar como "partial"
     if (bytes_sent > 0 and bytes_received == 0) or (bytes_sent == 0 and bytes_received > 0):

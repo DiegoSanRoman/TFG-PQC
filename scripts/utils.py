@@ -10,6 +10,7 @@ en sonda_base.py y hostname_conexion.py; se centralizan aquí para evitar diverg
 
 import hashlib
 import logging
+import re
 import socket
 import ssl
 import time
@@ -124,6 +125,35 @@ def obtener_cadena_certificados(sock, hostname: str) -> List[Dict[str, Any]]:
     except Exception as e:
         logger.debug("Error al obtener cadena de certificados para %s: %s", hostname, e)
     return cadena
+
+
+# ============================================
+# VALIDACIÓN DE HOSTNAMES
+# ============================================
+
+def es_hostname_valido(hostname: str) -> bool:
+    """
+    Comprueba si un string es un hostname DNS plausible.
+
+    Reglas aplicadas (ligeras, para filtrar basura en CSVs):
+    - No vacío tras strip
+    - Contiene al menos un punto (descarta etiquetas sueltas como "localhost")
+    - Sin espacios internos
+    - Longitud máxima de 253 caracteres (límite DNS)
+    - Solo caracteres permitidos en DNS: letras, dígitos, guiones y puntos
+
+    :param hostname: String a validar
+    :return: True si parece un hostname válido, False en caso contrario
+    """
+    if not hostname or not isinstance(hostname, str):
+        return False
+    h = hostname.strip()
+    if not h or '.' not in h or ' ' in h or len(h) > 253:
+        return False
+    # Caracteres permitidos en DNS (RFC 1123): a-z, A-Z, 0-9, '-', '.'
+    if not re.fullmatch(r'[a-zA-Z0-9.\-]+', h):
+        return False
+    return True
 
 
 # ============================================

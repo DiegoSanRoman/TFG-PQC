@@ -13,12 +13,20 @@ NOTA METODOLÓGICA:
 
 # Importar librerías
 import json
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from pathlib import Path
 import logging
+import sys
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+
+# Importar constantes compartidas desde scripts/
+_SCRIPTS_DIR = Path(__file__).parent.parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+from constants import CONNECTION_ACCEPTED  # noqa: E402
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -65,7 +73,7 @@ def construir_dataset_justo(df, grupo_clasico='X25519'):
 
     base = df[['hostname', 'grupo', 'connection_result', METRICA_CONNECT_TLS_MS]].copy()
     base = base[
-        (base['connection_result'] == 'ACEPTADO') &
+        (base['connection_result'] == CONNECTION_ACCEPTED) &
         (base['grupo'].notna()) &
         (base[METRICA_CONNECT_TLS_MS].notna())
     ]
@@ -112,7 +120,7 @@ def _agregar_por_hostname_grupo(df, metrica_col):
     Agrega una métrica por (hostname, grupo) para evitar sesgo por repeticiones desbalanceadas.
     """
     base = df[
-        (df['connection_result'] == 'ACEPTADO') &
+        (df['connection_result'] == CONNECTION_ACCEPTED) &
         (df['hostname'].notna()) &
         (df['grupo'].notna()) &
         (df[metrica_col].notna())
@@ -362,7 +370,7 @@ def cargar_y_procesar():
     df['tiempo_total_con_dns_ms'] = df['tiempo_total_ms'] + df['dns_time_ms']
     
     # Filtrar solo exitosas
-    df_exitos = df[df['connection_result'] == 'ACEPTADO'].copy()
+    df_exitos = df[df['connection_result'] == CONNECTION_ACCEPTED].copy()
     
     logger.info(f"Total de pruebas: {len(df)}")
     logger.info(f"Pruebas exitosas: {len(df_exitos)}")

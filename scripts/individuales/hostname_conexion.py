@@ -55,7 +55,7 @@ RESULTADOS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 
-def conectar_a_host(hostname: str):
+def conectar_a_host(hostname: str) -> None:
     """
     Conecta a un host y obtiene toda la información posible.
     Realiza la conexión, obtiene información del certificado, protocolos soportados, y guarda los resultados en un JSON.
@@ -63,7 +63,7 @@ def conectar_a_host(hostname: str):
     # Resuelve el DNS y mide la latencia
     ip, latencia_dns = resolver_dns(hostname)
     if not ip:
-        logger.error(f"No se pudo resolver el hostname: {hostname}")
+        logger.error("No se pudo resolver el hostname: %s", hostname)
         return
 
     # Inicia la conexión SSL/TLS
@@ -148,26 +148,32 @@ def conectar_a_host(hostname: str):
                 RESULTADOS_DIR.mkdir(parents=True, exist_ok=True)
                 with json_file.open('w') as f:
                     json.dump(datos_completos, f, default=str, ensure_ascii=False, indent=2)
-                    logger.info(f"Datos completos guardados en {json_file}")
+                logger.info("Datos completos guardados en %s", json_file)
 
                 # Guardar en el log general
                 log_file = RESULTADOS_DIR / "hostnames.log"
                 with log_file.open('a') as f:
-                    f.write(f"[{datetime.now().isoformat()}] Conexión exitosa a {hostname} (IP: {ip}, TLS: {tls_version}, Tiempo: {tiempo_conexion_total:.2f}s)\n")
+                    f.write(
+                        "[%s] Conexión exitosa a %s (IP: %s, TLS: %s, Tiempo: %.2fs)\n"
+                        % (datetime.now().isoformat(), hostname, ip, tls_version, tiempo_conexion_total)
+                    )
 
-                logger.info(f"✓ Conexión exitosa a {hostname}")
-                logger.info(f"  IP: {ip}")
-                logger.info(f"  TLS Version: {tls_version}")
-                logger.info(f"  Cipher Suite: {cipher_suite[0]}")
-                logger.info(f"  Issuer: {cert.issuer.rfc4514_string()}")
+                logger.info("Conexión exitosa a %s", hostname)
+                logger.info("  IP: %s", ip)
+                logger.info("  TLS Version: %s", tls_version)
+                logger.info("  Cipher Suite: %s", cipher_suite[0])
+                logger.info("  Issuer: %s", cert.issuer.rfc4514_string())
 
     except Exception as e:
-        logger.error(f"Error al conectar a {hostname}: {e}")
+        logger.error("Error al conectar a %s: %s", hostname, e)
         # Registrar error en el log
         log_file = RESULTADOS_DIR / "hostnames.log"
         RESULTADOS_DIR.mkdir(parents=True, exist_ok=True)
         with log_file.open('a') as f:
-            f.write(f"[{datetime.now().isoformat()}] ERROR al conectar a {hostname}: {e}\n")
+            f.write(
+                "[%s] ERROR al conectar a %s: %s\n"
+                % (datetime.now().isoformat(), hostname, e)
+            )
 
 
 # ============================================

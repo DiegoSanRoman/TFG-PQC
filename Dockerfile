@@ -32,7 +32,10 @@ RUN env -u LD_LIBRARY_PATH pip3 install --no-cache-dir --break-system-packages \
     pandas \
     numpy \
     matplotlib \
-    seaborn
+    seaborn \
+    dnspython \
+    cryptography \
+    scikit-learn 
 
 # 5. Preparar el entorno de trabajo
 WORKDIR /app
