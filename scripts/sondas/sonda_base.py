@@ -38,6 +38,7 @@ from utils import (                                                 # noqa: E402
     obtener_versiones_tls_soportadas,
     obtener_cadena_certificados,
     es_hostname_valido,
+    configurar_logging,
 )
 
 logger = logging.getLogger(__name__)
@@ -320,7 +321,7 @@ def leer_hostnames_csv(ruta_csv: Path, longitud_max: int) -> List[str]:
 
 
 
-def es_cipher_debil(cipher_name):
+def es_cipher_debil(cipher_name: str) -> bool:
     '''
     Determina si una suite de cifrado es débil
     :param cipher_name: Nombre de la suite de cifrado
@@ -331,7 +332,7 @@ def es_cipher_debil(cipher_name):
     return any(debil in cipher_name for debil in debiles)
 
 
-def tiene_pfs(cipher_name):
+def tiene_pfs(cipher_name: str) -> bool:
     '''
     Determina si una suite de cifrado tiene Perfect Forward Secrecy
     :param cipher_name: Nombre de la suite de cifrado
@@ -639,15 +640,7 @@ if __name__ == "__main__":
     parser.add_argument("--log-file", type=Path, default=LOG_DEFECTO, help="Ruta del archivo de log")
     args = parser.parse_args()
 
-    log_path = args.log_file
-    log_path.parent.mkdir(parents=True, exist_ok=True)
-    logging.basicConfig(
-        level=getattr(logging, args.log_level.upper(), logging.INFO),
-        format="%(asctime)s %(levelname)s %(message)s",
-        handlers=[
-            logging.FileHandler(log_path, encoding="utf-8")
-        ]
-    )
+    configurar_logging(args.log_file, args.log_level)
 
     # Evita ejecutar con OpenSSL OQS (contenedor) por defecto.
     # Para forzar ejecución en OQS, exporta: ALLOW_OQS=1

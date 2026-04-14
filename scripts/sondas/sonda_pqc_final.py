@@ -40,7 +40,7 @@ from constants import (                                     # noqa: E402
     CONNECTION_ACCEPTED,
     CONNECTION_REJECTED,
 )
-from utils import es_hostname_valido                        # noqa: E402
+from utils import es_hostname_valido, configurar_logging     # noqa: E402
 
 # Configurar logging
 logger = logging.getLogger(__name__)
@@ -136,7 +136,7 @@ def leer_hostnames_csv(ruta_csv: Path, longitud_max: int, domain_column: Optiona
     return hostnames
 
 
-def parse_trace_bytes(trace_output: str) -> Dict[str, Any]:
+def parse_trace_bytes(trace_output: str) -> Dict[str, Any]:  # noqa: C901
     '''
     Parsea bytes de handshake TLS desde la salida de OpenSSL con -trace.
     :param trace_output: Salida de stderr + stdout de OpenSSL con -trace
@@ -312,7 +312,12 @@ def _build_result(
     }
 
 
-def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
+def sonda_pqc(  # noqa: C901
+    hostname: str,
+    group: Optional[str] = None,
+    openssl_bin: Optional[str] = None,
+    proc_semaphore: Optional[threading.Semaphore] = None,
+) -> Dict[str, Any]:
     '''
     Función que intenta conectarse a un servidor HTTPS usando OpenSSL con soporte para cifrados post-cuánticos (híbridos y puros).
     :param hostname: El nombre del host o dominio del servidor HTTPS a escanear (puede incluir puerto: "hostname:puerto")
@@ -738,7 +743,7 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
         )
 
 
-def escanear_servidor_pqc(hostname: str, grupos: List[Optional[str]], openssl_bin: str, proc_semaphore, repeticiones: int = 3) -> Dict[str, Any]:
+def escanear_servidor_pqc(hostname: str, grupos: List[Optional[str]], openssl_bin: str, proc_semaphore: threading.Semaphore, repeticiones: int = 3) -> Dict[str, Any]:
     '''
     Escanea un servidor con múltiples grupos PQC y retorna los resultados
     :param hostname: Nombre del host a escanear
@@ -895,70 +900,55 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
     return estadisticas_grupos
 
 
-def exportar_estadisticas_csv(estadisticas_grupos: List[Dict[str, Any]], output_path: Path):
+def _flatten_stats_entry(entry: Dict[str, Any]) -> Dict[str, Any]:
     '''
-    Exporta estadísticas por grupo a un archivo CSV
-    :param estadisticas_grupos: Lista de estadísticas calculadas por grupo
-    :param output_path: Ruta donde guardar el CSV
+    Aplana una entrada de estadísticas en un dict plano apto para CSV.
+
+    Los campos escalares se copian directamente. Los campos que son dicts
+    de sub-métricas (p.ej. handshake_time_ms → {media, mediana, ...}) se
+    expanden como ``campo_submetrica``. El campo ``categorias_error`` se omite
+    porque su estructura es variable (un dict de claves dinámicas) y no encaja
+    en una fila tabular fija.
+
+    :param entry: Diccionario de estadísticas de un grupo.
+    :return: Dict plano con todas las columnas derivadas.
     '''
-    # Si no hay estadísticas, no crear el archivo
+    flat: Dict[str, Any] = {}
+    for key, value in entry.items():
+        if key == "categorias_error":
+            continue
+        if isinstance(value, dict):
+            for sub_key, sub_val in value.items():
+                flat[f"{key}_{sub_key}"] = sub_val
+        else:
+            flat[key] = value
+    return flat
+
+
+def exportar_estadisticas_csv(estadisticas_grupos: List[Dict[str, Any]], output_path: Path) -> None:
+    '''
+    Exporta estadísticas por grupo a un archivo CSV con headers derivados
+    dinámicamente de la estructura de datos, sin listas hardcodeadas.
+
+    Si se añaden nuevas métricas a ``generar_estadisticas_por_grupo``, este
+    método las incluirá automáticamente en el CSV sin necesidad de modificación.
+
+    :param estadisticas_grupos: Lista de estadísticas calculadas por grupo.
+    :param output_path: Ruta donde guardar el CSV.
+    '''
     if not estadisticas_grupos:
         logger.warning("No hay estadísticas para exportar a CSV")
         return
-    
-    # Crear el archivo CSV y escribir los datos
+
+    filas = [_flatten_stats_entry(e) for e in estadisticas_grupos]
+    # Los headers se derivan de la primera fila; todas las filas tienen la misma estructura
+    headers = list(filas[0].keys())
+
     with output_path.open('w', newline='', encoding='utf-8') as csvfile:
-        writer = csv.writer(csvfile)
-        
-        # Encabezados
-        headers = [
-            'Grupo',
-            'Total Pruebas',
-            'Aceptados',
-            'Rechazados',
-            'Errores',
-            '% Aceptación',
-            '% Rechazo',
-            '% Error',
-            'Handshake Media (ms)',
-            'Handshake Mediana (ms)',
-            'Handshake Desv.Std (ms)',
-            'Handshake Min (ms)',
-            'Handshake Max (ms)',
-            'DNS Media (ms)',
-            'TCP Media (ms)',
-            'Bytes Enviados Media',
-            'Bytes Recibidos Media',
-            'Overhead Handshake Trace TLS Media',
-            'Overhead Handshake Total Media (OpenSSL)'
-        ]
-        writer.writerow(headers)
-        
-        # Datos
-        for stats in estadisticas_grupos:
-            row = [
-                stats['grupo'],
-                stats['total_pruebas'],
-                stats['aceptados'],
-                stats['rechazados'],
-                stats['errores'],
-                stats['porcentaje_aceptacion'],
-                stats['porcentaje_rechazo'],
-                stats['porcentaje_error'],
-                stats['handshake_time_ms']['media'],
-                stats['handshake_time_ms']['mediana'],
-                stats['handshake_time_ms']['desv_std'],
-                stats['handshake_time_ms']['min'],
-                stats['handshake_time_ms']['max'],
-                stats['dns_time_ms']['media'],
-                stats['tcp_time_ms']['media'],
-                stats['bytes_sent']['media'],
-                stats['bytes_received']['media'],
-                stats['handshake_overhead']['media'],
-                stats['handshake_total_overhead']['media']
-            ]
-            writer.writerow(row)
-    
+        writer = csv.DictWriter(csvfile, fieldnames=headers)
+        writer.writeheader()
+        writer.writerows(filas)
+
     logger.info("Estadísticas por grupo exportadas a %s", output_path)
 
 
@@ -1103,15 +1093,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Configurar logging
-    log_path = args.log_file
-    log_path.parent.mkdir(parents=True, exist_ok=True)
-    logging.basicConfig(
-        level=getattr(logging, args.log_level.upper(), logging.INFO),
-        format="%(asctime)s %(levelname)s %(message)s",
-        handlers=[
-            logging.FileHandler(log_path, encoding="utf-8")
-        ]
-    )
+    configurar_logging(args.log_file, args.log_level)
     
     # Loguear configuración inicial
     logger.info("Iniciando sonda PQC con OpenSSL personalizado")

@@ -14,6 +14,7 @@ import re
 import socket
 import ssl
 import time
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import dns.resolver
@@ -21,6 +22,39 @@ from cryptography import x509
 from cryptography.hazmat.primitives.asymmetric import dsa, ec, rsa
 
 logger = logging.getLogger(__name__)
+
+
+# ============================================
+# LOGGING HOMOGÉNEO
+# ============================================
+
+LOG_FORMAT = "%(asctime)s %(levelname)-8s [%(name)s] %(message)s"
+
+
+def configurar_logging(
+    log_file: Path,
+    log_level: str = "INFO",
+    *,
+    to_console: bool = False,
+) -> None:
+    """
+    Configura el sistema de logging de forma homogénea para todas las sondas.
+
+    Crea el directorio del archivo de log si no existe. Formato fijo:
+    ``YYYY-MM-DD HH:MM:SS LEVEL    [módulo] mensaje``
+
+    :param log_file: Ruta al archivo de log.
+    :param log_level: Nivel de log ('DEBUG', 'INFO', 'WARNING', 'ERROR').
+    :param to_console: Si True, añade también un StreamHandler a stderr.
+    """
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+    level = getattr(logging, log_level.upper(), logging.INFO)
+    handlers: List[logging.Handler] = [
+        logging.FileHandler(log_file, encoding="utf-8")
+    ]
+    if to_console:
+        handlers.append(logging.StreamHandler())
+    logging.basicConfig(level=level, format=LOG_FORMAT, handlers=handlers, force=True)
 
 
 # ============================================
@@ -152,6 +186,9 @@ def es_hostname_valido(hostname: str) -> bool:
         return False
     # Caracteres permitidos en DNS (RFC 1123): a-z, A-Z, 0-9, '-', '.'
     if not re.fullmatch(r'[a-zA-Z0-9.\-]+', h):
+        return False
+    # Las etiquetas (partes entre puntos) no pueden estar vacías (evita "a..b", ".", "...")
+    if any(label == '' for label in h.split('.')):
         return False
     return True
 

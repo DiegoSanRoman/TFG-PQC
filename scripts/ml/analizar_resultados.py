@@ -27,9 +27,8 @@ _SCRIPTS_DIR = Path(__file__).parent.parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 from constants import CONNECTION_ACCEPTED  # noqa: E402
+from utils import configurar_logging      # noqa: E402
 
-# Configurar logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 # Configurar estilo
@@ -861,4 +860,5 @@ def main():
     logger.info(f"\n✅ ¡Análisis completado! Gráficas guardadas en {OUTPUT_DIR}")
 
 if __name__ == '__main__':
+    configurar_logging(BASE_DIR / "resultados" / "analizar_resultados.log", to_console=True)
     main()

@@ -38,10 +38,9 @@ from utils import (                                                 # noqa: E402
     obtener_informacion_clave,
     obtener_versiones_tls_soportadas,
     resolver_dns,
+    configurar_logging,
 )
 
-# Configuración del logger
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ============================================
@@ -183,5 +182,9 @@ def conectar_a_host(hostname: str) -> None:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Conexión a un hostname específico.')
     parser.add_argument('--hostname', type=str, required=True, help='El hostname al que conectarse.')
+    parser.add_argument('--log-level', default='INFO', help='Nivel de log: DEBUG, INFO, WARNING, ERROR')
+    parser.add_argument('--log-file', type=Path, default=RESULTADOS_DIR / 'hostname_conexion.log',
+                        help='Ruta del archivo de log')
     args = parser.parse_args()
+    configurar_logging(args.log_file, args.log_level)
     conectar_a_host(args.hostname)
