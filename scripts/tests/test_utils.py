@@ -17,7 +17,7 @@ _SCRIPTS_DIR = Path(__file__).parent.parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
-from utils import configurar_logging, es_hostname_valido
+from utils import configurar_logging, es_hostname_valido, _build_result_dict
 
 
 # ============================================
@@ -125,3 +125,64 @@ class TestConfigurarLogging:
         stream_handlers = [h for h in logging.getLogger().handlers
                            if type(h) is logging.StreamHandler]
         assert len(stream_handlers) == 0
+
+
+# ============================================
+# _build_result_dict
+# ============================================
+
+class TestBuildResultDict:
+    """_build_result_dict construye el esquema estándar de resultado PQC."""
+
+    def _base(self, **kwargs):
+        defaults = dict(
+            error_category=None,
+            connection_result=None,
+            res="ok",
+            sni_usado="example.com",
+            sni_difiere=False,
+            retry=False,
+        )
+        defaults.update(kwargs)
+        return _build_result_dict(**defaults)
+
+    def test_contiene_todas_las_claves_obligatorias(self):
+        r = self._base()
+        for key in ("error_category", "connection_result", "res",
+                    "sni_usado", "sni_difiere", "retry",
+                    "ip", "tls_version", "cipher_suite",
+                    "handshake_time_ms", "openssl_connect_tls_time_ms"):
+            assert key in r, f"Clave ausente: {key}"
+
+    def test_metricas_son_none_por_defecto(self):
+        r = self._base()
+        assert r["ip"] is None
+        assert r["tls_version"] is None
+        assert r["bytes_sent"] is None
+        assert r["dns_time_ms"] is None
+
+    def test_openssl_connect_tls_time_es_alias_de_handshake(self):
+        r = self._base(handshake_time_ms=42.5)
+        assert r["handshake_time_ms"] == 42.5
+        assert r["openssl_connect_tls_time_ms"] == 42.5
+
+    def test_error_category_se_asigna(self):
+        r = self._base(error_category="ERROR_DNS")
+        assert r["error_category"] == "ERROR_DNS"
+
+    def test_campos_opcionales_se_incluyen(self):
+        r = self._base(
+            ip="1.2.3.4",
+            tls_version="TLSv1.3",
+            cipher_suite="TLS_AES_256_GCM_SHA384",
+            bytes_sent=500,
+        )
+        assert r["ip"] == "1.2.3.4"
+        assert r["tls_version"] == "TLSv1.3"
+        assert r["bytes_sent"] == 500
+
+    def test_sni_y_retry_se_preservan(self):
+        r = self._base(sni_usado="sub.example.com", sni_difiere=True, retry=True)
+        assert r["sni_usado"] == "sub.example.com"
+        assert r["sni_difiere"] is True
+        assert r["retry"] is True

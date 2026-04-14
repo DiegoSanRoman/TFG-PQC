@@ -229,3 +229,81 @@ def obtener_versiones_tls_soportadas(hostname: str, ip: str) -> Dict[str, bool]:
         except Exception:
             versiones_soportadas[nombre_version] = False
     return versiones_soportadas
+
+
+# ============================================
+# CONSTRUCCIÓN DEL RESULTADO ESTÁNDAR PQC
+# ============================================
+
+def _build_result_dict(
+    error_category: Optional[str],
+    connection_result: Optional[str],
+    res: str,
+    sni_usado: str,
+    sni_difiere: bool,
+    retry: bool,
+    dns_time_ms: Optional[float] = None,
+    tcp_time_ms: Optional[float] = None,
+    tiempo_conexion_segundos: Optional[float] = None,
+    handshake_time_ms: Optional[float] = None,
+    ip: Optional[str] = None,
+    ip_familia: Optional[str] = None,
+    tls_version: Optional[str] = None,
+    cipher_suite: Optional[str] = None,
+    alpn: Optional[str] = None,
+    tls_alert: Optional[str] = None,
+    cert_issuer: Optional[str] = None,
+    cert_not_before: Optional[str] = None,
+    cert_not_after: Optional[str] = None,
+    cert_san: Optional[str] = None,
+    cert_fingerprint_sha256: Optional[str] = None,
+    bytes_sent: Optional[int] = None,
+    bytes_received: Optional[int] = None,
+    handshake_overhead: Optional[int] = None,
+    measurement_method: Optional[str] = None,
+    handshake_total_bytes_sent: Optional[int] = None,
+    handshake_total_bytes_received: Optional[int] = None,
+    handshake_total_overhead: Optional[int] = None,
+    measurement_method_total: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Construye el diccionario de resultado estándar de una sonda PQC.
+
+    Centraliza la construcción del dict para evitar duplicación en cada punto
+    de retorno de ``sonda_pqc()``. El campo ``openssl_connect_tls_time_ms`` es
+    un alias de ``handshake_time_ms`` mantenido por compatibilidad.
+
+    :return: Diccionario con todas las métricas y metadatos de la conexión.
+    """
+    return {
+        "error_category": error_category,
+        "connection_result": connection_result,
+        "res": res,
+        "tiempo_conexion_segundos": tiempo_conexion_segundos,
+        "dns_time_ms": dns_time_ms,
+        "tcp_time_ms": tcp_time_ms,
+        "handshake_time_ms": handshake_time_ms,
+        "openssl_connect_tls_time_ms": handshake_time_ms,
+        "ip": ip,
+        "ip_familia": ip_familia,
+        "tls_version": tls_version,
+        "cipher_suite": cipher_suite,
+        "alpn": alpn,
+        "tls_alert": tls_alert,
+        "cert_issuer": cert_issuer,
+        "cert_not_before": cert_not_before,
+        "cert_not_after": cert_not_after,
+        "cert_san": cert_san,
+        "cert_fingerprint_sha256": cert_fingerprint_sha256,
+        "bytes_sent": bytes_sent,
+        "bytes_received": bytes_received,
+        "handshake_overhead": handshake_overhead,
+        "measurement_method": measurement_method,
+        "handshake_total_bytes_sent": handshake_total_bytes_sent,
+        "handshake_total_bytes_received": handshake_total_bytes_received,
+        "handshake_total_overhead": handshake_total_overhead,
+        "measurement_method_total": measurement_method_total,
+        "sni_usado": sni_usado,
+        "sni_difiere": sni_difiere,
+        "retry": retry,
+    }

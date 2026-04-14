@@ -23,6 +23,7 @@ from datetime import datetime, timezone                     # Para timestamps y 
 from pathlib import Path                                    # Para rutas
 from concurrent.futures import ThreadPoolExecutor, as_completed  # Para concurrencia
 from tqdm import tqdm                                       # Para barras de progreso
+from dataclasses import dataclass                               # Para ProbeResults
 from typing import List, Dict, Any, Optional                # Para type hints
 
 # Importar constantes y utilidades compartidas desde scripts/
@@ -40,7 +41,10 @@ from constants import (                                     # noqa: E402
     CONNECTION_ACCEPTED,
     CONNECTION_REJECTED,
 )
-from utils import es_hostname_valido, configurar_logging     # noqa: E402
+from utils import es_hostname_valido, configurar_logging, _build_result_dict  # noqa: E402
+from exceptions import (                                     # noqa: E402
+    PQCValidationError,
+)
 
 # Configurar logging
 logger = logging.getLogger(__name__)
@@ -238,78 +242,52 @@ def parse_trace_bytes(trace_output: str) -> Dict[str, Any]:  # noqa: C901
     }
 
 
+class TLSOutputParser:
+    """
+    Encapsula el análisis de la salida ``-trace`` de OpenSSL en métricas de bytes TLS.
+
+    La lógica de parseo reside en ``parse_trace_bytes``; esta clase la envuelve
+    proporcionando una interfaz orientada a objetos con resultado cacheado y un
+    método de fábrica conveniente para salidas de subproceso.
+
+    Uso típico::
+
+        parser = TLSOutputParser.from_subprocess(stdout, stderr)
+        metrics = parser.parse()
+        print(metrics["bytes_sent"])
+    """
+
+    def __init__(self, trace_output: str) -> None:
+        self._trace_output = trace_output
+        self._result: Optional[Dict[str, Any]] = None
+
+    def parse(self) -> Dict[str, Any]:
+        """
+        Parsea la salida y devuelve las métricas de bytes TLS.
+        El resultado se cachea: llamadas sucesivas no repiten el trabajo.
+        """
+        if self._result is None:
+            self._result = parse_trace_bytes(self._trace_output)
+        return self._result
+
+    @staticmethod
+    def from_subprocess(stdout: str, stderr: str) -> "TLSOutputParser":
+        """
+        Crea un parser combinando stdout y stderr de un proceso OpenSSL.
+
+        :param stdout: Salida estándar del proceso OpenSSL.
+        :param stderr: Salida de error del proceso OpenSSL.
+        """
+        return TLSOutputParser(stdout + "\n" + stderr)
+
+
 # ============================================
 # FUNCIONES PRINCIPALES
 # ============================================
 
-def _build_result(
-    error_category,
-    connection_result,
-    res,
-    sni_usado,
-    sni_difiere,
-    retry,
-    dns_time_ms=None,
-    tcp_time_ms=None,
-    tiempo_conexion_segundos=None,
-    handshake_time_ms=None,
-    ip=None,
-    ip_familia=None,
-    tls_version=None,
-    cipher_suite=None,
-    alpn=None,
-    tls_alert=None,
-    cert_issuer=None,
-    cert_not_before=None,
-    cert_not_after=None,
-    cert_san=None,
-    cert_fingerprint_sha256=None,
-    bytes_sent=None,
-    bytes_received=None,
-    handshake_overhead=None,
-    measurement_method=None,
-    handshake_total_bytes_sent=None,
-    handshake_total_bytes_received=None,
-    handshake_total_overhead=None,
-    measurement_method_total=None,
-) -> Dict[str, Any]:
-    '''
-    Construye el diccionario de resultado estándar de sonda_pqc().
-    Centraliza la construcción del dict para evitar duplicación en cada punto de retorno.
-    :return: Diccionario con todas las métricas y metadatos de la conexión
-    '''
-    return {
-        "error_category": error_category,
-        "connection_result": connection_result,
-        "res": res,
-        "tiempo_conexion_segundos": tiempo_conexion_segundos,
-        "dns_time_ms": dns_time_ms,
-        "tcp_time_ms": tcp_time_ms,
-        "handshake_time_ms": handshake_time_ms,
-        "openssl_connect_tls_time_ms": handshake_time_ms,
-        "ip": ip,
-        "ip_familia": ip_familia,
-        "tls_version": tls_version,
-        "cipher_suite": cipher_suite,
-        "alpn": alpn,
-        "tls_alert": tls_alert,
-        "cert_issuer": cert_issuer,
-        "cert_not_before": cert_not_before,
-        "cert_not_after": cert_not_after,
-        "cert_san": cert_san,
-        "cert_fingerprint_sha256": cert_fingerprint_sha256,
-        "bytes_sent": bytes_sent,
-        "bytes_received": bytes_received,
-        "handshake_overhead": handshake_overhead,
-        "measurement_method": measurement_method,
-        "handshake_total_bytes_sent": handshake_total_bytes_sent,
-        "handshake_total_bytes_received": handshake_total_bytes_received,
-        "handshake_total_overhead": handshake_total_overhead,
-        "measurement_method_total": measurement_method_total,
-        "sni_usado": sni_usado,
-        "sni_difiere": sni_difiere,
-        "retry": retry,
-    }
+# Alias para compatibilidad con el resto del módulo y los tests existentes.
+# La implementación canónica vive en utils._build_result_dict.
+_build_result = _build_result_dict
 
 
 def sonda_pqc(  # noqa: C901
@@ -523,8 +501,7 @@ def sonda_pqc(  # noqa: C901
         stderr = stderr_bytes.decode(errors='ignore') if stderr_bytes else ""
         
         # Parsear los bytes reales del handshake TLS desde la salida de -trace
-        trace_output = stdout + "\n" + stderr
-        trace_metrics = parse_trace_bytes(trace_output)
+        trace_metrics = TLSOutputParser.from_subprocess(stdout, stderr).parse()
         
         # Métricas reales del tráfico de red
         bytes_sent = trace_metrics['bytes_sent']
@@ -1058,6 +1035,122 @@ def calcular_promedio_repeticiones(intentos: List[Dict[str, Any]], grupo: str) -
     
     return resultado
 
+
+
+# ============================================
+# CLASES DE ALTO NIVEL: ProbeResults / PQCProbe
+# ============================================
+
+@dataclass
+class ProbeResults:
+    """
+    Resultado tipado de una sonda PQC individual.
+
+    Envuelve el diccionario devuelto por ``sonda_pqc()`` proporcionando
+    acceso por atributo a los campos más usados y garantizando que el
+    esquema de datos permanece coherente.
+
+    Ejemplo::
+
+        probe = PQCProbe()
+        result = probe.run("example.com", group="X25519MLKEM768")
+        if result.is_accepted:
+            print(result.tls_version)
+    """
+
+    data: Dict[str, Any]
+
+    # ------------------------------------------------------------------
+    # Propiedades de acceso rápido
+    # ------------------------------------------------------------------
+
+    @property
+    def connection_result(self) -> Optional[str]:
+        """``CONNECTION_ACCEPTED`` / ``CONNECTION_REJECTED`` / None."""
+        return self.data.get("connection_result")
+
+    @property
+    def error_category(self) -> Optional[str]:
+        """Categoría de error (ERROR_DNS, ERROR_TCP_REFUSED, …) o None si no hubo error."""
+        return self.data.get("error_category")
+
+    @property
+    def is_accepted(self) -> bool:
+        """True si el handshake TLS/PQC fue aceptado por el servidor."""
+        from constants import CONNECTION_ACCEPTED as _CA
+        return self.connection_result == _CA
+
+    @property
+    def tls_version(self) -> Optional[str]:
+        return self.data.get("tls_version")
+
+    @property
+    def cipher_suite(self) -> Optional[str]:
+        return self.data.get("cipher_suite")
+
+    @property
+    def handshake_time_ms(self) -> Optional[float]:
+        return self.data.get("handshake_time_ms")
+
+    # ------------------------------------------------------------------
+    # Compatibilidad con acceso por clave (dict-like)
+    # ------------------------------------------------------------------
+
+    def __getitem__(self, key: str) -> Any:
+        return self.data[key]
+
+    def get(self, key: str, default: Any = None) -> Any:
+        return self.data.get(key, default)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Devuelve una copia del diccionario de resultados subyacente."""
+        return dict(self.data)
+
+
+class PQCProbe:
+    """
+    Encapsula la configuración y ejecución de una sonda PQC para un host.
+
+    Centraliza la validación de entradas y la creación del resultado tipado,
+    delegando la lógica de conexión a ``sonda_pqc()``.
+
+    Ejemplo::
+
+        probe = PQCProbe(openssl_bin="/opt/openssl/bin/openssl")
+        result = probe.run("example.com", group="X25519MLKEM768")
+        print(result.is_accepted, result.tls_version)
+    """
+
+    def __init__(
+        self,
+        openssl_bin: str = "/opt/openssl/bin/openssl",
+        proc_semaphore: Optional[threading.Semaphore] = None,
+    ) -> None:
+        """
+        :param openssl_bin: Ruta al binario OpenSSL con soporte PQC.
+        :param proc_semaphore: Semáforo opcional para limitar la concurrencia de procesos.
+        """
+        self.openssl_bin = openssl_bin
+        self.proc_semaphore = proc_semaphore
+
+    def run(self, hostname: str, group: Optional[str] = None) -> ProbeResults:
+        """
+        Ejecuta la sonda PQC para un hostname y grupo dado.
+
+        :param hostname: Nombre del host objetivo (p.ej. ``"example.com"``).
+        :param group:    Grupo de cifrado PQC (p.ej. ``"X25519MLKEM768"``); None para automático.
+        :raises PQCValidationError: Si el hostname no es un nombre de dominio válido.
+        :return: :class:`ProbeResults` con el resultado de la conexión.
+        """
+        if not es_hostname_valido(hostname):
+            raise PQCValidationError(f"Hostname inválido: {hostname!r}")
+        result = sonda_pqc(
+            hostname,
+            group,
+            openssl_bin=self.openssl_bin,
+            proc_semaphore=self.proc_semaphore,
+        )
+        return ProbeResults(data=result)
 
 
 # ============================================

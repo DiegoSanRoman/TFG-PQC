@@ -4,7 +4,8 @@ test_sonda_pqc.py
 Tests unitarios para scripts/sondas/sonda_pqc_final.py.
 Cubre funciones puras: es_cipher_debil, tiene_pfs (importadas desde sonda_base),
 parse_trace_bytes, _build_result, calcular_promedio_repeticiones,
-generar_estadisticas_por_grupo, exportar_estadisticas_csv y _flatten_stats_entry.
+generar_estadisticas_por_grupo, exportar_estadisticas_csv, _flatten_stats_entry,
+TLSOutputParser, ProbeResults y PQCProbe.
 """
 
 import csv
@@ -23,6 +24,16 @@ for _p in (_SCRIPTS_DIR, _SONDAS_DIR):
         sys.path.insert(0, str(_p))
 
 from constants import CONNECTION_ACCEPTED, CONNECTION_REJECTED, ERROR_DNS, ERROR_TLS_ALERT
+from exceptions import (
+    PQCError,
+    PQCValidationError,
+    PQCDNSError,
+    PQCTCPRefusedError,
+    PQCTCPTimeoutError,
+    PQCTCPError,
+    PQCTLSTimeoutError,
+    PQCTLSAlertError,
+)
 from sonda_base import es_cipher_debil, tiene_pfs
 from sonda_pqc_final import (
     _build_result,
@@ -32,6 +43,9 @@ from sonda_pqc_final import (
     generar_estadisticas_por_grupo,
     leer_hostnames_csv,
     parse_trace_bytes,
+    TLSOutputParser,
+    ProbeResults,
+    PQCProbe,
 )
 
 
@@ -484,3 +498,235 @@ class TestLeerHostnamesCsv:
         result = leer_hostnames_csv(csv_file, 10, domain_column=1)
         assert "target.com" in result
         assert "other.org" in result
+
+
+# ============================================
+# TLSOutputParser
+# ============================================
+
+class TestTLSOutputParser:
+    """TLSOutputParser debe delegar en parse_trace_bytes y cachear el resultado."""
+
+    def test_parse_equivalente_a_funcion(self):
+        trace = (
+            "Sent TLS Record\n"
+            "  Content Type = handshake\n"
+            "  Length = 200\n"
+            "Received TLS Record\n"
+            "  Content Type = handshake\n"
+            "  Length = 300\n"
+        )
+        via_clase = TLSOutputParser(trace).parse()
+        via_funcion = parse_trace_bytes(trace)
+        assert via_clase == via_funcion
+
+    def test_parse_cachea_resultado(self):
+        trace = "SSL handshake has read 1500 bytes and written 800 bytes"
+        parser = TLSOutputParser(trace)
+        r1 = parser.parse()
+        r2 = parser.parse()
+        assert r1 is r2  # mismo objeto — resultado cacheado
+
+    def test_from_subprocess_combina_stdout_stderr(self):
+        stdout = "Sent TLS Record\n  Content Type = handshake\n  Length = 100\n"
+        stderr = "Received TLS Record\n  Content Type = handshake\n  Length = 200\n"
+        result = TLSOutputParser.from_subprocess(stdout, stderr).parse()
+        assert result["bytes_sent"] == 105
+        assert result["bytes_received"] == 205
+
+    def test_entrada_vacia_devuelve_unknown(self):
+        result = TLSOutputParser("").parse()
+        assert result["measurement_method"] == "unknown"
+
+    def test_openssl_summary_en_stderr(self):
+        stderr = "SSL handshake has read 2000 bytes and written 1000 bytes"
+        result = TLSOutputParser.from_subprocess("", stderr).parse()
+        assert result["handshake_total_bytes_received"] == 2000
+        assert result["measurement_method_total"] == "openssl_summary"
+
+
+# ============================================
+# ProbeResults
+# ============================================
+
+class TestProbeResults:
+    def _make(self, **kwargs) -> ProbeResults:
+        base = dict(
+            error_category=None,
+            connection_result=CONNECTION_ACCEPTED,
+            res="ok",
+            sni_usado="example.com",
+            sni_difiere=False,
+            retry=False,
+            ip="1.2.3.4",
+            ip_familia="IPv4",
+            tls_version="TLSv1.3",
+            cipher_suite="TLS_AES_256_GCM_SHA384",
+            alpn=None,
+            tls_alert=None,
+            cert_issuer="CN=Test",
+            cert_not_before=None,
+            cert_not_after=None,
+            cert_san=None,
+            cert_fingerprint_sha256=None,
+            bytes_sent=100,
+            bytes_received=200,
+            handshake_overhead=300,
+            handshake_total_bytes_sent=100,
+            handshake_total_bytes_received=200,
+            handshake_total_overhead=300,
+            measurement_method="traced",
+            measurement_method_total="openssl_summary",
+            tiempo_conexion_segundos=0.5,
+            handshake_time_ms=80.0,
+            openssl_connect_tls_time_ms=80.0,
+            dns_time_ms=10.0,
+            tcp_time_ms=5.0,
+        )
+        base.update(kwargs)
+        return ProbeResults(data=base)
+
+    def test_is_accepted_true(self):
+        r = self._make(connection_result=CONNECTION_ACCEPTED)
+        assert r.is_accepted is True
+
+    def test_is_accepted_false_cuando_rechazado(self):
+        r = self._make(connection_result=CONNECTION_REJECTED)
+        assert r.is_accepted is False
+
+    def test_is_accepted_false_cuando_error(self):
+        r = self._make(connection_result=None, error_category=ERROR_DNS)
+        assert r.is_accepted is False
+
+    def test_tls_version_property(self):
+        r = self._make(tls_version="TLSv1.3")
+        assert r.tls_version == "TLSv1.3"
+
+    def test_handshake_time_ms_property(self):
+        r = self._make(handshake_time_ms=55.5)
+        assert r.handshake_time_ms == 55.5
+
+    def test_acceso_por_clave(self):
+        r = self._make()
+        assert r["ip"] == "1.2.3.4"
+
+    def test_get_con_default(self):
+        r = self._make()
+        assert r.get("campo_inexistente", "X") == "X"
+
+    def test_to_dict_es_copia(self):
+        r = self._make()
+        d = r.to_dict()
+        assert isinstance(d, dict)
+        d["ip"] = "mutado"
+        assert r["ip"] == "1.2.3.4"  # el original no se modifica
+
+    def test_error_category_property(self):
+        r = self._make(error_category=ERROR_DNS)
+        assert r.error_category == ERROR_DNS
+
+
+# ============================================
+# PQCProbe
+# ============================================
+
+class TestPQCProbe:
+    def test_hostname_invalido_lanza_PQCValidationError(self):
+        probe = PQCProbe()
+        with pytest.raises(PQCValidationError):
+            probe.run("hostname_sin_punto")
+
+    def test_hostname_vacio_lanza_PQCValidationError(self):
+        probe = PQCProbe()
+        with pytest.raises(PQCValidationError):
+            probe.run("")
+
+    def test_hostname_con_espacios_lanza_PQCValidationError(self):
+        probe = PQCProbe()
+        with pytest.raises(PQCValidationError):
+            probe.run("host name.com")
+
+    def test_PQCValidationError_es_subclase_de_PQCError(self):
+        with pytest.raises(PQCError):
+            PQCProbe().run("sin_punto")
+
+    def test_run_devuelve_ProbeResults(self, monkeypatch):
+        from sonda_pqc_final import sonda_pqc as _sonda
+        dummy = dict(
+            error_category=None,
+            connection_result=CONNECTION_ACCEPTED,
+            res="ok",
+            sni_usado="example.com",
+            sni_difiere=False,
+            retry=False,
+            ip="1.2.3.4",
+            ip_familia="IPv4",
+            tls_version="TLSv1.3",
+            cipher_suite="TLS_AES_256_GCM_SHA384",
+            alpn=None, tls_alert=None,
+            cert_issuer=None, cert_not_before=None, cert_not_after=None,
+            cert_san=None, cert_fingerprint_sha256=None,
+            bytes_sent=100, bytes_received=200, handshake_overhead=300,
+            handshake_total_bytes_sent=100, handshake_total_bytes_received=200,
+            handshake_total_overhead=300,
+            measurement_method="traced", measurement_method_total="openssl_summary",
+            tiempo_conexion_segundos=0.5, handshake_time_ms=80.0,
+            openssl_connect_tls_time_ms=80.0, dns_time_ms=10.0, tcp_time_ms=5.0,
+        )
+        import sonda_pqc_final as _mod
+        monkeypatch.setattr(_mod, "sonda_pqc", lambda *a, **kw: dummy)
+        probe = PQCProbe()
+        result = probe.run("example.com", group="X25519")
+        assert isinstance(result, ProbeResults)
+        assert result.is_accepted is True
+
+    def test_openssl_bin_se_pasa_a_sonda_pqc(self, monkeypatch):
+        llamadas = []
+        def fake_sonda(hostname, group=None, openssl_bin=None, proc_semaphore=None):
+            llamadas.append(openssl_bin)
+            return dict(
+                error_category=None, connection_result=CONNECTION_ACCEPTED,
+                res="ok", sni_usado=hostname, sni_difiere=False, retry=False,
+                ip=None, ip_familia=None, tls_version=None, cipher_suite=None,
+                alpn=None, tls_alert=None, cert_issuer=None, cert_not_before=None,
+                cert_not_after=None, cert_san=None, cert_fingerprint_sha256=None,
+                bytes_sent=None, bytes_received=None, handshake_overhead=None,
+                handshake_total_bytes_sent=None, handshake_total_bytes_received=None,
+                handshake_total_overhead=None, measurement_method=None,
+                measurement_method_total=None, tiempo_conexion_segundos=None,
+                handshake_time_ms=None, openssl_connect_tls_time_ms=None,
+                dns_time_ms=None, tcp_time_ms=None,
+            )
+        import sonda_pqc_final as _mod
+        monkeypatch.setattr(_mod, "sonda_pqc", fake_sonda)
+        PQCProbe(openssl_bin="/custom/openssl").run("example.com")
+        assert llamadas == ["/custom/openssl"]
+
+
+# ============================================
+# Jerarquía de excepciones
+# ============================================
+
+class TestExceptions:
+    def test_PQCError_es_Exception(self):
+        assert issubclass(PQCError, Exception)
+
+    def test_todas_heredan_de_PQCError(self):
+        for cls in (PQCValidationError, PQCDNSError, PQCTCPRefusedError,
+                    PQCTCPTimeoutError, PQCTCPError, PQCTLSTimeoutError,
+                    PQCTLSAlertError):
+            assert issubclass(cls, PQCError), f"{cls.__name__} no hereda de PQCError"
+
+    def test_se_pueden_instanciar_con_mensaje(self):
+        for cls in (PQCValidationError, PQCDNSError, PQCTCPRefusedError,
+                    PQCTCPTimeoutError, PQCTCPError, PQCTLSTimeoutError,
+                    PQCTLSAlertError):
+            e = cls("mensaje de prueba")
+            assert str(e) == "mensaje de prueba"
+
+    def test_captura_por_base_PQCError(self):
+        with pytest.raises(PQCError):
+            raise PQCTLSAlertError("handshake failure")
+
+    def test_PQCValidationError_no_es_PQCDNSError(self):
+        assert not issubclass(PQCValidationError, PQCDNSError)
