@@ -16,17 +16,29 @@ Nota: Este script requiere permisos de red y acceso a Internet para funcionar co
 
 # Imports necesarios para la conexión, manejo de certificados, resolución DNS, y almacenamiento de resultados
 import argparse
+import hashlib
+import json
 import logging
-from pathlib import Path
 import socket
 import ssl
-import json
+import sys
 import time
-import hashlib
-import dns.resolver
 from datetime import datetime, timezone
+from pathlib import Path
+
 from cryptography import x509
-from cryptography.hazmat.primitives.asymmetric import rsa, ec, dsa
+
+# Importar utilidades compartidas desde scripts/utils.py
+_SCRIPTS_DIR = Path(__file__).parent.parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+from utils import (                                                 # noqa: E402
+    extraer_san,
+    obtener_cadena_certificados,
+    obtener_informacion_clave,
+    obtener_versiones_tls_soportadas,
+    resolver_dns,
+)
 
 # Configuración del logger
 logging.basicConfig(level=logging.INFO)
@@ -42,131 +54,6 @@ RESULTADOS_DIR = BASE_DIR / "resultados"
 RESULTADOS_DIR.mkdir(parents=True, exist_ok=True)
 
 
-# ============================================
-# FUNCIONES AUXILIARES
-# ============================================
-
-def resolver_dns(hostname: str):
-    """
-    Resuelve el DNS y mide la latencia.
-    Devuelve la IP resuelta y la latencia en milisegundos.
-    """
-    try:
-        inicio = time.perf_counter()
-        respuesta = dns.resolver.resolve(hostname, 'A')
-        latencia_dns = (time.perf_counter() - inicio) * 1000
-        ip = str(respuesta[0]) if respuesta else None
-        if not ip:
-            return None, None
-        return ip, round(latencia_dns, 2)
-    except Exception as e:
-        logger.error(f"Error al resolver DNS para {hostname}: {e}")
-        return None, None
-
-def obtener_versiones_tls_soportadas(hostname: str, ip: str):
-    """
-    Prueba diferentes versiones de TLS para ver cuáles soporta el servidor.
-    Devuelve un diccionario con el resultado de cada versión.
-    """
-    versiones_soportadas = {}
-    versiones_a_probar = [
-        ("TLS1.0", ssl.TLSVersion.TLSv1),
-        ("TLS1.1", ssl.TLSVersion.TLSv1_1),
-        ("TLS1.2", ssl.TLSVersion.TLSv1_2),
-        ("TLS1.3", ssl.TLSVersion.TLSv1_3),
-    ]
-    
-    # Para cada versión, intentamos establecer una conexión TLS específica y vemos si es exitosa o no
-    for nombre_version, tls_version in versiones_a_probar:
-        try:
-            ctx = ssl.create_default_context()
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
-            ctx.minimum_version = tls_version
-            ctx.maximum_version = tls_version
-            
-            with socket.create_connection((ip, 443), timeout=2) as sock:
-                with ctx.wrap_socket(sock, server_hostname=hostname) as ssock:
-                    versiones_soportadas[nombre_version] = True
-                    logger.debug(f"Versión {nombre_version} soportada para {hostname}")
-        except Exception:
-            versiones_soportadas[nombre_version] = False
-    
-    return versiones_soportadas
-
-def extraer_san(cert):
-    """
-    Extrae los Subject Alternative Names del certificado.
-    Devuelve una lista de SANs encontrados.
-    """
-    san_list = []
-    try:
-        san_extension = cert.extensions.get_extension_for_class(x509.SubjectAlternativeName)
-        for name in san_extension.value:
-            if isinstance(name, x509.DNSName):
-                san_list.append(name.value)
-    except x509.ExtensionNotFound:
-        pass
-    return san_list
-
-def obtener_informacion_clave(cert):
-    """
-    Extrae información sobre la clave pública.
-    Devuelve un diccionario con detalles de la clave.
-    """
-    public_key = cert.public_key()
-    info = {
-        "algoritmo": None,
-        "tamaño_bits": None,
-        "curva": None
-    }
-    
-    if isinstance(public_key, rsa.RSAPublicKey):
-        info["algoritmo"] = "RSA"
-        info["tamaño_bits"] = public_key.key_size
-    elif isinstance(public_key, ec.EllipticCurvePublicKey):
-        info["algoritmo"] = "ECDSA"
-        info["tamaño_bits"] = public_key.key_size
-        info["curva"] = public_key.curve.name
-    elif isinstance(public_key, dsa.DSAPublicKey):
-        info["algoritmo"] = "DSA"
-        info["tamaño_bits"] = public_key.key_size
-    
-    return info
-
-def obtener_cadena_certificados(sock, hostname):
-    """
-    Obtiene la cadena completa de certificados.
-    Devuelve una lista con la información de cada certificado.
-    """
-    cadena = []
-    try:
-        # Obtener el certificado del peer
-        peer_cert_der = sock.getpeercert(binary_form=True)
-        if peer_cert_der:
-            cert = x509.load_der_x509_certificate(peer_cert_der)
-            cert_info = {
-                "posicion": 0,
-                "sujeto": cert.subject.rfc4514_string(),
-                "emisor": cert.issuer.rfc4514_string(),
-                "numero_serie": cert.serial_number,
-                "valido_desde": cert.not_valid_before_utc.isoformat(),
-                "valido_hasta": cert.not_valid_after_utc.isoformat(),
-                "algoritmo_firma": cert.signature_algorithm_oid._name,
-                "hash_sha256": hashlib.sha256(peer_cert_der).hexdigest(),
-                "hash_sha1": hashlib.sha1(peer_cert_der).hexdigest(),
-                "es_autofirmado": cert.issuer == cert.subject,
-                "subject_alternative_names": extraer_san(cert),
-                "clave_publica": obtener_informacion_clave(cert),
-                "pem": "-----BEGIN CERTIFICATE-----\n" + 
-                       hashlib.sha256(peer_cert_der).hexdigest() + 
-                       "\n-----END CERTIFICATE-----"
-            }
-            cadena.append(cert_info)
-    except Exception as e:
-        logger.debug(f"Error al obtener cadena de certificados: {e}")
-    
-    return cadena
 
 def conectar_a_host(hostname: str):
     """

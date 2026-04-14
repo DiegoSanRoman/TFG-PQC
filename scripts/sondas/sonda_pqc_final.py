@@ -232,6 +232,76 @@ def parse_trace_bytes(trace_output: str) -> Dict[str, Any]:
 # FUNCIONES PRINCIPALES
 # ============================================
 
+def _build_result(
+    error_category,
+    connection_result,
+    res,
+    sni_usado,
+    sni_difiere,
+    retry,
+    dns_time_ms=None,
+    tcp_time_ms=None,
+    tiempo_conexion_segundos=None,
+    handshake_time_ms=None,
+    ip=None,
+    ip_familia=None,
+    tls_version=None,
+    cipher_suite=None,
+    alpn=None,
+    tls_alert=None,
+    cert_issuer=None,
+    cert_not_before=None,
+    cert_not_after=None,
+    cert_san=None,
+    cert_fingerprint_sha256=None,
+    bytes_sent=None,
+    bytes_received=None,
+    handshake_overhead=None,
+    measurement_method=None,
+    handshake_total_bytes_sent=None,
+    handshake_total_bytes_received=None,
+    handshake_total_overhead=None,
+    measurement_method_total=None,
+) -> Dict[str, Any]:
+    '''
+    Construye el diccionario de resultado estándar de sonda_pqc().
+    Centraliza la construcción del dict para evitar duplicación en cada punto de retorno.
+    :return: Diccionario con todas las métricas y metadatos de la conexión
+    '''
+    return {
+        "error_category": error_category,
+        "connection_result": connection_result,
+        "res": res,
+        "tiempo_conexion_segundos": tiempo_conexion_segundos,
+        "dns_time_ms": dns_time_ms,
+        "tcp_time_ms": tcp_time_ms,
+        "handshake_time_ms": handshake_time_ms,
+        "openssl_connect_tls_time_ms": handshake_time_ms,
+        "ip": ip,
+        "ip_familia": ip_familia,
+        "tls_version": tls_version,
+        "cipher_suite": cipher_suite,
+        "alpn": alpn,
+        "tls_alert": tls_alert,
+        "cert_issuer": cert_issuer,
+        "cert_not_before": cert_not_before,
+        "cert_not_after": cert_not_after,
+        "cert_san": cert_san,
+        "cert_fingerprint_sha256": cert_fingerprint_sha256,
+        "bytes_sent": bytes_sent,
+        "bytes_received": bytes_received,
+        "handshake_overhead": handshake_overhead,
+        "measurement_method": measurement_method,
+        "handshake_total_bytes_sent": handshake_total_bytes_sent,
+        "handshake_total_bytes_received": handshake_total_bytes_received,
+        "handshake_total_overhead": handshake_total_overhead,
+        "measurement_method_total": measurement_method_total,
+        "sni_usado": sni_usado,
+        "sni_difiere": sni_difiere,
+        "retry": retry,
+    }
+
+
 def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
     '''
     Función que intenta conectarse a un servidor HTTPS usando OpenSSL con soporte para cifrados post-cuánticos (híbridos y puros).
@@ -313,94 +383,46 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
     except ConnectionRefusedError:
         logger.warning("Conexión rechazada para %s:%s", base_hostname, puerto)
         skip_precheck = False  # No omitir, es un error real
-        return {
-            "error_category": ERROR_TCP_REFUSED,
-            "connection_result": None,
-            "res": f"Puerto {puerto} cerrado o rechazado",
-            "tiempo_conexion_segundos": None,
-            "dns_time_ms": dns_time_ms,
-            "tcp_time_ms": tcp_time_ms,
-            "handshake_time_ms": None,
-            "openssl_connect_tls_time_ms": None,
-            "ip": ip_resuelta,
-            "ip_familia": ip_familia,
-            "tls_version": None,
-            "cipher_suite": None,
-            "alpn": None,
-            "tls_alert": None,
-            "cert_issuer": None,
-            "cert_not_before": None,
-            "cert_not_after": None,
-            "cert_san": None,
-            "cert_fingerprint_sha256": None,
-            "bytes_sent": None,
-            "bytes_received": None,
-            "handshake_overhead": None,
-            "measurement_method": None,
-            "sni_usado": sni_usado,
-            "sni_difiere": sni_difiere,
-            "retry": retried
-        }
+        return _build_result(
+            error_category=ERROR_TCP_REFUSED,
+            connection_result=None,
+            res=f"Puerto {puerto} cerrado o rechazado",
+            dns_time_ms=dns_time_ms,
+            tcp_time_ms=tcp_time_ms,
+            ip=ip_resuelta,
+            ip_familia=ip_familia,
+            sni_usado=sni_usado,
+            sni_difiere=sni_difiere,
+            retry=retried,
+        )
     except socket.timeout:
         logger.warning("Timeout TCP para %s:%s", base_hostname, puerto)
-        return {
-            "error_category": ERROR_TCP_TIMEOUT,
-            "connection_result": None,
-            "res": f"Timeout TCP {puerto}",
-            "tiempo_conexion_segundos": None,
-            "dns_time_ms": dns_time_ms,
-            "tcp_time_ms": tcp_time_ms,
-            "handshake_time_ms": None,
-            "openssl_connect_tls_time_ms": None,
-            "ip": ip_resuelta,
-            "ip_familia": ip_familia,
-            "tls_version": None,
-            "cipher_suite": None,
-            "alpn": None,
-            "tls_alert": None,
-            "cert_issuer": None,
-            "cert_not_before": None,
-            "cert_not_after": None,
-            "cert_san": None,
-            "cert_fingerprint_sha256": None,
-            "bytes_sent": None,
-            "bytes_received": None,
-            "handshake_overhead": None,
-            "measurement_method": None,
-            "sni_usado": sni_usado,
-            "sni_difiere": sni_difiere,
-            "retry": retried
-        }
+        return _build_result(
+            error_category=ERROR_TCP_TIMEOUT,
+            connection_result=None,
+            res=f"Timeout TCP {puerto}",
+            dns_time_ms=dns_time_ms,
+            tcp_time_ms=tcp_time_ms,
+            ip=ip_resuelta,
+            ip_familia=ip_familia,
+            sni_usado=sni_usado,
+            sni_difiere=sni_difiere,
+            retry=retried,
+        )
     except OSError as e:
         logger.warning("Error TCP para %s: %s", hostname, e)
-        return {
-            "error_category": ERROR_TCP_OTHER,
-            "connection_result": None,
-            "res": f"Error TCP: {e}",
-            "tiempo_conexion_segundos": None,
-            "dns_time_ms": dns_time_ms,
-            "tcp_time_ms": tcp_time_ms,
-            "handshake_time_ms": None,
-            "openssl_connect_tls_time_ms": None,
-            "ip": ip_resuelta,
-            "ip_familia": ip_familia,
-            "tls_version": None,
-            "cipher_suite": None,
-            "alpn": None,
-            "tls_alert": None,
-            "cert_issuer": None,
-            "cert_not_before": None,
-            "cert_not_after": None,
-            "cert_san": None,
-            "cert_fingerprint_sha256": None,
-            "bytes_sent": None,
-            "bytes_received": None,
-            "handshake_overhead": None,
-            "measurement_method": None,
-            "sni_usado": sni_usado,
-            "sni_difiere": sni_difiere,
-            "retry": retried
-        }
+        return _build_result(
+            error_category=ERROR_TCP_OTHER,
+            connection_result=None,
+            res=f"Error TCP: {e}",
+            dns_time_ms=dns_time_ms,
+            tcp_time_ms=tcp_time_ms,
+            ip=ip_resuelta,
+            ip_familia=ip_familia,
+            sni_usado=sni_usado,
+            sni_difiere=sni_difiere,
+            retry=retried,
+        )
 
     # Fijar destino de conexión para comparaciones justas entre grupos:
     # - Si tenemos IP resuelta en pre-check, conectar a esa IP.
@@ -460,34 +482,18 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
                         retried = True
                         continue
                     logger.warning("Timeout en %s con grupo %s", hostname, group if group else "Automático")
-                    return {
-                        "error_category": ERROR_TLS_TIMEOUT,
-                        "connection_result": None,
-                        "res": "Timeout durante handshake TLS",
-                        "tiempo_conexion_segundos": None,
-                        "dns_time_ms": dns_time_ms,
-                        "tcp_time_ms": tcp_time_ms,
-                        "handshake_time_ms": None,
-                        "openssl_connect_tls_time_ms": None,
-                        "ip": ip_resuelta,
-                        "ip_familia": ip_familia,
-                        "tls_version": None,
-                        "cipher_suite": None,
-                        "alpn": None,
-                        "tls_alert": None,
-                        "cert_issuer": None,
-                        "cert_not_before": None,
-                        "cert_not_after": None,
-                        "cert_san": None,
-                        "cert_fingerprint_sha256": None,
-                        "bytes_sent": None,
-                        "bytes_received": None,
-                        "handshake_overhead": None,
-                        "measurement_method": None,
-                        "sni_usado": sni_usado,
-                        "sni_difiere": sni_difiere,
-                        "retry": retried
-                    }
+                    return _build_result(
+                        error_category=ERROR_TLS_TIMEOUT,
+                        connection_result=None,
+                        res="Timeout durante handshake TLS",
+                        dns_time_ms=dns_time_ms,
+                        tcp_time_ms=tcp_time_ms,
+                        ip=ip_resuelta,
+                        ip_familia=ip_familia,
+                        sni_usado=sni_usado,
+                        sni_difiere=sni_difiere,
+                        retry=retried,
+                    )
             finally:
                 # Liberar el semáforo si se adquirió, para permitir que otros procesos continúen
                 if proc_semaphore:
@@ -620,7 +626,7 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
 
         if has_fatal_alert:
             handshake_failed = True
-        
+
         # Cipher (NONE) significa que no se negoció nada
         if cipher_suite and "(NONE)" in cipher_suite:
             handshake_failed = True
@@ -628,42 +634,46 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
         # Return code distinto de 0 suele indicar fallo o cierre anómalo
         if return_code not in (0, None):
             handshake_failed = True
-        
+
+        # Contexto TLS compartido por todos los returns de la fase post-subprocess
+        _tls_ctx: Dict[str, Any] = dict(
+            tiempo_conexion_segundos=tiempo_conexion_segundos,
+            dns_time_ms=dns_time_ms,
+            tcp_time_ms=tcp_time_ms,
+            handshake_time_ms=handshake_time_ms,
+            ip=ip_resuelta,
+            ip_familia=ip_familia,
+            tls_version=tls_version,
+            cipher_suite=cipher_suite,
+            alpn=alpn,
+            tls_alert=tls_alert,
+            cert_issuer=cert_issuer,
+            cert_not_before=cert_not_before,
+            cert_not_after=cert_not_after,
+            cert_san=cert_san,
+            cert_fingerprint_sha256=cert_fingerprint_sha256,
+            bytes_sent=bytes_sent,
+            bytes_received=bytes_received,
+            handshake_overhead=handshake_overhead,
+            measurement_method=measurement_method,
+            handshake_total_bytes_sent=handshake_total_bytes_sent,
+            handshake_total_bytes_received=handshake_total_bytes_received,
+            handshake_total_overhead=handshake_total_overhead,
+            measurement_method_total=measurement_method_total,
+            sni_usado=sni_usado,
+            sni_difiere=sni_difiere,
+            retry=retried,
+        )
+
         # Si hay fallo de handshake confirmado, es RECHAZADO
         if handshake_failed:
             logger.debug("Rechazado (handshake failed): %s - %s", hostname, group if group else "Automático")
-            return {
-                "error_category": ERROR_TLS_ALERT,
-                "connection_result": CONNECTION_REJECTED,
-                "res": tls_alert if tls_alert else "Handshake failed",
-                "tiempo_conexion_segundos": tiempo_conexion_segundos,
-                "dns_time_ms": dns_time_ms,
-                "tcp_time_ms": tcp_time_ms,
-                "handshake_time_ms": handshake_time_ms,
-                "openssl_connect_tls_time_ms": handshake_time_ms,
-                "ip": ip_resuelta,
-                "ip_familia": ip_familia,
-                "tls_version": tls_version,
-                "cipher_suite": cipher_suite,
-                "alpn": alpn,
-                "tls_alert": tls_alert,
-                "cert_issuer": cert_issuer,
-                "cert_not_before": cert_not_before,
-                "cert_not_after": cert_not_after,
-                "cert_san": cert_san,
-                "cert_fingerprint_sha256": cert_fingerprint_sha256,
-                "bytes_sent": bytes_sent,
-                "bytes_received": bytes_received,
-                "handshake_overhead": handshake_overhead,
-                "measurement_method": measurement_method,
-                "handshake_total_bytes_sent": handshake_total_bytes_sent,
-                "handshake_total_bytes_received": handshake_total_bytes_received,
-                "handshake_total_overhead": handshake_total_overhead,
-                "measurement_method_total": measurement_method_total,
-                "sni_usado": sni_usado,
-                "sni_difiere": sni_difiere,
-                "retry": retried
-            }
+            return _build_result(
+                error_category=ERROR_TLS_ALERT,
+                connection_result=CONNECTION_REJECTED,
+                res=tls_alert if tls_alert else "Handshake failed",
+                **_tls_ctx,
+            )
 
         # Buscar el grupo negociado en la línea Server Temp Key
         negotiated_line = None
@@ -675,141 +685,47 @@ def sonda_pqc(hostname, group=None, openssl_bin=None, proc_semaphore=None):
         # Éxito real: hay Server Temp Key Y (hay certificado O cipher válido)
         if return_code == 0 and negotiated_line and (cert_issuer or (cipher_suite and "(NONE)" not in cipher_suite)):
             logger.debug("Éxito: %s - %s - %s", hostname, group if group else "Automático", negotiated_line)
-            return {
-                "error_category": None,
-                "connection_result": CONNECTION_ACCEPTED,
-                "res": negotiated_line,
-                "tiempo_conexion_segundos": tiempo_conexion_segundos,
-                "dns_time_ms": dns_time_ms,
-                "tcp_time_ms": tcp_time_ms,
-                "handshake_time_ms": handshake_time_ms,
-                "openssl_connect_tls_time_ms": handshake_time_ms,
-                "ip": ip_resuelta,
-                "ip_familia": ip_familia,
-                "tls_version": tls_version,
-                "cipher_suite": cipher_suite,
-                "alpn": alpn,
-                "tls_alert": tls_alert,
-                "cert_issuer": cert_issuer,
-                "cert_not_before": cert_not_before,
-                "cert_not_after": cert_not_after,
-                "cert_san": cert_san,
-                "cert_fingerprint_sha256": cert_fingerprint_sha256,
-                "bytes_sent": bytes_sent,
-                "bytes_received": bytes_received,
-                "handshake_overhead": handshake_overhead,
-                "measurement_method": measurement_method,
-                "handshake_total_bytes_sent": handshake_total_bytes_sent,
-                "handshake_total_bytes_received": handshake_total_bytes_received,
-                "handshake_total_overhead": handshake_total_overhead,
-                "measurement_method_total": measurement_method_total,
-                "sni_usado": sni_usado,
-                "sni_difiere": sni_difiere,
-                "retry": retried
-            }
+            return _build_result(
+                error_category=None,
+                connection_result=CONNECTION_ACCEPTED,
+                res=negotiated_line,
+                **_tls_ctx,
+            )
 
         # Fallback: conexión exitosa si hay cipher válido Y certificado
         if return_code == 0 and cipher_suite and "(NONE)" not in cipher_suite and cert_issuer:
             logger.debug("Éxito: %s - %s - Conectado (TLS 1.3)", hostname, group if group else "Automático")
-            return {
-                "error_category": None,
-                "connection_result": CONNECTION_ACCEPTED,
-                "res": f"Conectado - {cipher_suite}",
-                "tiempo_conexion_segundos": tiempo_conexion_segundos,
-                "dns_time_ms": dns_time_ms,
-                "tcp_time_ms": tcp_time_ms,
-                "handshake_time_ms": handshake_time_ms,
-                "openssl_connect_tls_time_ms": handshake_time_ms,
-                "ip": ip_resuelta,
-                "ip_familia": ip_familia,
-                "tls_version": tls_version,
-                "cipher_suite": cipher_suite,
-                "alpn": alpn,
-                "tls_alert": tls_alert,
-                "cert_issuer": cert_issuer,
-                "cert_not_before": cert_not_before,
-                "cert_not_after": cert_not_after,
-                "cert_san": cert_san,
-                "cert_fingerprint_sha256": cert_fingerprint_sha256,
-                "bytes_sent": bytes_sent,
-                "bytes_received": bytes_received,
-                "handshake_overhead": handshake_overhead,
-                "measurement_method": measurement_method,
-                "handshake_total_bytes_sent": handshake_total_bytes_sent,
-                "handshake_total_bytes_received": handshake_total_bytes_received,
-                "handshake_total_overhead": handshake_total_overhead,
-                "measurement_method_total": measurement_method_total,
-                "sni_usado": sni_usado,
-                "sni_difiere": sni_difiere,
-                "retry": retried
-            }
+            return _build_result(
+                error_category=None,
+                connection_result=CONNECTION_ACCEPTED,
+                res=f"Conectado - {cipher_suite}",
+                **_tls_ctx,
+            )
 
         # Si hay un error específico de incompatibilidad de protocolo/draft
         logger.debug("Rechazado: %s - %s - %s", hostname, group if group else "Automático", stderr.strip())
-        return {
-            "error_category": ERROR_TLS_ALERT,
-            "connection_result": CONNECTION_REJECTED,
-            "res": "Incompatibilidad de protocolo/draft",
-            "tiempo_conexion_segundos": tiempo_conexion_segundos,
-            "dns_time_ms": dns_time_ms,
-            "tcp_time_ms": tcp_time_ms,
-            "handshake_time_ms": handshake_time_ms,
-            "openssl_connect_tls_time_ms": handshake_time_ms,
-            "ip": ip_resuelta,
-            "ip_familia": ip_familia,
-            "tls_version": tls_version,
-            "cipher_suite": cipher_suite,
-            "alpn": alpn,
-            "tls_alert": tls_alert,
-            "cert_issuer": cert_issuer,
-            "cert_not_before": cert_not_before,
-            "cert_not_after": cert_not_after,
-            "cert_san": cert_san,
-            "cert_fingerprint_sha256": cert_fingerprint_sha256,
-            "bytes_sent": bytes_sent,
-            "bytes_received": bytes_received,
-            "handshake_overhead": handshake_overhead,
-            "measurement_method": measurement_method,
-            "handshake_total_bytes_sent": handshake_total_bytes_sent,
-            "handshake_total_bytes_received": handshake_total_bytes_received,
-            "handshake_total_overhead": handshake_total_overhead,
-            "measurement_method_total": measurement_method_total,
-            "sni_usado": sni_usado,
-            "sni_difiere": sni_difiere,
-            "retry": retried
-        }
+        return _build_result(
+            error_category=ERROR_TLS_ALERT,
+            connection_result=CONNECTION_REJECTED,
+            res="Incompatibilidad de protocolo/draft",
+            **_tls_ctx,
+        )
 
     # Capturamos cualquier excepción (timeout, fallo, etc.)
     except Exception as e:
         logger.warning("Error en %s con grupo %s: %s", hostname, group if group else "Automático", str(e))
-        return {
-            "error_category": ERROR_UNKNOWN,
-            "connection_result": None,
-            "res": str(e),
-            "tiempo_conexion_segundos": None,
-            "dns_time_ms": dns_time_ms,
-            "tcp_time_ms": tcp_time_ms,
-            "handshake_time_ms": None,
-            "openssl_connect_tls_time_ms": None,
-            "ip": ip_resuelta,
-            "ip_familia": ip_familia,
-            "tls_version": None,
-            "cipher_suite": None,
-            "alpn": None,
-            "tls_alert": None,
-            "cert_issuer": None,
-            "cert_not_before": None,
-            "cert_not_after": None,
-            "cert_san": None,
-            "cert_fingerprint_sha256": None,
-            "bytes_sent": None,
-            "bytes_received": None,
-            "handshake_overhead": None,
-            "measurement_method": None,
-            "sni_usado": sni_usado,
-            "sni_difiere": sni_difiere,
-            "retry": retried
-        }
+        return _build_result(
+            error_category=ERROR_UNKNOWN,
+            connection_result=None,
+            res=str(e),
+            dns_time_ms=dns_time_ms,
+            tcp_time_ms=tcp_time_ms,
+            ip=ip_resuelta,
+            ip_familia=ip_familia,
+            sni_usado=sni_usado,
+            sni_difiere=sni_difiere,
+            retry=retried,
+        )
 
 
 def escanear_servidor_pqc(hostname: str, grupos: List[Optional[str]], openssl_bin: str, proc_semaphore, repeticiones: int = 3) -> Dict[str, Any]:

@@ -9,14 +9,12 @@ con certificados autofirmados o caducados (lo hice asi porque el certificado de 
 
 # Importaciones necesarias
 import socket                                                       # Para conexiones TCP
-import ssl                                                          # Para capa SSL/TLS 
+import ssl                                                          # Para capa SSL/TLS
 import json                                                         # Para guardar resultados en JSON
 import time                                                         # Para medir tiempo de conexión
 import hashlib                                                      # Para calcular hashes de certificados
-import dns.resolver                                                 # Para medir latencia DNS
+import sys                                                          # Para manipular sys.path
 from cryptography import x509                                       # Para manejar certificados X.509
-from cryptography.hazmat.primitives import serialization            # Para manejar claves públicas
-from cryptography.hazmat.primitives.asymmetric import rsa, ec, dsa  # Para tipos de claves simétricas
 from datetime import datetime, timezone                             # Para timestamps y zona horaria
 from datetime import timedelta                                      # Para cálculos de tiempo
 import os                                                           # Para variables de entorno
@@ -28,6 +26,18 @@ import logging                                                      # Para loggi
 from dataclasses import dataclass, asdict                           # Para dataclasses
 from typing import Optional, List, Dict, Any                        # Para type hints
 from tqdm import tqdm                                               # Para barras de progreso
+
+# Importar utilidades compartidas desde scripts/utils.py
+_SCRIPTS_DIR = Path(__file__).parent.parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+from utils import (                                                 # noqa: E402
+    resolver_dns,
+    extraer_san,
+    obtener_informacion_clave,
+    obtener_versiones_tls_soportadas,
+    obtener_cadena_certificados,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -304,94 +314,6 @@ def leer_hostnames_csv(ruta_csv: Path, longitud_max: int) -> List[str]:
     return hostnames
 
 
-def resolver_dns(hostname):
-    '''
-    Resuelve el DNS y mide la latencia en milisegundos
-    :param hostname: El nombre del host o dominio a resolver
-    :return: Tupla (ip, latencia_ms) o (None, None) si falla
-    '''
-
-    try:
-        inicio = time.perf_counter()
-        respuesta = dns.resolver.resolve(hostname, 'A')
-        latencia = (time.perf_counter() - inicio) * 1000  # Convertir a ms
-        ip = str(respuesta[0]) if respuesta else None
-        if not ip:
-            return None, None
-        return ip, round(latencia, 2)
-    except Exception:
-        return None, None
-
-
-def extraer_san(cert):
-    '''
-    Extrae los Subject Alternative Names (SAN) del certificado
-    :param cert: Certificado X.509
-    :return: Lista de Subject Alternative Names
-    '''
-
-    san_list = []
-    try:
-        san_extension = cert.extensions.get_extension_for_class(x509.SubjectAlternativeName)
-        for name in san_extension.value:
-            if isinstance(name, x509.DNSName):
-                san_list.append(name.value)
-    except x509.ExtensionNotFound:
-        pass
-    return san_list
-
-
-def obtener_informacion_clave(cert):
-    '''
-    Extrae información sobre la clave pública
-    :param cert: Certificado X.509
-    :return: Diccionario con tipo y tamaño de clave
-    '''
-
-    public_key = cert.public_key()
-    info = {
-        "algoritmo": None,
-        "tamaño_bits": None
-    }
-    
-    if isinstance(public_key, rsa.RSAPublicKey):
-        info["algoritmo"] = "RSA"
-        info["tamaño_bits"] = public_key.key_size
-    elif isinstance(public_key, ec.EllipticCurvePublicKey):
-        info["algoritmo"] = "ECDSA"
-        info["tamaño_bits"] = public_key.key_size
-        info["curva"] = public_key.curve.name
-    elif isinstance(public_key, dsa.DSAPublicKey):
-        info["algoritmo"] = "DSA"
-        info["tamaño_bits"] = public_key.key_size
-    
-    return info
-
-
-def obtener_cadena_certificados(sock, hostname):
-    '''
-    Obtiene la cadena completa de certificados
-    :param sock: Socket SSL/TLS conectado
-    :param hostname: Nombre del host o dominio
-    :return: Lista de certificados en la cadena
-    '''
-    cadena = []
-    try:
-        # Intentar obtener la cadena de certificados del servidor
-        # Nota: Esto es limitado sin validación, así que lo intentamos con SSLContext
-        peer_cert_der = sock.getpeercert(binary_form=True)
-        if peer_cert_der:
-            cert = x509.load_der_x509_certificate(peer_cert_der)
-            cadena.append({
-                "sujeto": cert.subject.rfc4514_string(),
-                "emisor": cert.issuer.rfc4514_string(),
-                "posicion": 0
-            })
-    except Exception:
-        pass
-    
-    return cadena
-
 
 def es_cipher_debil(cipher_name):
     '''
@@ -494,42 +416,6 @@ def verificar_ocsp_stapling(ssock) -> bool:
         logger.debug("Error verificando OCSP Stapling: %s", e)
         return False
 
-
-def obtener_versiones_tls_soportadas(hostname: str, ip: str) -> Dict[str, bool]:
-    '''
-    Prueba diferentes versiones de TLS para ver cuáles soporta el servidor
-    :param hostname: Nombre del host
-    :param ip: IP del servidor
-    :return: Diccionario con versiones de TLS y soporte (ej: {"TLS1.0": False, "TLS1.2": True})
-    '''
-    versiones_soportadas = {}
-    versiones_a_probar = [
-        ("TLS1.0", ssl.TLSVersion.TLSv1),
-        ("TLS1.1", ssl.TLSVersion.TLSv1_1),
-        ("TLS1.2", ssl.TLSVersion.TLSv1_2),
-        ("TLS1.3", ssl.TLSVersion.TLSv1_3),
-    ]
-    
-    for nombre_version, tls_version in versiones_a_probar:
-        try:
-            ctx = ssl.create_default_context()
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
-            ctx.minimum_version = tls_version
-            ctx.maximum_version = tls_version
-            
-            with socket.create_connection((ip, 443), timeout=2) as sock:
-                with ctx.wrap_socket(sock, server_hostname=hostname) as ssock:
-                    # Si llegamos aquí, la versión es soportada
-                    versiones_soportadas[nombre_version] = True
-                    logger.debug("Versión %s soportada para %s", nombre_version, hostname)
-        except (ssl.SSLError, socket.timeout, ConnectionRefusedError, OSError) as e:
-            versiones_soportadas[nombre_version] = False
-            logger.debug("Versión %s NO soportada para %s: %s", nombre_version, hostname, type(e).__name__)
-        except Exception as e:
-            versiones_soportadas[nombre_version] = False
-    
-    return versiones_soportadas
 
 
 def en_contenedor():
