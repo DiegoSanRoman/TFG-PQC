@@ -270,8 +270,7 @@ def _build_result_dict(
     Construye el diccionario de resultado estándar de una sonda PQC.
 
     Centraliza la construcción del dict para evitar duplicación en cada punto
-    de retorno de ``sonda_pqc()``. El campo ``openssl_connect_tls_time_ms`` es
-    un alias de ``handshake_time_ms`` mantenido por compatibilidad.
+    de retorno de ``sonda_pqc()``.
 
     :return: Diccionario con todas las métricas y metadatos de la conexión.
     """
@@ -283,7 +282,6 @@ def _build_result_dict(
         "dns_time_ms": dns_time_ms,
         "tcp_time_ms": tcp_time_ms,
         "handshake_time_ms": handshake_time_ms,
-        "openssl_connect_tls_time_ms": handshake_time_ms,
         "ip": ip,
         "ip_familia": ip_familia,
         "tls_version": tls_version,

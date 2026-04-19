@@ -58,7 +58,7 @@ BASE_DIR = Path(__file__).parent.parent.parent
 RESULTADOS_PATH = BASE_DIR / "resultados" / "resultados_sonda_pqc.json"
 OUTPUT_DIR = BASE_DIR / "imagenes"
 MIN_MUESTRAS_ANALISIS = 30
-METRICA_CONNECT_TLS_MS = 'openssl_connect_tls_time_ms'
+METRICA_CONNECT_TLS_MS = 'handshake_time_ms'
 
 
 def construir_dataset_justo(df, grupo_clasico='X25519'):

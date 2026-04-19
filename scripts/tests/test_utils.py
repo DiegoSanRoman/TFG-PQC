@@ -151,8 +151,12 @@ class TestBuildResultDict:
         for key in ("error_category", "connection_result", "res",
                     "sni_usado", "sni_difiere", "retry",
                     "ip", "tls_version", "cipher_suite",
-                    "handshake_time_ms", "openssl_connect_tls_time_ms"):
+                    "handshake_time_ms"):
             assert key in r, f"Clave ausente: {key}"
+
+    def test_openssl_connect_tls_time_no_existe(self):
+        r = self._base()
+        assert "openssl_connect_tls_time_ms" not in r
 
     def test_metricas_son_none_por_defecto(self):
         r = self._base()
@@ -161,10 +165,9 @@ class TestBuildResultDict:
         assert r["bytes_sent"] is None
         assert r["dns_time_ms"] is None
 
-    def test_openssl_connect_tls_time_es_alias_de_handshake(self):
+    def test_handshake_time_se_asigna(self):
         r = self._base(handshake_time_ms=42.5)
         assert r["handshake_time_ms"] == 42.5
-        assert r["openssl_connect_tls_time_ms"] == 42.5
 
     def test_error_category_se_asigna(self):
         r = self._base(error_category="ERROR_DNS")

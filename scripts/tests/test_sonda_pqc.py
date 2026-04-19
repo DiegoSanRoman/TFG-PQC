@@ -208,9 +208,9 @@ class TestBuildResult:
         assert r["tls_version"] is None
         assert r["bytes_sent"] is None
 
-    def test_openssl_connect_tls_time_alias(self):
+    def test_openssl_connect_tls_time_no_existe(self):
         r = self._base(handshake_time_ms=42.5)
-        assert r["openssl_connect_tls_time_ms"] == 42.5
+        assert "openssl_connect_tls_time_ms" not in r
 
 
 # ============================================
@@ -393,7 +393,6 @@ class TestExportarEstadisticasCsv:
             "porcentaje_rechazo": 20.0,
             "porcentaje_error": 0.0,
             "handshake_time_ms": {"media": 100.0, "mediana": 95.0, "desv_std": 10.0, "min": 80.0, "max": 120.0},
-            "openssl_connect_tls_time_ms": {"media": 100.0, "mediana": 95.0, "desv_std": 10.0, "min": 80.0, "max": 120.0},
             "dns_time_ms": {"media": 5.0, "mediana": 5.0, "desv_std": 1.0, "min": 4.0, "max": 6.0},
             "tcp_time_ms": {"media": 3.0, "mediana": 3.0, "desv_std": 0.5, "min": 2.0, "max": 4.0},
             "bytes_sent": {"media": 200.0, "mediana": 200.0, "desv_std": 0.0, "min": 200.0, "max": 200.0},
@@ -579,7 +578,6 @@ class TestProbeResults:
             measurement_method_total="openssl_summary",
             tiempo_conexion_segundos=0.5,
             handshake_time_ms=80.0,
-            openssl_connect_tls_time_ms=80.0,
             dns_time_ms=10.0,
             tcp_time_ms=5.0,
         )
@@ -671,7 +669,7 @@ class TestPQCProbe:
             handshake_total_overhead=300,
             measurement_method="traced", measurement_method_total="openssl_summary",
             tiempo_conexion_segundos=0.5, handshake_time_ms=80.0,
-            openssl_connect_tls_time_ms=80.0, dns_time_ms=10.0, tcp_time_ms=5.0,
+            dns_time_ms=10.0, tcp_time_ms=5.0,
         )
         import sonda_pqc_final as _mod
         monkeypatch.setattr(_mod, "sonda_pqc", lambda *a, **kw: dummy)
@@ -694,8 +692,7 @@ class TestPQCProbe:
                 handshake_total_bytes_sent=None, handshake_total_bytes_received=None,
                 handshake_total_overhead=None, measurement_method=None,
                 measurement_method_total=None, tiempo_conexion_segundos=None,
-                handshake_time_ms=None, openssl_connect_tls_time_ms=None,
-                dns_time_ms=None, tcp_time_ms=None,
+                handshake_time_ms=None, dns_time_ms=None, tcp_time_ms=None,
             )
         import sonda_pqc_final as _mod
         monkeypatch.setattr(_mod, "sonda_pqc", fake_sonda)

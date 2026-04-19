@@ -349,10 +349,10 @@ def sonda_pqc(  # noqa: C901
 
     # Intentamos resolver el hostname y conectar al puerto antes de ejecutar OpenSSL para detectar fallos de DNS o TCP que no estén relacionados con el handshake TLS/PQC
     try:
-        dns_inicio = time.time()    # Medir tiempo de resolución DNS
+        dns_inicio = time.perf_counter()
         # getaddrinfo devuelve una lista de tuplas con información de cada dirección resuelta (familia, tipo, protocolo, nombre canónico, sockaddr)
         addrinfos = socket.getaddrinfo(base_hostname, int(puerto), type=socket.SOCK_STREAM)
-        dns_time_ms = round((time.time() - dns_inicio) * 1000, 2)
+        dns_time_ms = round((time.perf_counter() - dns_inicio) * 1000, 2)
 
         if not addrinfos:
             raise socket.gaierror("Sin resultados de DNS")
@@ -363,11 +363,11 @@ def sonda_pqc(  # noqa: C901
         ip_familia = "IPv6" if family == socket.AF_INET6 else "IPv4"
 
         # TCP pre-check: intentamos conectar al puerto para detectar fallos de red o puertos cerrados antes de ejecutar OpenSSL
-        tcp_inicio = time.time()
+        tcp_inicio = time.perf_counter()
         with socket.socket(family, socktype, proto) as sock:
             sock.settimeout(3)
             sock.connect(sockaddr)
-        tcp_time_ms = round((time.time() - tcp_inicio) * 1000, 2)
+        tcp_time_ms = round((time.perf_counter() - tcp_inicio) * 1000, 2)
     except socket.gaierror as e:
         # En lugar de fallar, intentaremos conectar con OpenSSL directamente
         # (OpenSSL tiene su propio resolver DNS que puede funcionar mejor en algunos ambientes)
@@ -434,8 +434,8 @@ def sonda_pqc(  # noqa: C901
     # Si el pre-check TCP fue exitoso, procedemos a ejecutar OpenSSL para probar el handshake TLS/PQC
     # Ejecutamos el comando y capturamos la salida
     try:
-        # Medimos el tiempo de conexión
-        tiempo_inicio = time.time()
+        # Medimos el tiempo de conexión total (para tiempo_conexion_segundos)
+        tiempo_inicio = time.perf_counter()
 
         # Ejecutamos con Popen (Process open) para controlar mejor timeouts y limpieza
         stdout_bytes = b""
@@ -448,7 +448,6 @@ def sonda_pqc(  # noqa: C901
             if proc_semaphore:
                 proc_semaphore.acquire()
             try:
-                intento_inicio = time.time()
                 process = subprocess.Popen(
                     cmd,
                     stdin=subprocess.PIPE,
@@ -456,6 +455,8 @@ def sonda_pqc(  # noqa: C901
                     stderr=subprocess.PIPE,
                     start_new_session=True
                 )
+                # Iniciamos el timer DESPUÉS de Popen para excluir el overhead de fork/exec
+                intento_inicio = time.perf_counter()
 
                 try:
                     # Timeout más largo para localhost/calibración (30s) vs. Internet (8s)
@@ -463,13 +464,13 @@ def sonda_pqc(  # noqa: C901
                     # Handshake puro: no enviamos tráfico de aplicación (sin GET)
                     stdout_bytes, stderr_bytes = process.communicate(input=b"", timeout=timeout_seconds)
                     # Medición por intento (no acumula reintentos previos)
-                    handshake_time_ms = round((time.time() - intento_inicio) * 1000, 2)
+                    handshake_time_ms = round((time.perf_counter() - intento_inicio) * 1000, 2)
                     return_code = process.returncode
                     break
                 except subprocess.TimeoutExpired:
                     process.kill()
                     stdout_bytes, stderr_bytes = process.communicate()
-                    handshake_time_ms = round((time.time() - intento_inicio) * 1000, 2)
+                    handshake_time_ms = round((time.perf_counter() - intento_inicio) * 1000, 2)
                     return_code = process.returncode
                     if intento < max_attempts:
                         retried = True
@@ -493,7 +494,7 @@ def sonda_pqc(  # noqa: C901
                     proc_semaphore.release()
 
         # Medimos el tiempo final
-        tiempo_fin = time.time()
+        tiempo_fin = time.perf_counter()
         tiempo_conexion_segundos = round(tiempo_fin - tiempo_inicio, 3)
 
         # Decodificamos la salida
@@ -795,7 +796,6 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
         # Recolectar métricas numéricas solo de conexiones exitosas
         # Creamos las listas para cada métrica que queremos analizar
         handshake_times = []
-        openssl_connect_tls_times = []
         dns_times = []
         tcp_times = []
         bytes_sent_list = []
@@ -807,8 +807,6 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
             if prueba.get("connection_result") == CONNECTION_ACCEPTED:
                 if prueba.get("handshake_time_ms") is not None:
                     handshake_times.append(prueba["handshake_time_ms"])
-                if prueba.get("openssl_connect_tls_time_ms") is not None:
-                    openssl_connect_tls_times.append(prueba["openssl_connect_tls_time_ms"])
                 if prueba.get("dns_time_ms") is not None:
                     dns_times.append(prueba["dns_time_ms"])
                 if prueba.get("tcp_time_ms") is not None:
@@ -839,7 +837,6 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
             }
         
         stats_handshake = calc_stats(handshake_times)
-        stats_openssl_connect_tls = calc_stats(openssl_connect_tls_times)
         stats_dns = calc_stats(dns_times)
         stats_tcp = calc_stats(tcp_times)
         stats_bytes_sent = calc_stats(bytes_sent_list)
@@ -864,7 +861,6 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
             "porcentaje_rechazo": porcentaje_rechazo,
             "porcentaje_error": porcentaje_error,
             "handshake_time_ms": stats_handshake,
-            "openssl_connect_tls_time_ms": stats_openssl_connect_tls,
             "dns_time_ms": stats_dns,
             "tcp_time_ms": stats_tcp,
             "bytes_sent": stats_bytes_sent,
@@ -946,7 +942,6 @@ def calcular_promedio_repeticiones(intentos: List[Dict[str, Any]], grupo: str) -
         'dns_time_ms',
         'tcp_time_ms',
         'handshake_time_ms',
-        'openssl_connect_tls_time_ms',
         'bytes_sent',
         'bytes_received',
         'handshake_overhead',
