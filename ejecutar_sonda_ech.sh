@@ -8,7 +8,7 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PYTHON_BIN="python3"
 
 INPUT_CSV="data/majestic_million.csv"
-MAX_DOMINIOS="1000"
+MAX_DOMINIOS="10000"
 MAX_CONCURRENCY="40"
 TLS_CLIENT="auto"
 DNS_TIMEOUT="8"
