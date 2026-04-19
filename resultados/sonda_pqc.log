@@ -17706,3 +17706,64 @@
 2026-04-19 11:25:26,080 INFO     [__main__] Resultados guardados en /app/resultados/resultados_sonda_pqc.json
 2026-04-19 11:25:26,080 INFO     [__main__] Resumen CSV guardado en /app/resultados/resumen_por_grupo.csv
 2026-04-19 11:25:26,080 INFO     [__main__] ======================================================================
+2026-04-19 11:48:06,051 INFO     [__main__] Iniciando sonda PQC con OpenSSL personalizado
+2026-04-19 11:48:06,051 INFO     [__main__] Binario OpenSSL: /opt/openssl/bin/openssl
+2026-04-19 11:48:06,051 INFO     [__main__] Límite de procesos OpenSSL: 12
+2026-04-19 11:48:06,051 INFO     [__main__] Repeticiones por grupo: 1
+2026-04-19 11:48:06,051 INFO     [__main__] Detectado formato Majestic Million (columna 2: Domain)
+2026-04-19 11:48:06,052 INFO     [__main__] Se han cargado 100 hostnames desde /app/data/majestic_million.csv
+2026-04-19 11:48:06,052 INFO     [__main__] Grupos PQC a probar: X25519, X25519MLKEM768, x25519_kyber768, mlkem768, kyber768, p256_kyber768, SecP256r1MLKEM768, x25519_mlkem512, x25519_kyber512, frodo640aes, bikel1, x25519_bikel1, x25519_hqc128
+2026-04-19 11:48:06,052 INFO     [__main__] Iniciando escaneo concurrente con 20 hilos...
+2026-04-19 11:48:25,568 WARNING  [__main__] Escaneo sin éxitos para nginx.org (0/13 pruebas exitosas)
+2026-04-19 11:48:45,615 WARNING  [__main__] Escaneo sin éxitos para amazon.com (0/13 pruebas exitosas)
+2026-04-19 11:48:56,609 WARNING  [__main__] Escaneo sin éxitos para linkedin.com (0/13 pruebas exitosas)
+2026-04-19 11:48:59,120 WARNING  [__main__] Escaneo sin éxitos para microsoft.com (0/13 pruebas exitosas)
+2026-04-19 11:49:07,167 WARNING  [__main__] Timeout TCP para macromedia.com:443
+2026-04-19 11:49:10,182 WARNING  [__main__] Timeout TCP para macromedia.com:443
+2026-04-19 11:49:13,190 WARNING  [__main__] Timeout TCP para macromedia.com:443
+2026-04-19 11:49:18,699 WARNING  [__main__] Timeout TCP para macromedia.com:443
+2026-04-19 11:49:21,823 WARNING  [__main__] Escaneo sin éxitos para nih.gov (0/13 pruebas exitosas)
+2026-04-19 11:49:24,207 WARNING  [__main__] Timeout TCP para macromedia.com:443
+2026-04-19 11:49:25,927 WARNING  [__main__] Timeout en flickr.com con grupo x25519_kyber768
+2026-04-19 11:49:27,216 WARNING  [__main__] Timeout TCP para macromedia.com:443
+2026-04-19 11:49:30,226 WARNING  [__main__] Timeout TCP para macromedia.com:443
+2026-04-19 11:49:31,183 WARNING  [__main__] Escaneo sin éxitos para baidu.com (0/13 pruebas exitosas)
+2026-04-19 11:49:31,412 WARNING  [__main__] Escaneo sin éxitos para live.com (0/13 pruebas exitosas)
+2026-04-19 11:49:33,237 WARNING  [__main__] Timeout TCP para macromedia.com:443
+2026-04-19 11:49:36,243 WARNING  [__main__] Timeout TCP para macromedia.com:443
+2026-04-19 11:49:39,250 WARNING  [__main__] Timeout TCP para macromedia.com:443
+2026-04-19 11:49:39,426 WARNING  [__main__] Escaneo sin éxitos para qq.com (0/13 pruebas exitosas)
+2026-04-19 11:49:39,426 WARNING  [__main__] Escaneo sin éxitos para office.com (0/13 pruebas exitosas)
+2026-04-19 11:49:39,457 WARNING  [__main__] Timeout en soundcloud.com con grupo x25519_kyber768
+2026-04-19 11:49:41,960 WARNING  [__main__] Timeout en flickr.com con grupo mlkem768
+2026-04-19 11:49:42,258 WARNING  [__main__] Timeout TCP para macromedia.com:443
+2026-04-19 11:49:45,263 WARNING  [__main__] Timeout TCP para macromedia.com:443
+2026-04-19 11:49:46,945 WARNING  [__main__] Escaneo sin éxitos para miit.gov.cn (0/13 pruebas exitosas)
+2026-04-19 11:49:48,273 WARNING  [__main__] Timeout TCP para macromedia.com:443
+2026-04-19 11:49:48,273 WARNING  [__main__] Escaneo sin éxitos para macromedia.com (0/13 pruebas exitosas)
+2026-04-19 11:49:49,094 WARNING  [__main__] Escaneo sin éxitos para oracle.com (0/13 pruebas exitosas)
+2026-04-19 11:49:49,453 WARNING  [__main__] Escaneo sin éxitos para wixsite.com (0/13 pruebas exitosas)
+2026-04-19 11:50:07,251 WARNING  [__main__] Escaneo sin éxitos para forbes.com (0/13 pruebas exitosas)
+2026-04-19 11:50:13,012 WARNING  [__main__] Timeout en flickr.com con grupo p256_kyber768
+2026-04-19 11:50:15,548 WARNING  [__main__] Timeout en soundcloud.com con grupo p256_kyber768
+2026-04-19 11:50:29,104 WARNING  [__main__] Timeout en flickr.com con grupo x25519_mlkem512
+2026-04-19 11:50:31,633 WARNING  [__main__] Timeout en soundcloud.com con grupo x25519_mlkem512
+2026-04-19 11:50:45,136 WARNING  [__main__] Timeout en flickr.com con grupo x25519_kyber512
+2026-04-19 11:50:47,662 WARNING  [__main__] Timeout en soundcloud.com con grupo x25519_kyber512
+2026-04-19 11:51:01,175 WARNING  [__main__] Timeout en flickr.com con grupo frodo640aes
+2026-04-19 11:51:03,696 WARNING  [__main__] Timeout en soundcloud.com con grupo frodo640aes
+2026-04-19 11:51:17,200 WARNING  [__main__] Timeout en flickr.com con grupo bikel1
+2026-04-19 11:51:19,729 WARNING  [__main__] Timeout en soundcloud.com con grupo bikel1
+2026-04-19 11:51:33,238 WARNING  [__main__] Timeout en flickr.com con grupo x25519_bikel1
+2026-04-19 11:51:35,765 WARNING  [__main__] Timeout en soundcloud.com con grupo x25519_bikel1
+2026-04-19 11:51:49,275 WARNING  [__main__] Timeout en flickr.com con grupo x25519_hqc128
+2026-04-19 11:51:51,801 WARNING  [__main__] Timeout en soundcloud.com con grupo x25519_hqc128
+2026-04-19 11:51:51,861 INFO     [__main__] Estadísticas por grupo exportadas a /app/resultados/resumen_por_grupo.csv
+2026-04-19 11:51:51,861 INFO     [__main__] ======================================================================
+2026-04-19 11:51:51,861 INFO     [__main__] Escaneo PQC completado
+2026-04-19 11:51:51,862 INFO     [__main__] Tiempo total: 225.75 segundos
+2026-04-19 11:51:51,862 INFO     [__main__] Hosts con al menos un éxito: 86/100 (86.00%)
+2026-04-19 11:51:51,862 INFO     [__main__] Pruebas exitosas: 160/1300 (12.31%)
+2026-04-19 11:51:51,862 INFO     [__main__] Resultados guardados en /app/resultados/resultados_sonda_pqc.json
+2026-04-19 11:51:51,862 INFO     [__main__] Resumen CSV guardado en /app/resultados/resumen_por_grupo.csv
+2026-04-19 11:51:51,862 INFO     [__main__] ======================================================================

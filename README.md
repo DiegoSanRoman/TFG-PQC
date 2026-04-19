@@ -1,6 +1,6 @@
-# Sonda de Detección de Criptografía Post-Cuántica (PQC)
+# Sonda de Detección de Criptografía Post-Cuántica (PQC) y ECH
 
-Herramienta de investigación para medir la adopción de algoritmos post-cuánticos en servidores HTTPS reales. Implementa una pipeline completa de calibración controlada, escaneo concurrente, análisis estadístico y generación de artefactos para investigación.
+Herramienta de investigación para medir la adopción de algoritmos post-cuánticos y Encrypted Client Hello (ECH) en servidores HTTPS reales. Implementa pipelines completas de calibración controlada, escaneo concurrente, análisis estadístico y generación de artefactos para investigación.
 
 ---
 
@@ -22,6 +22,10 @@ Herramienta de investigación para medir la adopción de algoritmos post-cuánti
 
 ## Objetivo
 
+Dos líneas de investigación complementarias:
+
+### 1. Criptografía Post-Cuántica (PQC)
+
 Evaluar la capacidad de servidores HTTPS reales para negociar grupos criptográficos post-cuánticos (híbridos y puros), separando de forma rigurosa:
 
 - Fallos de infraestructura (DNS, TCP, timeout)
@@ -33,6 +37,14 @@ Esto permite responder preguntas como:
 - ¿Cuál es el coste en latencia de cada grupo respecto a X25519?
 - ¿Cuál es el overhead de bytes del handshake TLS por grupo?
 
+### 2. Encrypted Client Hello (ECH)
+
+Medir la prevalencia de ECH en Internet y cuantificar su overhead real en el handshake TLS, respondiendo preguntas como:
+
+- ¿Qué porcentaje de dominios anuncia configuración ECH en DNS (HTTPS RR)?
+- ¿Cuánto overhead de latencia añade ECH respecto a TLS estándar?
+- ¿Qué proveedores CDN despliegan ECH activamente?
+
 ---
 
 ## Requisitos
@@ -40,6 +52,7 @@ Esto permite responder preguntas como:
 - **Docker** 20.10+ (la imagen `openquantumsafe/openssl3` incluye OpenSSL con el proveedor OQS)
 - **Python** 3.7+
 - **Linux** / macOS / WSL2
+- **BoringSSL** (`bssl`) compilado localmente — requerido para la sonda de latencia ECH
 
 Dependencias Python (solo para análisis y tests, no para la sonda que corre en Docker):
 
@@ -68,6 +81,8 @@ python3 --version
 
 ## Quick Start
 
+### Sonda PQC
+
 **1. Calibrar con servidores locales** (recomendado antes de escanear Internet):
 
 ```bash
@@ -94,6 +109,32 @@ python3 --version
 
 ```bash
 ./test_pipeline.sh --input-csv prueba.csv --max-hostnames 10 --repeticiones 1 --max-workers 5
+```
+
+### Sonda de latencia ECH
+
+**1. Medir overhead de ECH con los dominios de referencia incluidos:**
+
+```bash
+./ejecutar_sonda_latencia_ech.sh
+```
+
+**2. Con más repeticiones para mayor precisión estadística:**
+
+```bash
+./ejecutar_sonda_latencia_ech.sh --repeticiones 10
+```
+
+**3. Con un CSV propio:**
+
+```bash
+./ejecutar_sonda_latencia_ech.sh --input-csv data/mis_dominios.csv --repeticiones 5
+```
+
+### Sonda de prevalencia ECH (a gran escala)
+
+```bash
+./ejecutar_sonda_ech.sh --input-csv data/majestic_million.csv --max-dominios 5000
 ```
 
 ---
@@ -135,7 +176,42 @@ Carga `resultados/resultados_sonda_pqc.json`, aplica filtrado y estadísticas ro
 
 ### `ejecutar_sonda_ech.sh`
 
-Ejecuta la sonda especializada para medir la prevalencia de **ECH (Encrypted Client Hello)** en los dominios del CSV de entrada.
+Ejecuta la sonda de **prevalencia ECH** a gran escala: descubre registros HTTPS RR, decodifica ECHConfigList, mide longitud de ClientHello y detecta patrones de padding.
+
+| Opción | Descripción | Defecto |
+| --- | --- | --- |
+| `--input-csv ARCHIVO` | CSV de dominios de entrada | `data/majestic_million.csv` |
+| `--max-dominios N` | Máximo de dominios a procesar | 1000 |
+| `--max-concurrency N` | Concurrencia asyncio | 40 |
+| `--tls-client MODO` | `auto` \| `bssl` \| `openssl` | `auto` |
+| `--dns-timeout SEG` | Timeout DNS | 8 |
+| `--tls-timeout SEG` | Timeout TLS | 20 |
+
+### `ejecutar_sonda_latencia_ech.sh`
+
+Mide el **overhead real de latencia de ECH** comparando handshakes TLS con y sin ECH activo, usando el mismo cliente (bssl) en ambos casos para una comparación justa. Para cada hostname realiza N mediciones y calcula media y desviación típica.
+
+| Opción | Descripción | Defecto |
+| --- | --- | --- |
+| `--input-csv ARCHIVO` | CSV de hostnames con ECH | `data/hostnames_ech.csv` |
+| `--output-csv ARCHIVO` | CSV de resultados | `resultados/resultados_latencia_ech.csv` |
+| `--repeticiones N` | Mediciones por hostname (para media/stddev) | 3 |
+| `--dns-timeout SEG` | Timeout DNS | 5 |
+| `--tls-timeout SEG` | Timeout por handshake | 10 |
+| `--concurrency N` | Hostnames en paralelo | 10 |
+| `--max-hostnames N` | Máximo de hostnames a procesar | 10000 |
+| `--log-level NIVEL` | `DEBUG` \| `INFO` \| `WARNING` \| `ERROR` | `INFO` |
+
+```bash
+# Ejecución estándar (3 repeticiones)
+./ejecutar_sonda_latencia_ech.sh
+
+# Alta precisión (100 repeticiones)
+./ejecutar_sonda_latencia_ech.sh --repeticiones 100
+
+# Con CSV propio y más repeticiones
+./ejecutar_sonda_latencia_ech.sh --input-csv data/mis_dominios.csv --repeticiones 10
+```
 
 ### `ejecutar_tests.sh`
 
@@ -145,8 +221,10 @@ Ejecuta la suite completa de tests unitarios con pytest.
 
 ## Arquitectura
 
+### Pipeline PQC
+
 ```text
-Bash orchestration (*.sh)
+Bash orchestration (ejecutar_sonda.sh)
     │
     ├── Construye imagen Docker (openquantumsafe/openssl3 + Python + OQS)
     ├── Monta volúmenes: data/ → /app/data, resultados/ → /app/resultados
@@ -177,55 +255,87 @@ analizar_resultados.py
     └── Genera: latencia_limpia.png, bytes_limpia.png, delta_*.csv
 ```
 
+### Pipeline de latencia ECH
+
+```text
+ejecutar_sonda_latencia_ech.sh
+    │
+    └── sonda_latencia_ech.py
+            │
+            ├── Carga hostnames desde CSV (cargar_dominios_csv)
+            ├── asyncio + Semaphore (N hostnames en paralelo)
+            │
+            └── Por cada hostname:
+                    ├── Consulta DNS HTTPS RR  ← mide latencia_dns_ms
+                    │       └── Extrae ECHConfigList (kem_id, public_name/outer_sni)
+                    │
+                    ├── [Si hay config ECH] × N repeticiones:
+                    │       └── bssl client -ech-config-list <config.bin>
+                    │               ├── Mide latencia_con_ech (media ± stddev)
+                    │               ├── Confirma: "Encrypted ClientHello: yes/no"
+                    │               └── Captura cipher suite negociada
+                    │
+                    └── [Si ECH exitoso] × N repeticiones:
+                            └── bssl client (sin ECH)
+                                    ├── Mide latencia_sin_ech (media ± stddev)
+                                    └── delta = latencia_sin_ech − latencia_con_ech
+            │
+            └── Exporta: resultados_latencia_ech.csv
+```
+
 ---
 
 ## Estructura del repositorio
 
 ```text
 TFG-PQC/
-├── calibrar_servidor_pqc.sh       # Calibración con servidores locales
-├── ejecutar_sonda.sh              # Escaneo principal
-├── ejecutar_analisis.sh           # Análisis y visualización
-├── ejecutar_sonda_ech.sh          # Sonda ECH
-├── test_pipeline.sh               # Pipeline completo (sonda + análisis)
-├── ejecutar_tests.sh              # Suite de tests
-├── limpiar_docker.sh              # Limpieza de imágenes Docker
-├── Dockerfile                     # Imagen basada en openquantumsafe/openssl3
+├── calibrar_servidor_pqc.sh          # Calibración con servidores locales
+├── ejecutar_sonda.sh                 # Escaneo PQC principal
+├── ejecutar_analisis.sh              # Análisis y visualización PQC
+├── ejecutar_sonda_ech.sh             # Sonda de prevalencia ECH (a gran escala)
+├── ejecutar_sonda_latencia_ech.sh    # Sonda de latencia ECH (overhead con/sin ECH)
+├── test_pipeline.sh                  # Pipeline completo (sonda + análisis)
+├── ejecutar_tests.sh                 # Suite de tests
+├── limpiar_docker.sh                 # Limpieza de imágenes Docker
+├── Dockerfile                        # Imagen basada en openquantumsafe/openssl3
 ├── requirements.txt
 │
 ├── scripts/
-│   ├── constants.py               # Constantes compartidas (categorías de error/resultado)
-│   ├── exceptions.py              # Jerarquía de excepciones personalizada
-│   ├── utils.py                   # Utilidades: DNS, certificados, logging, validación
+│   ├── constants.py                  # Constantes compartidas (categorías de error/resultado)
+│   ├── exceptions.py                 # Jerarquía de excepciones personalizada
+│   ├── utils.py                      # Utilidades: DNS, certificados, logging, validación
 │   ├── sondas/
-│   │   ├── sonda_pqc_final.py     # Motor principal de escaneo PQC
-│   │   ├── sonda_base.py          # Sonda TLS base (referencia/baseline)
-│   │   └── sonda_ech_prevalencia.py  # Sonda ECH
+│   │   ├── sonda_pqc_final.py        # Motor principal de escaneo PQC
+│   │   ├── sonda_base.py             # Sonda TLS base (referencia/baseline)
+│   │   ├── sonda_ech_prevalencia.py  # Sonda de prevalencia ECH a gran escala
+│   │   └── sonda_latencia_ech.py     # Sonda de latencia ECH (overhead con/sin ECH)
 │   ├── ml/
-│   │   └── analizar_resultados.py # Análisis estadístico y visualización
-│   ├── individuales/
-│   │   └── hostname_conexion.py   # Diagnóstico profundo de un único host
+│   │   └── analizar_resultados.py    # Análisis estadístico y visualización
 │   ├── calibracion/
 │   │   ├── levantar_servidores.sh
 │   │   └── detener_servidores.sh
 │   └── tests/
-│       ├── test_sonda_pqc.py      # 37+ tests del motor de escaneo
-│       ├── test_sonda_ech_prevalencia.py  # 30+ tests de la sonda ECH
-│       └── test_utils.py          # 15+ tests de utilidades
+│       ├── test_sonda_pqc.py                 # 37+ tests del motor de escaneo
+│       ├── test_sonda_ech_prevalencia.py     # 30+ tests de la sonda de prevalencia ECH
+│       ├── test_sonda_latencia_ech.py        # 59 tests de la sonda de latencia ECH
+│       └── test_utils.py                     # 15+ tests de utilidades
 │
 ├── data/
-│   ├── prueba.csv                 # 7 dominios para pruebas rápidas
-│   ├── majestic_million.csv       # 1M dominios (Majestic Million)
-│   ├── tranco.csv                 # 1M dominios (Tranco)
-│   ├── calibracion_legacy.csv     # localhost:4433
-│   └── calibracion_moderno.csv    # localhost:4434
+│   ├── prueba.csv                    # 7 dominios para pruebas rápidas
+│   ├── majestic_million.csv          # 1M dominios (Majestic Million)
+│   ├── tranco.csv                    # 1M dominios (Tranco)
+│   ├── hostnames_ech.csv             # Dominios con ECH activo (referencia)
+│   ├── calibracion_legacy.csv        # localhost:4433
+│   └── calibracion_moderno.csv       # localhost:4434
 │
-├── resultados/                    # Artefactos de salida (generados)
+├── resultados/                       # Artefactos de salida (generados)
 │   ├── resultados_sonda_pqc.json
 │   ├── resumen_por_grupo.csv
+│   ├── resultados_ech_prevalencia.csv
+│   ├── resultados_latencia_ech.csv
 │   └── sonda_pqc.log
 │
-└── imagenes/                      # Figuras generadas (generadas)
+└── imagenes/                         # Figuras generadas (generadas)
     ├── latencia_limpia.png
     ├── bytes_limpia.png
     └── delta_*.csv
@@ -298,6 +408,8 @@ Cada resultado de sonda contiene ~54 campos. Los más relevantes:
 
 ## Artefactos de salida
 
+### Artefactos PQC
+
 | Archivo | Descripción |
 | --- | --- |
 | `resultados/resultados_sonda_pqc.json` | Resultados completos de todos los probes |
@@ -310,6 +422,29 @@ Cada resultado de sonda contiene ~54 campos. Los más relevantes:
 | `imagenes/ranking_justo_handshake.csv` | Ranking de grupos por velocidad de handshake |
 
 Los resultados de calibración se guardan como `resultados/resultados_calibracion_*.json` y `resultados/resumen_calibracion_*.csv`.
+
+### Artefactos de latencia ECH
+
+| Archivo | Descripción |
+| --- | --- |
+| `resultados/resultados_latencia_ech.csv` | Un registro por hostname con todas las métricas |
+| `resultados/sonda_latencia_ech.log` | Log de ejecución |
+
+Campos del CSV de resultados:
+
+| Campo | Descripción |
+| --- | --- |
+| `ech_config_disponible` | El dominio anuncia ECH en su HTTPS RR de DNS |
+| `conexion_ech_exitosa` | bssl completó el handshake con ECH activo |
+| `conexion_sin_ech_exitosa` | bssl completó el handshake sin ECH |
+| `ech_aceptado` | El servidor confirmó ECH (`Encrypted ClientHello: yes`) |
+| `cipher_con_ech` / `cipher_sin_ech` | Suite de cifrado negociada en cada condición |
+| `latencia_dns_ms` | Tiempo de consulta DNS HTTPS RR |
+| `n_mediciones` | Número de repeticiones realizadas |
+| `latencia_con_ech_media_ms` / `_stddev_ms` | Latencia media ± desv. típica con ECH |
+| `latencia_sin_ech_media_ms` / `_stddev_ms` | Latencia media ± desv. típica sin ECH |
+| `delta_medio_ms` | `latencia_sin_ech − latencia_con_ech` (positivo = ECH más lento) |
+| `outer_sni` | Outer SNI del ECHConfig (identifica el proveedor CDN) |
 
 ---
 
@@ -327,7 +462,8 @@ La suite cubre:
 
 - **`test_utils.py`** — Validación de hostnames, configuración de logging, construcción del esquema de resultados
 - **`test_sonda_pqc.py`** — Parseo de `-trace`, detección de cifrados débiles/PFS, estadísticas por grupo, exportación CSV, clases `TLSOutputParser` y `PQCProbe`
-- **`test_sonda_ech_prevalencia.py`** — Lógica completa de la sonda ECH
+- **`test_sonda_ech_prevalencia.py`** — Lógica completa de la sonda de prevalencia ECH
+- **`test_sonda_latencia_ech.py`** — 59 tests de la sonda de latencia ECH: parseo de salida bssl (`_parsear_bssl`), extracción de errores, cálculo de media/stddev (`_agregar`), dataclass `ResultadoLatenciaECH`, exportación CSV, parser de argumentos CLI, `_run_cmd` con subprocesos reales, y pipeline `procesar_hostname` con mocks de DNS y TLS
 
 ---
 
@@ -368,3 +504,31 @@ Se necesitan al menos 30 muestras aceptadas por grupo. Aumentar `--max-hostnames
 # Dentro del contenedor Docker o con openssl-oqs instalado localmente
 python3 scripts/individuales/hostname_conexion.py
 ```
+
+**La sonda de latencia ECH da TIMEOUT en todas las conexiones:**
+
+El motivo más frecuente es que bssl no se encuentre o que el script se ejecute sin el venv activado. El bloque de diagnóstico al inicio indica la ruta encontrada:
+
+```text
+Diagnóstico de herramientas TLS:
+  bssl:    /ruta/a/bssl   ← si pone NO ENCONTRADO, compilar BoringSSL
+  Python:  /ruta/venv/bin/python3
+```
+
+Para compilar bssl:
+
+```bash
+git clone https://boringssl.googlesource.com/boringssl tools/boringssl
+cmake -B tools/boringssl/build tools/boringssl && make -C tools/boringssl/build bssl
+```
+
+El `.sh` activa el venv automáticamente si existe en `venv/`. Para el comando `python3 -m`, activar el venv manualmente antes:
+
+```bash
+source venv/bin/activate
+python3 -m scripts.sondas.sonda_latencia_ech
+```
+
+**Todos los dominios aparecen como "Sin HTTPS RR" o "Sin parámetro ECH":**
+
+La mayoría de dominios todavía no tienen ECH desplegado. Usar `data/hostnames_ech.csv` (incluido en el repositorio) que contiene dominios con ECH activo verificado, o ejecutar primero la sonda de prevalencia para identificar dominios con ECH.
