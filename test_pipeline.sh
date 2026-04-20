@@ -11,7 +11,7 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Valores por defecto
 INPUT_CSV="prueba.csv"
-MAX_HOSTNAMES=600
+MAX_HOSTNAMES=500
 
 REPETICIONES=1
 MAX_WORKERS=20

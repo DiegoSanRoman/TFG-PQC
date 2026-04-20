@@ -99,3 +99,15 @@ echo
 echo "OK - Sonda finalizada"
 echo "- CSV: ${OUTPUT_CSV}"
 echo "- Log: ${LOG_FILE}"
+echo
+echo "====================================================================="
+echo "           Generando gráficas..."
+echo "====================================================================="
+
+"${PYTHON_BIN}" scripts/sondas/graficar_latencia_ech.py \
+    --input-csv  "${OUTPUT_CSV}" \
+    --output-dir "imagenes" \
+    --log-level  "${LOG_LEVEL}"
+
+echo
+echo "OK - Gráfica guardada en: imagenes/latencia_ech_vs_sin_ech.png"

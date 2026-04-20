@@ -17814,3 +17814,20 @@
 2026-04-19 13:41:03,470 INFO     [__main__] Resultados guardados en /app/resultados/resultados_sonda_pqc.json
 2026-04-19 13:41:03,470 INFO     [__main__] Resumen CSV guardado en /app/resultados/resumen_por_grupo.csv
 2026-04-19 13:41:03,470 INFO     [__main__] ======================================================================
+2026-04-20 11:53:16,095 INFO     [__main__] Iniciando sonda PQC con OpenSSL personalizado
+2026-04-20 11:53:16,096 INFO     [__main__] Binario OpenSSL: /opt/openssl/bin/openssl
+2026-04-20 11:53:16,096 INFO     [__main__] Límite de procesos OpenSSL: 12
+2026-04-20 11:53:16,096 INFO     [__main__] Repeticiones por grupo: 1
+2026-04-20 11:53:16,096 WARNING  [__main__] Formato desconocido, usando columna B por defecto
+2026-04-20 11:53:16,096 INFO     [__main__] Se han cargado 6 hostnames desde /app/data/prueba.csv
+2026-04-20 11:53:16,096 INFO     [__main__] Grupos PQC a probar: X25519, X25519MLKEM768, x25519_kyber768, mlkem768, kyber768, p256_kyber768, SecP256r1MLKEM768, x25519_mlkem512, x25519_kyber512, frodo640aes, bikel1, x25519_bikel1, x25519_hqc128
+2026-04-20 11:53:16,096 INFO     [__main__] Iniciando escaneo concurrente con 20 hilos...
+2026-04-20 11:53:26,683 INFO     [__main__] Estadísticas por grupo exportadas a /app/resultados/resumen_por_grupo.csv
+2026-04-20 11:53:26,683 INFO     [__main__] ======================================================================
+2026-04-20 11:53:26,683 INFO     [__main__] Escaneo PQC completado
+2026-04-20 11:53:26,683 INFO     [__main__] Tiempo total: 10.58 segundos
+2026-04-20 11:53:26,683 INFO     [__main__] Hosts con al menos un éxito: 6/6 (100.00%)
+2026-04-20 11:53:26,683 INFO     [__main__] Pruebas exitosas: 14/78 (17.95%)
+2026-04-20 11:53:26,683 INFO     [__main__] Resultados guardados en /app/resultados/resultados_sonda_pqc.json
+2026-04-20 11:53:26,683 INFO     [__main__] Resumen CSV guardado en /app/resultados/resumen_por_grupo.csv
+2026-04-20 11:53:26,683 INFO     [__main__] ======================================================================
