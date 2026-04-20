@@ -140,3 +140,15 @@ echo
 echo "OK - Sonda finalizada"
 echo "- CSV: ${OUTPUT_CSV}"
 echo "- Log: ${LOG_FILE}"
+echo
+echo "====================================================================="
+echo "           Generando gráfica..."
+echo "====================================================================="
+
+"${PYTHON_BIN}" scripts/sondas/graficar_latencia_pqc.py \
+    --input-csv  "${OUTPUT_CSV}" \
+    --output-dir "imagenes" \
+    --log-level  "${LOG_LEVEL}"
+
+echo
+echo "OK - Gráfica guardada en: imagenes/latencia_pqc_ech_vs_sin_ech.png"
