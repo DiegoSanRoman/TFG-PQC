@@ -18,7 +18,7 @@ LOG_LEVEL="INFO"
 DNS_TIMEOUT="5"
 TLS_TIMEOUT="10"
 CONCURRENCY="5"
-MAX_HOSTNAMES="200"
+MAX_HOSTNAMES="1000"
 REPETICIONES="30"
 OQS_BIN="/opt/openssl/bin/openssl"
 GRUPOS_PQC=""   # vacío = lista completa predefinida

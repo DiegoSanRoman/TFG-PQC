@@ -502,17 +502,21 @@ class TestProcesarHostnameConEch:
             return_value=("bssl", _BSSL_FAKE, None),
         )
 
-    def test_ech_falla_no_intenta_sin_ech(self):
+    def test_ech_falla_sin_ech_se_mide_igual(self):
         with self._mock_dns_ok(), self._mock_bssl(), patch(
             "sonda_latencia_ech._medir_con_ech",
             new=AsyncMock(return_value=(False, [], "CONNECTION_REFUSED", None, None)),
+        ), patch(
+            "sonda_latencia_ech._medir_sin_ech",
+            new=AsyncMock(return_value=(True, [20.0, 21.0], None, "TLS_AES_128_GCM_SHA256")),
         ):
             r = self._run(procesar_hostname(
                 "example.com", MagicMock(), self._make_semaphore(), 5.0, 10.0, 3
             ))
         assert r.conexion_ech_exitosa is False
-        assert r.conexion_sin_ech_exitosa is False
+        assert r.conexion_sin_ech_exitosa is True
         assert r.error_ech == "CONNECTION_REFUSED"
+        assert r.latencia_sin_ech_media_ms is not None
 
     def test_exito_completo(self):
         with self._mock_dns_ok(), self._mock_bssl(), patch(

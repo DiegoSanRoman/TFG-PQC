@@ -14,6 +14,7 @@ import argparse
 import asyncio
 import csv
 import logging
+import random
 import statistics
 import sys
 import tempfile
@@ -302,7 +303,12 @@ async def procesar_hostname(
             )
 
         if not https_present or not ech_value or not parsed_configs:
-            motivo = "Sin HTTPS RR" if not https_present else "Sin parámetro ECH en HTTPS RR"
+            if not https_present:
+                motivo = "Sin HTTPS RR"
+            elif not ech_value:
+                motivo = "Sin parámetro ECH en HTTPS RR"
+            else:
+                motivo = dns_error if dns_error else "ECH_PARSE_ERROR"
             logger.info("Sin config ECH para %s: %s", hostname, motivo)
             return _sin_ech_config(motivo)
 
@@ -311,29 +317,38 @@ async def procesar_hostname(
             logger.warning("bssl no disponible para %s", hostname)
             return _sin_ech_config("bssl no disponible")
 
-        # 2. Mediciones con ECH
-        ech_ok, lats_ech, err_ech, ech_aceptado, cipher_ech = await _medir_con_ech(
-            domain, port, ech_value, bssl_path, tls_timeout, repeticiones
-        )
+        # 2+3. Mediciones con y sin ECH en orden aleatorio para evitar sesgo de calentamiento
+        medir_ech_primero = random.random() < 0.5
+
+        if medir_ech_primero:
+            ech_ok, lats_ech, err_ech, ech_aceptado, cipher_ech = await _medir_con_ech(
+                domain, port, ech_value, bssl_path, tls_timeout, repeticiones
+            )
+            sin_ech_ok, lats_sin_ech, err_sin_ech, cipher_sin_ech = await _medir_sin_ech(
+                domain, port, bssl_path, tls_timeout, repeticiones
+            )
+        else:
+            sin_ech_ok, lats_sin_ech, err_sin_ech, cipher_sin_ech = await _medir_sin_ech(
+                domain, port, bssl_path, tls_timeout, repeticiones
+            )
+            ech_ok, lats_ech, err_ech, ech_aceptado, cipher_ech = await _medir_con_ech(
+                domain, port, ech_value, bssl_path, tls_timeout, repeticiones
+            )
 
         if not ech_ok:
             logger.debug("ECH fallido para %s: %s", hostname, err_ech)
             return ResultadoLatenciaECH(
                 hostname=hostname, timestamp=ts,
                 ech_config_disponible=True,
-                conexion_ech_exitosa=False, conexion_sin_ech_exitosa=False,
-                ech_aceptado=None, cipher_con_ech=None, cipher_sin_ech=None,
-                latencia_dns_ms=latencia_dns_ms, n_mediciones=0,
+                conexion_ech_exitosa=False, conexion_sin_ech_exitosa=sin_ech_ok,
+                ech_aceptado=None, cipher_con_ech=None, cipher_sin_ech=cipher_sin_ech,
+                latencia_dns_ms=latencia_dns_ms, n_mediciones=len(lats_sin_ech),
                 latencia_con_ech_media_ms=None, latencia_con_ech_stddev_ms=None,
-                latencia_sin_ech_media_ms=None, latencia_sin_ech_stddev_ms=None,
+                latencia_sin_ech_media_ms=_agregar(lats_sin_ech)[0],
+                latencia_sin_ech_stddev_ms=_agregar(lats_sin_ech)[1],
                 delta_medio_ms=None, cliente_tls="bssl", outer_sni=outer_sni,
-                error_ech=err_ech, error_sin_ech=None, dns_error=dns_error,
+                error_ech=err_ech, error_sin_ech=err_sin_ech, dns_error=dns_error,
             )
-
-        # 3. Mediciones sin ECH
-        sin_ech_ok, lats_sin_ech, err_sin_ech, cipher_sin_ech = await _medir_sin_ech(
-            domain, port, bssl_path, tls_timeout, repeticiones
-        )
 
         media_ech, stddev_ech       = _agregar(lats_ech)
         media_sin_ech, stddev_sin_ech = _agregar(lats_sin_ech)
@@ -347,7 +362,7 @@ async def procesar_hostname(
         return ResultadoLatenciaECH(
             hostname=hostname, timestamp=ts,
             ech_config_disponible=True,
-            conexion_ech_exitosa=True, conexion_sin_ech_exitosa=sin_ech_ok,
+            conexion_ech_exitosa=(ech_aceptado is True), conexion_sin_ech_exitosa=sin_ech_ok,
             ech_aceptado=ech_aceptado,
             cipher_con_ech=cipher_ech, cipher_sin_ech=cipher_sin_ech,
             latencia_dns_ms=latencia_dns_ms, n_mediciones=n,
@@ -389,7 +404,7 @@ def imprimir_resumen(resultados: List[ResultadoLatenciaECH]) -> None:
 
     if deltas:
         avg = round(sum(deltas) / len(deltas), 2)
-        print(f"Delta medio (ECH-noECH) ms:      {avg}  (n={len(deltas)})")
+        print(f"Delta medio (noECH-ECH) ms:      {avg}  (n={len(deltas)})")
         print(f"  min={min(deltas)} ms  max={max(deltas)} ms")
 
     print("\nDetalle por hostname:")

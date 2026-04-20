@@ -67,9 +67,6 @@ DEFAULT_CONCURRENCY   = 5
 DEFAULT_MAX_HOSTNAMES = 10_000
 DEFAULT_REPETICIONES  = 3
 
-# Grupo clásico de control, siempre medido con bssl
-GRUPO_CLASICO = "X25519"
-
 # Traducción de nombre de grupo → nombre de curva para bssl -curves.
 # Grupos NO presentes en este mapa se miden con OpenSSL OQS (sin ECH).
 BSSL_CURVE_MAP: Dict[str, str] = {
@@ -115,15 +112,8 @@ class ResultadoLatenciaPQC:
     latencia_sin_ech_pqc_stddev_ms: Optional[float]
     cipher_sin_ech_pqc: Optional[str]
     error_sin_ech_pqc: Optional[str]
-    # Baseline clásico sin ECH (X25519, bssl)
-    conexion_clasico_exitosa: bool
-    latencia_clasico_media_ms: Optional[float]
-    latencia_clasico_stddev_ms: Optional[float]
-    cipher_clasico: Optional[str]
-    error_clasico: Optional[str]
     # Deltas
     delta_ech_pqc_ms: Optional[float]       # noECH_pqc − ECH_pqc  (solo si bssl)
-    delta_pqc_vs_clasico_ms: Optional[float]  # noECH_pqc − noECH_clasico
     n_mediciones: int
     latencia_dns_ms: Optional[float]
     outer_sni: Optional[str]
@@ -302,10 +292,6 @@ async def procesar_hostname_grupo(
     parsed_configs: Optional[list],
     dns_error: Optional[str],
     latencia_dns_ms: float,
-    # Baseline clásico precalculado
-    lats_clasico: List[float],
-    err_clasico: Optional[str],
-    ci_clasico: Optional[str],
 ) -> ResultadoLatenciaPQC:
     ts = datetime.now(timezone.utc).isoformat()
 
@@ -316,8 +302,6 @@ async def procesar_hostname_grupo(
     bssl_curve = BSSL_CURVE_MAP.get(grupo_pqc)
     cliente_pqc = "bssl" if bssl_curve else "openssl_oqs"
     ech_soportado = bssl_curve is not None
-
-    media_clasico, stddev_clasico = _agregar(lats_clasico)
 
     # Determinar si ECH está disponible para este hostname
     ech_disponible = bool(https_present and ech_value and parsed_configs)
@@ -359,11 +343,7 @@ async def procesar_hostname_grupo(
     if media_ech_pqc is not None and media_sin_ech_pqc is not None:
         delta_ech_pqc = round(media_sin_ech_pqc - media_ech_pqc, 2)
 
-    delta_pqc_vs_clasico: Optional[float] = None
-    if media_sin_ech_pqc is not None and media_clasico is not None:
-        delta_pqc_vs_clasico = round(media_sin_ech_pqc - media_clasico, 2)
-
-    n = max(len(lats_ech_pqc), len(lats_sin_ech_pqc), len(lats_clasico))
+    n = max(len(lats_ech_pqc), len(lats_sin_ech_pqc))
 
     return ResultadoLatenciaPQC(
         hostname=hostname, timestamp=ts,
@@ -375,10 +355,7 @@ async def procesar_hostname_grupo(
         conexion_sin_ech_pqc_exitosa=ok_sin_ech_pqc,
         latencia_sin_ech_pqc_media_ms=media_sin_ech_pqc, latencia_sin_ech_pqc_stddev_ms=stddev_sin_ech_pqc,
         cipher_sin_ech_pqc=ci_sin_ech_pqc, error_sin_ech_pqc=err_sin_ech_pqc,
-        conexion_clasico_exitosa=bool(lats_clasico),
-        latencia_clasico_media_ms=media_clasico, latencia_clasico_stddev_ms=stddev_clasico,
-        cipher_clasico=ci_clasico, error_clasico=err_clasico,
-        delta_ech_pqc_ms=delta_ech_pqc, delta_pqc_vs_clasico_ms=delta_pqc_vs_clasico,
+        delta_ech_pqc_ms=delta_ech_pqc,
         n_mediciones=n, latencia_dns_ms=latencia_dns_ms,
         outer_sni=outer_sni, dns_error=dns_error,
     )
@@ -396,10 +373,10 @@ async def procesar_hostname(
     oqs_bin: str,
 ) -> List[ResultadoLatenciaPQC]:
     """Procesa un hostname para todos los grupos PQC. Devuelve una lista de resultados."""
-    domain, port = _split_host_port(hostname)
+    domain, _ = _split_host_port(hostname)
 
-    # 1. DNS + baseline clásico bajo el semáforo: evita saturar el resolver con
-    # consultas simultáneas de todos los hosts (problema observado sin semáforo).
+    # 1. DNS bajo el semáforo: evita saturar el resolver con consultas
+    # simultáneas de todos los hosts (problema observado sin semáforo).
     async with semaphore:
         t_dns = time.perf_counter()
         https_present, ech_value, parsed_configs, dns_error = await descubrir_https_rr(
@@ -407,12 +384,7 @@ async def procesar_hostname(
         )
         latencia_dns_ms = round((time.perf_counter() - t_dns) * 1000, 2)
 
-        ok_cl, lats_clasico, err_clasico, _, ci_clasico = await _medir_bssl(
-            domain, port, bssl_path, tls_timeout, repeticiones,
-            curvas=GRUPO_CLASICO, ech_value=None,
-        )
-
-    # 3. Una fila por grupo PQC
+    # 2. Una fila por grupo PQC
     resultados = []
     for grupo in grupos_pqc:
         r = await procesar_hostname_grupo(
@@ -424,7 +396,6 @@ async def procesar_hostname(
             https_present=https_present, ech_value=ech_value,
             parsed_configs=parsed_configs, dns_error=dns_error,
             latencia_dns_ms=latencia_dns_ms,
-            lats_clasico=lats_clasico, err_clasico=err_clasico, ci_clasico=ci_clasico,
         )
         resultados.append(r)
 
@@ -456,8 +427,7 @@ def imprimir_resumen(resultados: List[ResultadoLatenciaPQC], grupos: List[str]) 
 
         ech_ok   = sum(1 for r in filas_g if r.conexion_ech_pqc_exitosa)
         pqc_ok   = sum(1 for r in filas_g if r.conexion_sin_ech_pqc_exitosa)
-        d_ech    = [r.delta_ech_pqc_ms       for r in filas_g if r.delta_ech_pqc_ms       is not None]
-        d_vs_cl  = [r.delta_pqc_vs_clasico_ms for r in filas_g if r.delta_pqc_vs_clasico_ms is not None]
+        d_ech    = [r.delta_ech_pqc_ms for r in filas_g if r.delta_ech_pqc_ms is not None]
 
         cliente = filas_g[0].cliente_pqc if filas_g else "?"
         print(f"\n  [{grupo}] ({cliente})")
@@ -469,9 +439,6 @@ def imprimir_resumen(resultados: List[ResultadoLatenciaPQC], grupos: List[str]) 
                 print(f"    δ(noECH−ECH) medio:           {avg} ms  (n={len(d_ech)}, min={min(d_ech)}, max={max(d_ech)})")
         else:
             print(f"    ECH: no soportado por este grupo (OQS-only)")
-        if d_vs_cl:
-            avg2 = round(sum(d_vs_cl) / len(d_vs_cl), 2)
-            print(f"    δ(PQC−Clásico) noECH medio:   {avg2} ms  (n={len(d_vs_cl)})")
 
 
 # ---------------------------------------------------------------------------
