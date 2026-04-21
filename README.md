@@ -20,6 +20,8 @@ Herramienta de investigación para medir la adopción de algoritmos post-cuánti
 
 ---
 
+---
+
 ## Objetivo
 
 Dos líneas de investigación complementarias:
@@ -52,6 +54,18 @@ Medir y comparar el tiempo de handshake TLS para múltiples grupos post-cuántic
 - ¿Cuánto tiempo añade cada grupo PQC respecto a X25519?
 - ¿Cómo interactúa PQC con ECH? ¿Se acumulan los overheads?
 - ¿Qué diferencia hay entre grupos híbridos bssl (X25519Kyber768Draft00, X25519MLKEM768) y grupos OQS puros?
+
+### 4. Clasificación de grupo PQC por side-channel (ML)
+
+Estudiar si un observador de red puede inferir qué grupo criptográfico negoció una conexión TLS **sin acceso al campo `cipher_suite`**, usando únicamente features observables desde el exterior (timing y tamaños de paquete).
+
+Tres experimentos en cascada con features crecientemente ricas:
+
+- **Exp 1 — Solo timing**: ¿es la latencia del handshake suficiente para clasificar el grupo?
+- **Exp 2 — Timing + bytes TLS**: añadir el tamaño de los mensajes del handshake (observables contando bytes en tráfico de red).
+- **Exp 3 — Timing + bytes totales**: añadir el volumen total de la sesión TLS.
+
+Modelos: RandomForest y GradientBoosting. Validación sin leakage: `GroupShuffleSplit(80/20)` por hostname para separar train y test, más `GroupKFold(5)` sobre el train para las métricas de CV.
 
 ---
 
@@ -166,6 +180,28 @@ python3 --version
 ```
 
 Al finalizar, genera automáticamente la gráfica comparativa en `imagenes/latencia_pqc_ech_vs_sin_ech.png`.
+
+### Clasificación PQC por side-channel (ML)
+
+**1. Ejecutar con el JSON de resultados de la sonda PQC:**
+
+```bash
+./ejecutar_clasificacion_pqc.sh
+```
+
+**2. Con más folds de validación cruzada:**
+
+```bash
+./ejecutar_clasificacion_pqc.sh --n-splits 10
+```
+
+**3. Con un JSON alternativo:**
+
+```bash
+./ejecutar_clasificacion_pqc.sh --input-json resultados/mi_sonda.json
+```
+
+Al finalizar, genera automáticamente las gráficas en `imagenes/clasificacion_*.png`.
 
 ---
 
@@ -282,6 +318,24 @@ Grupos predefinidos:
 ./ejecutar_sonda_latencia_pqc.sh --input-csv data/mis_dominios.csv --oqs-bin /usr/local/bin/openssl
 ```
 
+### `ejecutar_clasificacion_pqc.sh`
+
+Ejecuta el análisis de **clasificación de grupo PQC por side-channel** sobre el JSON de resultados de la sonda principal. Entrena RandomForest y GradientBoosting en los 3 experimentos y genera 4 gráficas en `imagenes/`.
+
+| Opción | Descripción | Defecto |
+| --- | --- | --- |
+| `--input-json RUTA` | JSON de la sonda PQC | `resultados/resultados_sonda_pqc.json` |
+| `--output-dir RUTA` | Directorio de imágenes de salida | `imagenes` |
+| `--n-splits N` | Folds para GroupKFold en CV | 5 |
+
+```bash
+# Ejecución estándar
+./ejecutar_clasificacion_pqc.sh
+
+# Mayor rigor estadístico (más folds)
+./ejecutar_clasificacion_pqc.sh --n-splits 10
+```
+
 ### `ejecutar_tests.sh`
 
 Ejecuta la suite completa de tests unitarios con pytest.
@@ -385,6 +439,29 @@ ejecutar_sonda_latencia_pqc.sh
     └── graficar_latencia_pqc.py → imagenes/latencia_pqc_ech_vs_sin_ech.png
 ```
 
+### Pipeline de clasificación ML (side-channel)
+
+```text
+ejecutar_clasificacion_pqc.sh
+    │
+    └── clasificar_grupo_pqc.py
+            │
+            ├── cargar_datos(resultados_sonda_pqc.json)
+            │       └── Filtra: solo ACEPTADO de grupos viables (X25519, X25519MLKEM768,
+            │                   x25519_kyber768, SecP256r1MLKEM768)
+            │
+            ├── GroupShuffleSplit(80/20) por hostname
+            │       └── Train: ~80% hostnames  |  Test: ~20% hostnames (sin solapamiento)
+            │
+            ├── Por cada experimento (Exp 1, 2, 3):
+            │       ├── GroupKFold(5) sobre train  ← métricas de CV (accuracy, F1)
+            │       └── Modelo final entrenado en train completo
+            │
+            ├── Mejor modelo evaluado en test set → matriz de confusión real
+            │
+            └── Exporta 4 gráficas en imagenes/clasificacion_*.png
+```
+
 ---
 
 ## Estructura del repositorio
@@ -397,6 +474,7 @@ TFG-PQC/
 ├── ejecutar_sonda_ech.sh             # Sonda de prevalencia ECH (a gran escala)
 ├── ejecutar_sonda_latencia_ech.sh    # Sonda de latencia ECH (overhead con/sin ECH)
 ├── ejecutar_sonda_latencia_pqc.sh    # Sonda de latencia PQC (múltiples grupos, con/sin ECH)
+├── ejecutar_clasificacion_pqc.sh     # Clasificación ML de grupo PQC por side-channel
 ├── test_pipeline.sh                  # Pipeline completo (sonda + análisis)
 ├── ejecutar_tests.sh                 # Suite de tests
 ├── limpiar_docker.sh                 # Limpieza de imágenes Docker
@@ -416,7 +494,8 @@ TFG-PQC/
 │   │   ├── graficar_latencia_ech.py  # Genera imagenes/latencia_ech_vs_sin_ech.png
 │   │   └── graficar_latencia_pqc.py  # Genera imagenes/latencia_pqc_ech_vs_sin_ech.png
 │   ├── ml/
-│   │   └── analizar_resultados.py    # Análisis estadístico y visualización
+│   │   ├── analizar_resultados.py    # Análisis estadístico y visualización PQC
+│   │   └── clasificar_grupo_pqc.py   # Clasificación ML de grupo por side-channel
 │   ├── calibracion/
 │   │   ├── levantar_servidores.sh
 │   │   └── detener_servidores.sh
@@ -425,6 +504,7 @@ TFG-PQC/
 │       ├── test_sonda_ech_prevalencia.py     # 30+ tests de la sonda de prevalencia ECH
 │       ├── test_sonda_latencia_ech.py        # 59 tests de la sonda de latencia ECH
 │       ├── test_sonda_latencia_pqc.py        # 52 tests de la sonda de latencia PQC
+│       ├── test_clasificar_grupo_pqc.py      # 30 tests del clasificador ML
 │       └── test_utils.py                     # 15+ tests de utilidades
 │
 ├── data/
@@ -591,6 +671,15 @@ Campos del CSV de resultados (una fila por hostname × grupo):
 | `latencia_dns_ms` | Tiempo de consulta DNS HTTPS RR |
 | `outer_sni` | Outer SNI del ECHConfig (identifica el proveedor CDN) |
 
+### Artefactos de clasificación ML
+
+| Archivo | Descripción |
+| --- | --- |
+| `imagenes/clasificacion_distribucion_features.png` | Boxplots de timing y bytes por grupo criptográfico |
+| `imagenes/clasificacion_experimentos_comparativa.png` | Accuracy y F1 de los 3 experimentos para ambos modelos |
+| `imagenes/clasificacion_confusion_mejor.png` | Matriz de confusión del mejor modelo evaluada en el test set |
+| `imagenes/clasificacion_importancia_features.png` | Importancia relativa de cada feature en el mejor modelo |
+
 ---
 
 ## Tests
@@ -610,6 +699,7 @@ La suite cubre:
 - **`test_sonda_ech_prevalencia.py`** — Lógica completa de la sonda de prevalencia ECH
 - **`test_sonda_latencia_ech.py`** — 59 tests de la sonda de latencia ECH: parseo de salida bssl (`_parsear_bssl`), extracción de errores, cálculo de media/stddev (`_agregar`), dataclass `ResultadoLatenciaECH`, exportación CSV, parser de argumentos CLI, `_run_cmd` con subprocesos reales, y pipeline `procesar_hostname` con mocks de DNS y TLS
 - **`test_sonda_latencia_pqc.py`** — 52 tests de la sonda de latencia PQC: mediciones bssl y OQS (`_una_medicion_bssl`, `_una_medicion_oqs`), lógica de selección de backend, dataclass `ResultadoLatenciaPQC`, exportación CSV, parser de argumentos CLI, y pipeline `procesar_hostname_grupo` con mocks de DNS y TLS
+- **`test_clasificar_grupo_pqc.py`** — 30 tests del clasificador ML: constantes (`GRUPOS_VIABLES`, `EXPERIMENTOS`, `LABEL_MAP`), carga y filtrado del JSON (`cargar_datos`), split sin leakage por hostname (`split_train_test`), estructura y métricas de `evaluar_experimento`, y smoke tests de las 4 gráficas de salida
 
 ---
 
