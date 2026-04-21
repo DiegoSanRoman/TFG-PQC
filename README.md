@@ -105,13 +105,7 @@ python3 --version
 
 ### Sonda PQC
 
-**1. Calibrar con servidores locales** (recomendado antes de escanear Internet):
-
-```bash
-./calibrar_servidor_pqc.sh 5
-```
-
-**2. Escanear dominios reales:**
+**1. Escanear dominios reales:**
 
 ```bash
 # Test rápido (7 dominios de prueba)
@@ -121,13 +115,13 @@ python3 --version
 ./ejecutar_sonda.sh --input-csv majestic_million.csv --max-hostnames 100 --repeticiones 3 --max-workers 20
 ```
 
-**3. Analizar resultados y generar gráficas:**
+**2. Analizar resultados y generar gráficas:**
 
 ```bash
 ./ejecutar_analisis.sh
 ```
 
-**4. Pipeline completo (sonda + análisis en un paso):**
+**3. Pipeline completo (sonda + análisis en un paso):**
 
 ```bash
 ./test_pipeline.sh --input-csv prueba.csv --max-hostnames 10 --repeticiones 1 --max-workers 5
@@ -206,19 +200,6 @@ Al finalizar, genera automáticamente las gráficas en `imagenes/clasificacion_*
 ---
 
 ## Uso detallado
-
-### `calibrar_servidor_pqc.sh [repeticiones]`
-
-Valida el correcto funcionamiento de la sonda en un entorno controlado antes de realizar escaneos en Internet.
-
-- Levanta dos contenedores Docker locales con OpenSSL-OQS (versión legacy en puerto 4433, moderna en 4434)
-- Ejecuta la sonda contra `localhost` con todos los grupos criptográficos
-- Genera resultados de calibración en `resultados/resultados_calibracion_*.json`
-
-```bash
-./calibrar_servidor_pqc.sh       # 1 repetición (defecto)
-./calibrar_servidor_pqc.sh 5     # 5 repeticiones por grupo
-```
 
 ### `ejecutar_sonda.sh [opciones]`
 
@@ -468,7 +449,6 @@ ejecutar_clasificacion_pqc.sh
 
 ```text
 TFG-PQC/
-├── calibrar_servidor_pqc.sh          # Calibración con servidores locales
 ├── ejecutar_sonda.sh                 # Escaneo PQC principal
 ├── ejecutar_analisis.sh              # Análisis y visualización PQC
 ├── ejecutar_sonda_ech.sh             # Sonda de prevalencia ECH (a gran escala)
@@ -496,9 +476,6 @@ TFG-PQC/
 │   ├── ml/
 │   │   ├── analizar_resultados.py    # Análisis estadístico y visualización PQC
 │   │   └── clasificar_grupo_pqc.py   # Clasificación ML de grupo por side-channel
-│   ├── calibracion/
-│   │   ├── levantar_servidores.sh
-│   │   └── detener_servidores.sh
 │   └── tests/
 │       ├── test_sonda_pqc.py                 # 37+ tests del motor de escaneo
 │       ├── test_sonda_ech_prevalencia.py     # 30+ tests de la sonda de prevalencia ECH
@@ -511,9 +488,7 @@ TFG-PQC/
 │   ├── prueba.csv                    # 7 dominios para pruebas rápidas
 │   ├── majestic_million.csv          # 1M dominios (Majestic Million)
 │   ├── tranco.csv                    # 1M dominios (Tranco)
-│   ├── hostnames_ech.csv             # Dominios con ECH activo (referencia)
-│   ├── calibracion_legacy.csv        # localhost:4433
-│   └── calibracion_moderno.csv       # localhost:4434
+│   └── hostnames_ech.csv             # Dominios con ECH activo (referencia)
 │
 ├── resultados/                       # Artefactos de salida (generados)
 │   ├── resultados_sonda_pqc.json
@@ -615,8 +590,6 @@ Cada resultado de sonda contiene ~54 campos. Los más relevantes:
 | `imagenes/delta_openssl_tcp_tls_vs_x25519.csv` | Deltas de tiempo TCP+TLS vs X25519 |
 | `imagenes/ranking_justo_handshake.csv` | Ranking de grupos por velocidad de handshake |
 
-Los resultados de calibración se guardan como `resultados/resultados_calibracion_*.json` y `resultados/resumen_calibracion_*.csv`.
-
 ### Artefactos de latencia ECH
 
 | Archivo | Descripción |
@@ -715,7 +688,7 @@ docker pull openquantumsafe/openssl3:latest
 **Error de permisos en los scripts:**
 
 ```bash
-chmod +x *.sh scripts/calibracion/*.sh
+chmod +x *.sh
 ```
 
 **Resultados vacíos o todos con error DNS:**
