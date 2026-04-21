@@ -10,10 +10,10 @@ set -e
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Valores por defecto
-INPUT_CSV="prueba.csv"
-MAX_HOSTNAMES=500
+INPUT_CSV="majestic_million.csv"
+MAX_HOSTNAMES=1000
 
-REPETICIONES=1
+REPETICIONES=2
 MAX_WORKERS=20
 
 # Parsear argumentos
