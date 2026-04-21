@@ -34,8 +34,9 @@ from exceptions import (
     PQCTLSTimeoutError,
     PQCTLSAlertError,
 )
-from sonda_base import es_cipher_debil, tiene_pfs
 from sonda_pqc_final import (
+    es_cipher_debil,
+    tiene_pfs,
     _build_result,
     _flatten_stats_entry,
     calcular_promedio_repeticiones,

@@ -467,7 +467,6 @@ TFG-PQC/
 │   ├── utils.py                      # Utilidades: DNS, certificados, logging, validación
 │   ├── sondas/
 │   │   ├── sonda_pqc_final.py        # Motor principal de escaneo PQC
-│   │   ├── sonda_base.py             # Sonda TLS base (referencia/baseline)
 │   │   ├── sonda_ech_prevalencia.py  # Sonda de prevalencia ECH a gran escala
 │   │   ├── sonda_latencia_ech.py     # Sonda de latencia ECH (overhead con/sin ECH)
 │   │   ├── sonda_latencia_pqc.py     # Sonda de latencia PQC (múltiples grupos, con/sin ECH)

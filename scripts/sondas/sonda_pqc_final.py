@@ -140,6 +140,15 @@ def leer_hostnames_csv(ruta_csv: Path, longitud_max: int, domain_column: Optiona
     return hostnames
 
 
+def es_cipher_debil(cipher_name: str) -> bool:
+    debiles = ['RC4', 'DES', 'MD5', 'NULL', 'EXPORT', 'anon', 'ADH']
+    return any(debil in cipher_name for debil in debiles)
+
+
+def tiene_pfs(cipher_name: str) -> bool:
+    return 'ECDHE' in cipher_name or 'DHE' in cipher_name
+
+
 def parse_trace_bytes(trace_output: str) -> Dict[str, Any]:  # noqa: C901
     '''
     Parsea bytes de handshake TLS desde la salida de OpenSSL con -trace.
