@@ -503,31 +503,34 @@ def filtrar_por_muestras_minimas(df, min_muestras=20):
     
     return df[df['grupo'].isin(grupos_validos)].copy()
 
+def _guardar_figura_individual(fig, ax, path, logger):
+    """Aplica tight_layout, guarda y cierra la figura."""
+    fig.tight_layout()
+    fig.savefig(path, dpi=150, bbox_inches='tight')
+    logger.info(f"✓ Guardado: {path}")
+    plt.close(fig)
+
+
 def graficar_latencia(df, output_dir, df_ranking=None):
     """
-    Gráfica de latencia por grupo.
-    Crea una figura con 4 subplots para DNS, TCP, Handshake y Tiempo Total.
-    Cada subplot muestra una barra horizontal con el tiempo promedio por grupo, con barras de error para
-    la desviación estándar. Los grupos se ordenan de mayor a menor latencia promedio. Se aplican colores personalizados por grupo. Se guardan las gráficas en la carpeta de salida.
-    Input: DataFrame con resultados de conexiones exitosas, carpeta de salida para las gráficas.
-    Output: Gráficas guardadas en la carpeta de salida.
+    Guarda 3 gráficas individuales de latencia:
+      latencia_01_tcp_tls_justo.png
+      latencia_02_delta_execution.png
+      latencia_03_delta_tcp_tls.png
     """
-    # Crear figura con 3 subplots (sin TCP)
-    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
-    fig.suptitle('Análisis de Latencia por Grupo Criptográfico', 
-                 fontsize=16, fontweight='bold')
+    # Limpiar artefactos legacy
+    for legacy in ['latencia_limpia.png', 'delta_open_ssl_vs_x25519.csv', 'delta_handshake_vs_x25519.csv']:
+        p = output_dir / legacy
+        if p.exists():
+            p.unlink()
 
-    # Limpiar artefactos legacy para mantener nombres consistentes
-    for legacy_name in ['delta_open_ssl_vs_x25519.csv', 'delta_handshake_vs_x25519.csv']:
-        legacy_path = output_dir / legacy_name
-        if legacy_path.exists():
-            legacy_path.unlink()
-    
-    # Handshake (ranking justo por hostname con métrica robusta)
     fuente_ranking = df_ranking if df_ranking is not None else df
     min_hostnames_concluyente = 30
     grupos_concluyentes = []
     hosts_comunes_concluyentes = set()
+    ranking_concluyente = pd.DataFrame()
+    ranking_no_concluyente = pd.DataFrame()
+
     ranking_justo = resumen_justo_metrica(fuente_ranking, METRICA_CONNECT_TLS_MS, grupo_clasico='X25519')
     if not ranking_justo.empty:
         ranking_concluyente = ranking_justo[ranking_justo['hostnames'] >= min_hostnames_concluyente].copy()
@@ -541,7 +544,6 @@ def graficar_latencia(df, output_dir, df_ranking=None):
                 min_hostnames=min_hostnames_concluyente,
                 grupo_clasico='X25519'
             )
-
             if grupos_concluyentes and len(hosts_comunes_concluyentes) >= min_hostnames_concluyente:
                 hg_comun = hg[
                     hg['hostname'].isin(hosts_comunes_concluyentes) &
@@ -560,138 +562,116 @@ def graficar_latencia(df, output_dir, df_ranking=None):
                 ranking_concluyente = ranking_concluyente.sort_values('valor_mediana_ms', ascending=True)
                 ranking_concluyente['ranking_rapidez'] = np.arange(1, len(ranking_concluyente) + 1)
 
-                etiquetas = [f"{g} (hosts={n})" for g, n in zip(ranking_concluyente['grupo'], ranking_concluyente['hostnames'])]
-                err_left = ranking_concluyente['valor_mediana_ms'].to_numpy() - ranking_concluyente['valor_q1_ms'].to_numpy()
-                err_right = ranking_concluyente['valor_q3_ms'].to_numpy() - ranking_concluyente['valor_mediana_ms'].to_numpy()
-                axes[0].barh(
-                    etiquetas,
-                    ranking_concluyente['valor_mediana_ms'],
-                    xerr=np.vstack([err_left, err_right]),
-                    color=[COLORES_GRUPOS.get(g, '#999999') for g in ranking_concluyente['grupo']],
-                    alpha=0.7,
-                    capsize=5
-                )
-                axes[0].set_xlabel('Tiempo (ms)', fontweight='bold')
-                axes[0].set_title('OpenSSL TCP+TLS justo (cohorte común, mediana/IQR)', fontweight='bold')
-            else:
-                axes[0].text(0.5, 0.5, f'Sin cohorte común >={min_hostnames_concluyente} hosts', ha='center', va='center', transform=axes[0].transAxes)
-                axes[0].set_title('OpenSSL TCP+TLS justo', fontweight='bold')
-        else:
-            axes[0].text(0.5, 0.5, 'Sin grupos concluyentes (>=30 hosts comparables)', ha='center', va='center', transform=axes[0].transAxes)
-            axes[0].set_title('OpenSSL TCP+TLS justo', fontweight='bold')
-
-        # Exportar ranking justo para auditoría (concluyente y no concluyente)
-        ranking_concluyente_path = output_dir / 'ranking_justo_handshake.csv'
-        ranking_concluyente.to_csv(ranking_concluyente_path, index=False)
-        logger.info(f"✓ Guardado: {ranking_concluyente_path}")
-
+        # Exportar CSVs de auditoría
+        if not ranking_concluyente.empty:
+            p = output_dir / 'ranking_justo_handshake.csv'
+            ranking_concluyente.to_csv(p, index=False)
+            logger.info(f"✓ Guardado: {p}")
         if not ranking_no_concluyente.empty:
             ranking_no_concluyente = ranking_no_concluyente.sort_values('hostnames', ascending=False).copy()
             ranking_no_concluyente['motivo'] = f'Muestra insuficiente (<{min_hostnames_concluyente} hostnames comparables)'
-            ranking_no_concluyente_path = output_dir / 'ranking_justo_handshake_no_concluyente.csv'
-            ranking_no_concluyente.to_csv(ranking_no_concluyente_path, index=False)
-            logger.info(f"✓ Guardado: {ranking_no_concluyente_path}")
-    else:
-        df_hs = df.groupby('grupo')[METRICA_CONNECT_TLS_MS].agg(['median', 'mean', 'std']).sort_values('median', ascending=False)
-        axes[0].barh(df_hs.index, df_hs['median'], xerr=df_hs['std'],
-                        color=[COLORES_GRUPOS.get(g, '#999999') for g in df_hs.index], alpha=0.7, capsize=5)
-        axes[0].set_xlabel('Tiempo (ms)', fontweight='bold')
-        axes[0].set_title('Tiempo OpenSSL TCP+TLS (mediana)', fontweight='bold')
-    axes[0].grid(axis='x', alpha=0.3)
+            p = output_dir / 'ranking_justo_handshake_no_concluyente.csv'
+            ranking_no_concluyente.to_csv(p, index=False)
+            logger.info(f"✓ Guardado: {p}")
 
-    # Delta robusto por hostname vs X25519 para tiempo de ejecución de OpenSSL
-    # Se aplica la misma lógica de grupos concluyentes + cohorte común que en Handshake TLS justo.
     usar_cohorte_comun = bool(grupos_concluyentes) and len(hosts_comunes_concluyentes) >= min_hostnames_concluyente
-    delta_sin_dns = resumen_delta_vs_clasico_restringido(
-        df,
-        'openssl_execution_time_ms',
-        grupo_clasico='X25519',
+
+    # ── Gráfica 1: OpenSSL TCP+TLS justo ────────────────────────
+    fig1, ax1 = plt.subplots(figsize=(10, 5))
+    fig1.suptitle('Latencia TCP+TLS por Grupo PQC — cohorte justa', fontsize=13, fontweight='bold')
+    if not ranking_concluyente.empty and grupos_concluyentes:
+        etiquetas = [f"{g} (hosts={n})" for g, n in zip(ranking_concluyente['grupo'], ranking_concluyente['hostnames'])]
+        err_l = ranking_concluyente['valor_mediana_ms'].to_numpy() - ranking_concluyente['valor_q1_ms'].to_numpy()
+        err_r = ranking_concluyente['valor_q3_ms'].to_numpy() - ranking_concluyente['valor_mediana_ms'].to_numpy()
+        ax1.barh(etiquetas, ranking_concluyente['valor_mediana_ms'],
+                 xerr=np.vstack([err_l, err_r]),
+                 color=[COLORES_GRUPOS.get(g, '#999999') for g in ranking_concluyente['grupo']],
+                 alpha=0.7, capsize=5)
+        ax1.set_xlabel('Tiempo (ms)', fontweight='bold')
+    elif not ranking_justo.empty:
+        df_hs = df.groupby('grupo')[METRICA_CONNECT_TLS_MS].agg(['median', 'std']).sort_values('median', ascending=True)
+        ax1.barh(df_hs.index, df_hs['median'], xerr=df_hs['std'],
+                 color=[COLORES_GRUPOS.get(g, '#999999') for g in df_hs.index], alpha=0.7, capsize=5)
+        ax1.set_xlabel('Tiempo (ms)', fontweight='bold')
+    else:
+        ax1.text(0.5, 0.5, 'Sin grupos concluyentes (>=30 hosts comparables)', ha='center', va='center', transform=ax1.transAxes)
+    ax1.set_title('OpenSSL TCP+TLS justo (cohorte común, mediana/IQR)', fontweight='bold')
+    ax1.grid(axis='x', alpha=0.3)
+    _guardar_figura_individual(fig1, ax1, output_dir / 'latencia_01_tcp_tls_justo.png', logger)
+
+    # ── Gráfica 2: Delta OpenSSL execution time vs X25519 ───────
+    fig2, ax2 = plt.subplots(figsize=(10, 5))
+    fig2.suptitle('Overhead vs X25519 — Tiempo ejecución OpenSSL', fontsize=13, fontweight='bold')
+    delta_exec = resumen_delta_vs_clasico_restringido(
+        df, 'openssl_execution_time_ms', grupo_clasico='X25519',
         grupos_permitidos=grupos_concluyentes if grupos_concluyentes else None,
         hosts_permitidos=hosts_comunes_concluyentes if usar_cohorte_comun else None,
         min_hostnames=min_hostnames_concluyente if grupos_concluyentes else 0
     )
-    if not delta_sin_dns.empty:
-        delta_sin_dns = delta_sin_dns.sort_values('delta_mediana_ms', ascending=True)
-        etiquetas = [f"{g} (hosts={n})" for g, n in zip(delta_sin_dns['grupo'], delta_sin_dns['hostnames'])]
-        err_left = delta_sin_dns['delta_mediana_ms'].to_numpy() - delta_sin_dns['delta_q1_ms'].to_numpy()
-        err_right = delta_sin_dns['delta_q3_ms'].to_numpy() - delta_sin_dns['delta_mediana_ms'].to_numpy()
-        axes[1].barh(
-            etiquetas,
-            delta_sin_dns['delta_mediana_ms'],
-            xerr=np.vstack([err_left, err_right]),
-            color=[COLORES_GRUPOS.get(g, '#999999') for g in delta_sin_dns['grupo']],
-            alpha=0.7,
-            capsize=5
-        )
-        axes[1].axvline(0, color='black', linewidth=1, alpha=0.6)
-        axes[1].set_xlabel('Δ Tiempo (ms) vs X25519', fontweight='bold')
-        axes[1].set_title('OpenSSL execution time (mediana/IQR por host, vs X25519)', fontweight='bold')
-
-        delta_sin_dns_path = output_dir / 'delta_openssl_execution_time_vs_x25519.csv'
-        delta_sin_dns.to_csv(delta_sin_dns_path, index=False)
-        logger.info(f"✓ Guardado: {delta_sin_dns_path}")
+    if not delta_exec.empty:
+        delta_exec = delta_exec.sort_values('delta_mediana_ms', ascending=True)
+        etiquetas = [f"{g} (hosts={n})" for g, n in zip(delta_exec['grupo'], delta_exec['hostnames'])]
+        err_l = delta_exec['delta_mediana_ms'].to_numpy() - delta_exec['delta_q1_ms'].to_numpy()
+        err_r = delta_exec['delta_q3_ms'].to_numpy() - delta_exec['delta_mediana_ms'].to_numpy()
+        ax2.barh(etiquetas, delta_exec['delta_mediana_ms'],
+                 xerr=np.vstack([err_l, err_r]),
+                 color=[COLORES_GRUPOS.get(g, '#999999') for g in delta_exec['grupo']],
+                 alpha=0.7, capsize=5)
+        ax2.axvline(0, color='black', linewidth=1, alpha=0.6)
+        ax2.set_xlabel('Δ Tiempo (ms) vs X25519', fontweight='bold')
+        p = output_dir / 'delta_openssl_execution_time_vs_x25519.csv'
+        delta_exec.to_csv(p, index=False)
+        logger.info(f"✓ Guardado: {p}")
     else:
-        axes[1].text(0.5, 0.5, 'Sin datos comparables para delta vs X25519', ha='center', va='center', transform=axes[1].transAxes)
-        axes[1].set_title('OpenSSL execution time (vs X25519)', fontweight='bold')
-    axes[1].grid(axis='x', alpha=0.3)
+        ax2.text(0.5, 0.5, 'Sin datos comparables para delta vs X25519', ha='center', va='center', transform=ax2.transAxes)
+    ax2.set_title('OpenSSL execution time (Δ mediana/IQR por host, vs X25519)', fontweight='bold')
+    ax2.grid(axis='x', alpha=0.3)
+    _guardar_figura_individual(fig2, ax2, output_dir / 'latencia_02_delta_execution.png', logger)
 
-    # Delta robusto por hostname vs X25519 para OpenSSL TCP+TLS
-    # Se aplica la misma lógica de grupos concluyentes + cohorte común que en OpenSSL TCP+TLS justo.
-    delta_connect_tls = resumen_delta_vs_clasico_restringido(
-        df,
-        METRICA_CONNECT_TLS_MS,
-        grupo_clasico='X25519',
+    # ── Gráfica 3: Delta TCP+TLS vs X25519 ──────────────────────
+    fig3, ax3 = plt.subplots(figsize=(10, 5))
+    fig3.suptitle('Overhead vs X25519 — TCP+TLS handshake', fontsize=13, fontweight='bold')
+    delta_tls = resumen_delta_vs_clasico_restringido(
+        df, METRICA_CONNECT_TLS_MS, grupo_clasico='X25519',
         grupos_permitidos=grupos_concluyentes if grupos_concluyentes else None,
         hosts_permitidos=hosts_comunes_concluyentes if usar_cohorte_comun else None,
         min_hostnames=min_hostnames_concluyente if grupos_concluyentes else 0
     )
-    if not delta_connect_tls.empty:
-        delta_connect_tls = delta_connect_tls.sort_values('delta_mediana_ms', ascending=True)
-        etiquetas = [f"{g} (hosts={n})" for g, n in zip(delta_connect_tls['grupo'], delta_connect_tls['hostnames'])]
-        err_left = delta_connect_tls['delta_mediana_ms'].to_numpy() - delta_connect_tls['delta_q1_ms'].to_numpy()
-        err_right = delta_connect_tls['delta_q3_ms'].to_numpy() - delta_connect_tls['delta_mediana_ms'].to_numpy()
-        axes[2].barh(
-            etiquetas,
-            delta_connect_tls['delta_mediana_ms'],
-            xerr=np.vstack([err_left, err_right]),
-            color=[COLORES_GRUPOS.get(g, '#999999') for g in delta_connect_tls['grupo']],
-            alpha=0.7,
-            capsize=5
-        )
-        axes[2].axvline(0, color='black', linewidth=1, alpha=0.6)
-        axes[2].set_xlabel('Δ Tiempo (ms) vs X25519', fontweight='bold')
-        axes[2].set_title('OpenSSL TCP+TLS (Δ mediana/IQR por host, vs X25519)', fontweight='bold')
-
-        delta_connect_tls_path = output_dir / 'delta_openssl_tcp_tls_vs_x25519.csv'
-        delta_connect_tls.to_csv(delta_connect_tls_path, index=False)
-        logger.info(f"✓ Guardado: {delta_connect_tls_path}")
+    if not delta_tls.empty:
+        delta_tls = delta_tls.sort_values('delta_mediana_ms', ascending=True)
+        etiquetas = [f"{g} (hosts={n})" for g, n in zip(delta_tls['grupo'], delta_tls['hostnames'])]
+        err_l = delta_tls['delta_mediana_ms'].to_numpy() - delta_tls['delta_q1_ms'].to_numpy()
+        err_r = delta_tls['delta_q3_ms'].to_numpy() - delta_tls['delta_mediana_ms'].to_numpy()
+        ax3.barh(etiquetas, delta_tls['delta_mediana_ms'],
+                 xerr=np.vstack([err_l, err_r]),
+                 color=[COLORES_GRUPOS.get(g, '#999999') for g in delta_tls['grupo']],
+                 alpha=0.7, capsize=5)
+        ax3.axvline(0, color='black', linewidth=1, alpha=0.6)
+        ax3.set_xlabel('Δ Tiempo (ms) vs X25519', fontweight='bold')
+        p = output_dir / 'delta_openssl_tcp_tls_vs_x25519.csv'
+        delta_tls.to_csv(p, index=False)
+        logger.info(f"✓ Guardado: {p}")
     else:
-        axes[2].text(0.5, 0.5, 'Sin datos comparables para delta vs X25519', ha='center', va='center', transform=axes[2].transAxes)
-        axes[2].set_title('OpenSSL TCP+TLS (vs X25519)', fontweight='bold')
-    axes[2].grid(axis='x', alpha=0.3)
-    
-    # Ajustar layout y guardar figura
-    plt.tight_layout()
-    output_path = output_dir / 'latencia_limpia.png'
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    logger.info(f"✓ Guardado: {output_path}")
-    plt.close()
+        ax3.text(0.5, 0.5, 'Sin datos comparables para delta vs X25519', ha='center', va='center', transform=ax3.transAxes)
+    ax3.set_title('OpenSSL TCP+TLS (Δ mediana/IQR por host, vs X25519)', fontweight='bold')
+    ax3.grid(axis='x', alpha=0.3)
+    _guardar_figura_individual(fig3, ax3, output_dir / 'latencia_03_delta_tcp_tls.png', logger)
 
 
 
 def graficar_bytes(df, output_dir):
     """
-    Gráfica de bytes por grupo - Robusta ante datos faltantes.
-    Crea una figura con 4 subplots mostrando promedios por grupo con barras de error.
-    Input: DataFrame con resultados de conexiones exitosas, carpeta de salida para las gráficas
-    Output: Gráficas guardadas en la carpeta de salida.
+    Guarda 4 gráficas individuales de bytes:
+      bytes_01_sent.png
+      bytes_02_received.png
+      bytes_03_overhead.png
+      bytes_04_overhead_total.png
     """
-    # Crear figura con 4 subplots
-    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-    fig.suptitle('Análisis de Overhead de Bytes por Grupo Criptográfico (Datos Limpios)', 
-                 fontsize=16, fontweight='bold')
+    # Limpiar artefacto composite legacy
+    legacy = output_dir / 'bytes_limpia.png'
+    if legacy.exists():
+        legacy.unlink()
 
-    # Cohorte común (metodología equivalente a latencia robusta)
     min_hostnames_concluyente = 30
     grupos_concluyentes = []
     hosts_comunes_concluyentes = set()
@@ -719,8 +699,7 @@ def graficar_bytes(df, output_dir):
     if usar_cohorte_comun:
         logger.info(
             "Bytes: usando cohorte común robusta (%d hosts, %d grupos concluyentes)",
-            len(hosts_comunes_concluyentes),
-            len(grupos_concluyentes)
+            len(hosts_comunes_concluyentes), len(grupos_concluyentes)
         )
     else:
         logger.info("Bytes: sin cohorte común suficiente, usando agregación por hostname/grupo")
@@ -728,22 +707,17 @@ def graficar_bytes(df, output_dir):
     def resumir_bytes_metrica(metrica_col):
         if metrica_col not in df.columns:
             return pd.DataFrame()
-
         base = df[df[metrica_col].notna()].copy()
         if base.empty:
             return pd.DataFrame()
-
         if usar_cohorte_comun:
             base = base[
                 base['hostname'].isin(hosts_comunes_concluyentes) &
                 base['grupo'].isin(grupos_concluyentes)
             ].copy()
-
         host_group = _agregar_por_hostname_grupo(base, metrica_col)
         if host_group.empty:
             return pd.DataFrame()
-
-        # Usar mediana e IQR para consistencia metodológica con latencia (robusto ante outliers)
         resumen = host_group.groupby('grupo').agg(
             mean=(metrica_col, 'median'),
             q1=(metrica_col, lambda s: s.quantile(0.25)),
@@ -751,64 +725,31 @@ def graficar_bytes(df, output_dir):
             hostnames=('hostname', 'nunique')
         ).reset_index()
         resumen['iqr'] = resumen['q3'] - resumen['q1']
-        resumen = resumen.drop(columns=['q1', 'q3'])
-        return resumen.sort_values('mean', ascending=False)
+        return resumen.drop(columns=['q1', 'q3']).sort_values('mean', ascending=False)
 
-    sufijo_titulo = ' (cohorte común)' if usar_cohorte_comun else ' (agregado por hostname)'
-    
-    # Bytes Sent
-    df_sent = resumir_bytes_metrica('bytes_sent')
-    if not df_sent.empty:
-        axes[0, 0].barh(df_sent['grupo'], df_sent['mean'], xerr=df_sent['iqr'],
-                             color=[COLORES_GRUPOS.get(g, '#999999') for g in df_sent['grupo']], alpha=0.7, capsize=5)
-        axes[0, 0].set_xlabel('Bytes', fontweight='bold')
-        axes[0, 0].set_title(f'Bytes Enviados (Trace TLS) Promedio{sufijo_titulo}', fontweight='bold')
-        axes[0, 0].grid(axis='x', alpha=0.3)
-    else:
-        axes[0, 0].text(0.5, 0.5, 'Sin datos', ha='center', va='center', transform=axes[0, 0].transAxes)
-        axes[0, 0].set_title(f'Bytes Enviados (Trace TLS) Promedio{sufijo_titulo}', fontweight='bold')
+    sufijo = ' (cohorte común)' if usar_cohorte_comun else ' (agregado por hostname)'
 
-    # Bytes Received
-    df_recv = resumir_bytes_metrica('bytes_received')
-    if not df_recv.empty:
-        axes[0, 1].barh(df_recv['grupo'], df_recv['mean'], xerr=df_recv['iqr'],
-                             color=[COLORES_GRUPOS.get(g, '#999999') for g in df_recv['grupo']], alpha=0.7, capsize=5)
-        axes[0, 1].set_xlabel('Bytes', fontweight='bold')
-        axes[0, 1].set_title(f'Bytes Recibidos (Trace TLS) Promedio{sufijo_titulo}', fontweight='bold')
-        axes[0, 1].grid(axis='x', alpha=0.3)
-    else:
-        axes[0, 1].text(0.5, 0.5, 'Sin datos', ha='center', va='center', transform=axes[0, 1].transAxes)
-        axes[0, 1].set_title(f'Bytes Recibidos (Trace TLS) Promedio{sufijo_titulo}', fontweight='bold')
+    specs = [
+        ('bytes_01_sent.png',           'bytes_sent',              f'Bytes Enviados — Trace TLS{sufijo}'),
+        ('bytes_02_received.png',        'bytes_received',          f'Bytes Recibidos — Trace TLS{sufijo}'),
+        ('bytes_03_overhead.png',        'handshake_overhead',      f'Overhead Handshake — Trace TLS{sufijo}'),
+        ('bytes_04_overhead_total.png',  'handshake_total_overhead', f'Overhead Total Handshake — OpenSSL{sufijo}'),
+    ]
 
-    # Handshake Overhead
-    df_ovh = resumir_bytes_metrica('handshake_overhead')
-    if not df_ovh.empty:
-        axes[1, 0].barh(df_ovh['grupo'], df_ovh['mean'], xerr=df_ovh['iqr'],
-                             color=[COLORES_GRUPOS.get(g, '#999999') for g in df_ovh['grupo']], alpha=0.7, capsize=5)
-        axes[1, 0].set_xlabel('Bytes', fontweight='bold')
-        axes[1, 0].set_title(f'Overhead Handshake (Trace TLS){sufijo_titulo}', fontweight='bold')
-        axes[1, 0].grid(axis='x', alpha=0.3)
-    else:
-        axes[1, 0].text(0.5, 0.5, 'Sin datos', ha='center', va='center', transform=axes[1, 0].transAxes)
-        axes[1, 0].set_title(f'Overhead Handshake (Trace TLS){sufijo_titulo}', fontweight='bold')
-
-    # Handshake Total real (resumen OpenSSL)
-    df_ovh_total = resumir_bytes_metrica('handshake_total_overhead')
-    if not df_ovh_total.empty:
-        axes[1, 1].barh(df_ovh_total['grupo'], df_ovh_total['mean'], xerr=df_ovh_total['iqr'],
-                             color=[COLORES_GRUPOS.get(g, '#999999') for g in df_ovh_total['grupo']], alpha=0.7, capsize=5)
-        axes[1, 1].set_xlabel('Bytes', fontweight='bold')
-        axes[1, 1].set_title(f'Overhead Total del Handshake (OpenSSL){sufijo_titulo}', fontweight='bold')
-        axes[1, 1].grid(axis='x', alpha=0.3)
-    else:
-        axes[1, 1].text(0.5, 0.5, 'Sin datos de handshake total', ha='center', va='center', transform=axes[1, 1].transAxes)
-        axes[1, 1].set_title(f'Overhead Total del Handshake (OpenSSL){sufijo_titulo}', fontweight='bold')
-    
-    plt.tight_layout()
-    output_path = output_dir / 'bytes_limpia.png'
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    logger.info(f"✓ Guardado: {output_path}")
-    plt.close()
+    for filename, col, titulo in specs:
+        fig, ax = plt.subplots(figsize=(10, 5))
+        fig.suptitle('Análisis de Bytes por Grupo PQC (datos limpios)', fontsize=13, fontweight='bold')
+        datos = resumir_bytes_metrica(col)
+        if not datos.empty:
+            ax.barh(datos['grupo'], datos['mean'], xerr=datos['iqr'],
+                    color=[COLORES_GRUPOS.get(g, '#999999') for g in datos['grupo']],
+                    alpha=0.7, capsize=5)
+            ax.set_xlabel('Bytes', fontweight='bold')
+        else:
+            ax.text(0.5, 0.5, 'Sin datos', ha='center', va='center', transform=ax.transAxes)
+        ax.set_title(titulo, fontweight='bold')
+        ax.grid(axis='x', alpha=0.3)
+        _guardar_figura_individual(fig, ax, output_dir / filename, logger)
 
 def main():
     # Crear carpeta de salida si no existe

@@ -5,10 +5,14 @@ set -euo pipefail
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${PROJECT_DIR}"
 
-if [[ -z "${VIRTUAL_ENV:-}" && -f "${PROJECT_DIR}/venv/bin/activate" ]]; then
-    source "${PROJECT_DIR}/venv/bin/activate"
+if [[ -f "${PROJECT_DIR}/venv/bin/python3" ]]; then
+    PYTHON_BIN="${PROJECT_DIR}/venv/bin/python3"
+elif command -v python3 >/dev/null 2>&1; then
+    PYTHON_BIN="python3"
+else
+    echo "ERROR - No se encontró python3"
+    exit 1
 fi
-PYTHON_BIN="python3"
 
 INPUT_JSON="resultados/resultados_sonda_pqc.json"
 OUTPUT_DIR="imagenes"
@@ -57,10 +61,16 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if ! command -v "${PYTHON_BIN}" >/dev/null 2>&1; then
-    echo "ERROR - No se encontró python3 en PATH"
+if [[ ! -x "${PYTHON_BIN}" ]]; then
+    echo "ERROR - Python no ejecutable: ${PYTHON_BIN}"
     exit 1
 fi
+
+# Verificar dependencias clave e instalar si faltan
+"${PYTHON_BIN}" -c "import sklearn" 2>/dev/null || {
+    echo "--- Instalando dependencias Python..."
+    "${PYTHON_BIN}" -m pip install -q pandas numpy matplotlib seaborn scikit-learn
+}
 
 if [[ ! -f "${INPUT_JSON}" ]]; then
     echo "ERROR - JSON de entrada no encontrado: ${INPUT_JSON}"

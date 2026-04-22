@@ -39,7 +39,7 @@ function StatsRow({ stats = [], color }) {
 function ImagesSection({ stepId, color }) {
   // Mapeo de step → imágenes esperadas en /imagenes
   const patterns = {
-    pqc_analisis:      [/^latencia_.*\.png$/i, /^bytes_.*\.png$/i, /^delta_.*\.png$/i, /^ranking_.*\.png$/i],
+    pqc_analisis:      [/^latencia_0\d_.*\.png$/i, /^bytes_0\d_.*\.png$/i],
     pqc_clasificacion: [/^clasificacion_.*\.png$/i],
     ech_latencia_ech:  [/^latencia_ech_vs_sin_ech\.png$/i],
     ech_latencia_pqc:  [/^latencia_pqc_.*\.png$/i],

@@ -183,52 +183,76 @@ def _pqc_sonda() -> dict:
 # ──────────────────────────────────────────────────────────────
 
 def _pqc_analisis() -> dict:
-    """
-    Intenta leer resumen_por_grupo.csv (generado por analizar_resultados.py)
-    para extraer medianas por grupo y computar overhead vs X25519.
-    """
+    """Lee resumen_por_grupo.csv para extraer medianas y overhead vs X25519."""
     summary_path = RESULTS_DIR / "resumen_por_grupo.csv"
     rows = _read_csv(summary_path)
 
-    # Suponemos columnas: grupo, mediana_handshake_ms (o similar)
-    def _median_field(r):
-        for k in ("mediana_handshake_ms", "mediana_ms", "mediana",
-                  "mediana_openssl_execution_time_ms"):
+    def _field(r, *keys):
+        for k in keys:
             if k in r and r[k] not in ("", None):
                 try: return float(r[k])
                 except ValueError: pass
         return None
 
-    groups = {}
+    groups_ms:  dict[str, float] = {}   # grupo → mediana latencia
+    groups_pct: dict[str, float] = {}   # grupo → % aceptación
+    total_hosts_csv = 0
+
     for r in rows:
         g = r.get("grupo") or r.get("group") or r.get("grupo_pqc")
-        m = _median_field(r)
-        if g and m is not None:
-            groups[g] = m
+        if not g:
+            continue
+        m = _field(r, "handshake_time_ms_mediana", "handshake_time_ms_median",
+                      "mediana_handshake_ms", "mediana_ms", "mediana",
+                      "mediana_openssl_execution_time_ms")
+        if m is not None:
+            groups_ms[g] = m
+        pct = _field(r, "porcentaje_aceptacion", "tasa_exito", "acceptance_rate")
+        if pct is not None:
+            groups_pct[g] = pct
+        tp = _field(r, "total_pruebas", "total")
+        if tp is not None and tp > total_hosts_csv:
+            total_hosts_csv = int(tp)
 
-    baseline = groups.get("X25519")
+    baseline = groups_ms.get("X25519")
+
+    # Overhead vs X25519 (delta mediana latencia)
     v_bars = []
     if baseline is not None:
-        # Overhead vs X25519
-        items = sorted(groups.items(), key=lambda kv: kv[1] - baseline)
-        for g, m in items:
+        for g, m in sorted(groups_ms.items(), key=lambda kv: kv[1] - baseline):
             v_bars.append({"label": g, "value": round(m - baseline, 1)})
 
-    # Contar imágenes generadas por el análisis
-    n_imgs = len(list(IMAGES_DIR.glob("*.png"))) if IMAGES_DIR.exists() else 0
+    # Mejor grupo PQC por latencia (excluye X25519)
+    pqc_groups = {g: m for g, m in groups_ms.items() if g != "X25519"}
+    mejor_grupo = min(pqc_groups, key=pqc_groups.get) if pqc_groups else None
+    mejor_ms    = round(pqc_groups[mejor_grupo], 1) if mejor_grupo else None
+
+    # Overhead de X25519MLKEM768 (grupo híbrido más relevante)
+    mlkem_ms      = groups_ms.get("X25519MLKEM768")
+    mlkem_overhead = round(mlkem_ms - baseline, 1) if (mlkem_ms is not None and baseline is not None) else None
+    mlkem_overhead_str = (f"+{mlkem_overhead} ms" if mlkem_overhead and mlkem_overhead > 0
+                          else f"{mlkem_overhead} ms") if mlkem_overhead is not None else "—"
+
+    n_imgs = len(list(IMAGES_DIR.glob("latencia_0*.png")) + list(IMAGES_DIR.glob("bytes_0*.png"))) \
+             if IMAGES_DIR.exists() else 0
+
+    stats = [
+        {"label": "Grupos con datos",      "value": str(len(groups_ms))},
+        {"label": "Latencia X25519",       "value": f"{round(baseline, 1)} ms" if baseline else "—"},
+        {"label": "Overhead MLKEM768",     "value": mlkem_overhead_str},
+        {"label": "Figuras generadas",     "value": str(n_imgs)},
+    ]
+    if mejor_grupo and mejor_grupo != "X25519MLKEM768":
+        stats.insert(2, {"label": "Mejor grupo PQC", "value": f"{mejor_grupo} ({mejor_ms} ms)"})
 
     return {
-        "stats": [
-            {"label": "Grupos analizados", "value": str(len(groups))},
-            {"label": "Mediana X25519",    "value": f"{int(baseline)} ms" if baseline else "—"},
-            {"label": "Figuras generadas", "value": str(n_imgs)},
-            {"label": "Reporte",           "value": "resumen_por_grupo.csv"},
-        ],
-        "v_bars": v_bars,
-        "unit":   "ms",
-        "color":  "purple",
-        "title":  "Overhead de latencia vs X25519 (mediana)",
-        "note":   "Delta calculado por hostname para aislar el ruido de red. Positivo = más lento que X25519.",
+        "stats":        stats,
+        "v_bars":       v_bars,
+        "v_bars_title": "Overhead de latencia vs X25519 (mediana, ms)",
+        "v_bars_unit":  "ms",
+        "unit":         "ms",
+        "color":        "purple",
+        "note":         "Delta calculado por hostname para aislar el ruido de red. Negativo = más rápido que X25519.",
     }
 
 

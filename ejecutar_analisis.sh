@@ -52,10 +52,7 @@ else
 
     # Instalar dependencias si no están presentes
     echo "--- Verificando dependencias..."
-    pip install -q pandas numpy matplotlib seaborn 2>/dev/null || {     # -q silencia la salida de pip, y 2>/dev/null redirige errores a null para evitar ruido
-        echo "   --- Instalando paquetes requeridos..."
-        pip install pandas numpy matplotlib seaborn
-    }
+    pip install -q pandas numpy matplotlib seaborn dnspython cryptography
 fi
 
 # Verificar que el archivo JSON existe (-f comprueba archivo regular)
