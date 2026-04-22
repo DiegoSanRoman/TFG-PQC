@@ -57962,3 +57962,75 @@
 2026-04-22 00:02:29,982 INFO     [__main__] Resultados guardados en /app/resultados/resultados_sonda_pqc.json
 2026-04-22 00:02:29,982 INFO     [__main__] Resumen CSV guardado en /app/resultados/resumen_por_grupo.csv
 2026-04-22 00:02:29,982 INFO     [__main__] ======================================================================
+2026-04-22 00:15:37,814 INFO     [__main__] Iniciando sonda PQC con OpenSSL personalizado
+2026-04-22 00:15:37,815 INFO     [__main__] Binario OpenSSL: /opt/openssl/bin/openssl
+2026-04-22 00:15:37,815 INFO     [__main__] Límite de procesos OpenSSL: 12
+2026-04-22 00:15:37,815 INFO     [__main__] Repeticiones por grupo: 3
+2026-04-22 00:15:37,815 INFO     [__main__] Detectado formato Majestic Million (columna 2: Domain)
+2026-04-22 00:15:37,815 INFO     [__main__] Se han cargado 100 hostnames desde /app/data/majestic_million.csv
+2026-04-22 00:15:37,815 INFO     [__main__] Grupos PQC a probar: X25519, X25519MLKEM768, x25519_kyber768, mlkem768, kyber768, p256_kyber768, SecP256r1MLKEM768, x25519_mlkem512, x25519_kyber512, frodo640aes, bikel1, x25519_bikel1, x25519_hqc128
+2026-04-22 00:15:37,815 INFO     [__main__] Iniciando escaneo concurrente con 20 hilos...
+2026-04-22 00:16:22,169 INFO     [__main__] Iniciando sonda PQC con OpenSSL personalizado
+2026-04-22 00:16:22,169 INFO     [__main__] Binario OpenSSL: /opt/openssl/bin/openssl
+2026-04-22 00:16:22,169 INFO     [__main__] Límite de procesos OpenSSL: 12
+2026-04-22 00:16:22,169 INFO     [__main__] Repeticiones por grupo: 1
+2026-04-22 00:16:22,169 INFO     [__main__] Detectado formato Majestic Million (columna 2: Domain)
+2026-04-22 00:16:22,170 INFO     [__main__] Se han cargado 100 hostnames desde /app/data/majestic_million.csv
+2026-04-22 00:16:22,170 INFO     [__main__] Grupos PQC a probar: X25519, X25519MLKEM768, x25519_kyber768, mlkem768, kyber768, p256_kyber768, SecP256r1MLKEM768, x25519_mlkem512, x25519_kyber512, frodo640aes, bikel1, x25519_bikel1, x25519_hqc128
+2026-04-22 00:16:22,170 INFO     [__main__] Iniciando escaneo concurrente con 20 hilos...
+2026-04-22 00:16:38,565 WARNING  [__main__] Escaneo sin éxitos para nginx.org (0/13 pruebas exitosas)
+2026-04-22 00:17:10,201 WARNING  [__main__] Escaneo sin éxitos para linkedin.com (0/13 pruebas exitosas)
+2026-04-22 00:17:10,212 WARNING  [__main__] Escaneo sin éxitos para microsoft.com (0/13 pruebas exitosas)
+2026-04-22 00:17:25,845 WARNING  [__main__] Timeout TCP para macromedia.com:443
+2026-04-22 00:17:28,852 WARNING  [__main__] Timeout TCP para macromedia.com:443
+2026-04-22 00:17:29,361 WARNING  [__main__] Escaneo sin éxitos para qq.com (0/13 pruebas exitosas)
+2026-04-22 00:17:31,858 WARNING  [__main__] Timeout TCP para macromedia.com:443
+2026-04-22 00:17:34,804 WARNING  [__main__] Escaneo sin éxitos para nih.gov (0/13 pruebas exitosas)
+2026-04-22 00:17:34,866 WARNING  [__main__] Timeout TCP para macromedia.com:443
+2026-04-22 00:17:37,873 WARNING  [__main__] Timeout TCP para macromedia.com:443
+2026-04-22 00:17:40,882 WARNING  [__main__] Timeout TCP para macromedia.com:443
+2026-04-22 00:17:42,156 WARNING  [__main__] Escaneo sin éxitos para office.com (0/13 pruebas exitosas)
+2026-04-22 00:17:43,889 WARNING  [__main__] Timeout TCP para macromedia.com:443
+2026-04-22 00:17:46,895 WARNING  [__main__] Timeout TCP para macromedia.com:443
+2026-04-22 00:17:47,397 WARNING  [__main__] Conexión rechazada para web.archive.org:443
+2026-04-22 00:17:49,903 WARNING  [__main__] Timeout TCP para macromedia.com:443
+2026-04-22 00:17:50,779 WARNING  [__main__] Timeout en flickr.com con grupo x25519_kyber768
+2026-04-22 00:17:52,910 WARNING  [__main__] Timeout TCP para macromedia.com:443
+2026-04-22 00:17:55,918 WARNING  [__main__] Timeout TCP para macromedia.com:443
+2026-04-22 00:17:56,130 WARNING  [__main__] Timeout en soundcloud.com con grupo x25519_kyber768
+2026-04-22 00:17:58,124 WARNING  [__main__] Escaneo sin éxitos para miit.gov.cn (0/13 pruebas exitosas)
+2026-04-22 00:17:58,926 WARNING  [__main__] Timeout TCP para macromedia.com:443
+2026-04-22 00:18:00,715 WARNING  [__main__] Escaneo sin éxitos para live.com (0/13 pruebas exitosas)
+2026-04-22 00:18:01,935 WARNING  [__main__] Timeout TCP para macromedia.com:443
+2026-04-22 00:18:01,936 WARNING  [__main__] Escaneo sin éxitos para macromedia.com (0/13 pruebas exitosas)
+2026-04-22 00:18:06,808 WARNING  [__main__] Timeout en flickr.com con grupo mlkem768
+2026-04-22 00:18:08,634 WARNING  [__main__] Escaneo sin éxitos para oracle.com (0/13 pruebas exitosas)
+2026-04-22 00:18:12,165 WARNING  [__main__] Timeout en soundcloud.com con grupo mlkem768
+2026-04-22 00:18:15,355 WARNING  [__main__] Escaneo sin éxitos para baidu.com (0/13 pruebas exitosas)
+2026-04-22 00:18:22,842 WARNING  [__main__] Timeout en flickr.com con grupo kyber768
+2026-04-22 00:18:23,584 WARNING  [__main__] Escaneo sin éxitos para forbes.com (0/13 pruebas exitosas)
+2026-04-22 00:18:26,076 WARNING  [__main__] Escaneo sin éxitos para wixsite.com (0/13 pruebas exitosas)
+2026-04-22 00:18:30,698 WARNING  [__main__] Timeout en soundcloud.com con grupo kyber768
+2026-04-22 00:18:38,875 WARNING  [__main__] Timeout en flickr.com con grupo p256_kyber768
+2026-04-22 00:18:46,729 WARNING  [__main__] Timeout en soundcloud.com con grupo p256_kyber768
+2026-04-22 00:18:54,989 WARNING  [__main__] Timeout en flickr.com con grupo x25519_mlkem512
+2026-04-22 00:19:02,837 WARNING  [__main__] Timeout en soundcloud.com con grupo x25519_mlkem512
+2026-04-22 00:19:11,023 WARNING  [__main__] Timeout en flickr.com con grupo x25519_kyber512
+2026-04-22 00:19:18,871 WARNING  [__main__] Timeout en soundcloud.com con grupo x25519_kyber512
+2026-04-22 00:19:27,057 WARNING  [__main__] Timeout en flickr.com con grupo frodo640aes
+2026-04-22 00:19:34,905 WARNING  [__main__] Timeout en soundcloud.com con grupo frodo640aes
+2026-04-22 00:19:43,087 WARNING  [__main__] Timeout en flickr.com con grupo bikel1
+2026-04-22 00:19:50,944 WARNING  [__main__] Timeout en soundcloud.com con grupo bikel1
+2026-04-22 00:19:59,148 WARNING  [__main__] Timeout en flickr.com con grupo x25519_bikel1
+2026-04-22 00:20:06,980 WARNING  [__main__] Timeout en soundcloud.com con grupo x25519_bikel1
+2026-04-22 00:20:15,187 WARNING  [__main__] Timeout en flickr.com con grupo x25519_hqc128
+2026-04-22 00:20:23,020 WARNING  [__main__] Timeout en soundcloud.com con grupo x25519_hqc128
+2026-04-22 00:20:23,099 INFO     [__main__] Estadísticas por grupo exportadas a /app/resultados/resumen_por_grupo.csv
+2026-04-22 00:20:23,099 INFO     [__main__] ======================================================================
+2026-04-22 00:20:23,099 INFO     [__main__] Escaneo PQC completado
+2026-04-22 00:20:23,099 INFO     [__main__] Tiempo total: 240.86 segundos
+2026-04-22 00:20:23,099 INFO     [__main__] Hosts con al menos un éxito: 87/100 (87.00%)
+2026-04-22 00:20:23,099 INFO     [__main__] Pruebas exitosas: 169/1300 (13.00%)
+2026-04-22 00:20:23,099 INFO     [__main__] Resultados guardados en /app/resultados/resultados_sonda_pqc.json
+2026-04-22 00:20:23,099 INFO     [__main__] Resumen CSV guardado en /app/resultados/resumen_por_grupo.csv
+2026-04-22 00:20:23,099 INFO     [__main__] ======================================================================

@@ -72,7 +72,7 @@ def _accepted(row: dict) -> bool:
         if k in row:
             v = row[k]
             return v is True or str(v).lower() in ("true", "1", "yes")
-    for k in ("resultado", "result", "estado", "status"):
+    for k in ("resultado", "result", "estado", "status", "connection_result"):
         if k in row:
             return str(row[k]).upper() == "ACEPTADO"
     return False
@@ -83,44 +83,98 @@ def _accepted(row: dict) -> bool:
 # ──────────────────────────────────────────────────────────────
 
 def _pqc_sonda() -> dict:
-    """Lee resultados/resultados_sonda_pqc.json → % de aceptación por grupo."""
+    """Lee resultados/resultados_sonda_pqc.json → % de aceptación y latencia por grupo."""
     path = RESULTS_DIR / "resultados_sonda_pqc.json"
     data = _read_json(path)
 
-    # El JSON puede ser una lista de probes o un dict {probes: [...]}
-    probes = data if isinstance(data, list) else data.get("probes") or data.get("resultados") or []
+    resumen = data.get("resumen", {}) if isinstance(data, dict) else {}
+    datos   = data.get("datos", [])   if isinstance(data, dict) else (data if isinstance(data, list) else [])
+
+    # Aplanar probes desde la estructura anidada {hostname, pruebas: [...]}
+    probes: list[dict] = []
+    for d in datos:
+        hn = d.get("hostname") or d.get("host") or ""
+        for p in d.get("pruebas", []):
+            probes.append({**p, "hostname": hn})
+    # Fallback: lista plana de probes directamente
+    if not probes and isinstance(data, list):
+        probes = data
 
     hosts_ok: set[str] = set()
-    group_stats: dict[str, dict[str, int]] = defaultdict(lambda: {"total": 0, "ok": 0})
+    group_stats: dict[str, dict] = defaultdict(lambda: {"total": 0, "ok": 0, "hs_ms": [], "bytes": []})
+
     for p in probes:
-        hostname = p.get("hostname") or p.get("host") or ""
         grupo    = p.get("grupo") or p.get("group") or p.get("grupo_pqc") or ""
-        if hostname: hosts_ok.add(hostname)
-        if not grupo: continue
+        hostname = p.get("hostname") or p.get("host") or ""
+        accepted = _accepted(p)
+        if accepted and hostname:
+            hosts_ok.add(hostname)
+        if not grupo:
+            continue
         group_stats[grupo]["total"] += 1
-        if _accepted(p):
+        if accepted:
             group_stats[grupo]["ok"] += 1
+        hms = _num(p.get("handshake_time_ms"))
+        if hms is not None:
+            group_stats[grupo]["hs_ms"].append(hms)
+        bs = _num(p.get("bytes_sent"))
+        br = _num(p.get("bytes_received"))
+        if bs is not None and br is not None:
+            group_stats[grupo]["bytes"].append(bs + br)
 
-    h_bars = []
-    for g, s in sorted(group_stats.items(), key=lambda kv: -_pct(kv[1]["ok"], kv[1]["total"])):
-        h_bars.append({"label": g, "value": _pct(s["ok"], s["total"])})
+    # Usar resumen del JSON si existe (más fiable que recalcular)
+    total_hosts      = resumen.get("total_hostnames",              len(datos) or len(set(p.get("hostname","") for p in probes)))
+    hosts_con_exito  = resumen.get("hosts_con_al_menos_un_exito",  len(hosts_ok))
+    total_pruebas    = resumen.get("total_pruebas",                len(probes))
+    pruebas_exitosas = resumen.get("pruebas_exitosas",             sum(s["ok"] for s in group_stats.values()))
+    tasa_hosts       = resumen.get("tasa_exito_hosts_percent",     _pct(hosts_con_exito, total_hosts))
+    tasa_pruebas     = resumen.get("tasa_exito_pruebas_percent",   _pct(pruebas_exitosas, total_pruebas))
+    tiempo_s         = resumen.get("tiempo_total_segundos")
 
-    # Estadísticas de éxito global de X25519MLKEM768 (si existe)
-    hybrid = group_stats.get("X25519MLKEM768", {"total": 0, "ok": 0})
+    hybrid     = group_stats.get("X25519MLKEM768", {"total": 0, "ok": 0})
     hybrid_pct = _pct(hybrid["ok"], hybrid["total"]) if hybrid["total"] else 0
 
+    x25519_hs  = group_stats.get("X25519", {}).get("hs_ms", [])
+    x25519_ms  = round(statistics.median(x25519_hs), 1) if x25519_hs else None
+
+    # Chart 1: tasa de aceptación por grupo (barras horizontales, ordenado desc)
+    h_bars = [
+        {"label": g, "value": _pct(s["ok"], s["total"])}
+        for g, s in sorted(group_stats.items(), key=lambda kv: -_pct(kv[1]["ok"], kv[1]["total"]))
+    ]
+
+    # Chart 2: latencia mediana de handshake por grupo (barras verticales, ordenado asc)
+    v_bars = [
+        {"label": g, "value": round(statistics.median(s["hs_ms"]), 1)}
+        for g, s in sorted(group_stats.items(), key=lambda kv: statistics.median(kv[1]["hs_ms"]) if kv[1]["hs_ms"] else 9999)
+        if s["hs_ms"]
+    ]
+
+    stats = [
+        {"label": "Hosts escaneados",         "value": str(total_hosts)},
+        {"label": "Hosts con éxito",          "value": f"{hosts_con_exito} ({tasa_hosts}%)"},
+        {"label": "Pruebas totales",          "value": f"{total_pruebas:,}".replace(",", ".")},
+        {"label": "Pruebas exitosas",         "value": f"{pruebas_exitosas} ({tasa_pruebas}%)"},
+        {"label": "Grupos PQC probados",      "value": str(len(group_stats))},
+        {"label": "Éxito X25519MLKEM768",    "value": f"{hybrid_pct}%"},
+    ]
+    if x25519_ms is not None:
+        stats.append({"label": "Latencia X25519 (mediana)", "value": f"{x25519_ms} ms"})
+    if tiempo_s is not None:
+        mins = int(tiempo_s // 60)
+        secs = int(tiempo_s % 60)
+        stats.append({"label": "Tiempo de escaneo", "value": f"{mins}m {secs}s"})
+
     return {
-        "stats": [
-            {"label": "Hosts escaneados",         "value": str(len(hosts_ok))},
-            {"label": "Probes totales",           "value": f"{len(probes):,}".replace(",", ".")},
-            {"label": "Éxito X25519MLKEM768",     "value": f"{hybrid_pct}%"},
-            {"label": "Grupos probados",          "value": str(len(group_stats))},
-        ],
-        "h_bars": h_bars,
-        "unit":   "%",
-        "color":  "purple",
-        "title":  "Tasa de aceptación por grupo PQC",
-        "note":   "Los grupos híbridos (X25519+PQC) muestran tasas de aceptación significativamente más altas que los PQC puros.",
+        "stats":        stats,
+        "h_bars":       h_bars,
+        "h_bars_title": "Tasa de aceptación por grupo PQC (%)",
+        "v_bars":       v_bars,
+        "v_bars_title": "Latencia mediana de handshake TLS por grupo (ms)",
+        "v_bars_unit":  "ms",
+        "unit":         "%",
+        "color":        "purple",
+        "note":         "Los grupos híbridos (X25519+PQC) muestran tasas de aceptación significativamente más altas que los PQC puros.",
     }
 
 

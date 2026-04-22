@@ -27,7 +27,7 @@ function LoadingState() {
 function StatsRow({ stats = [], color }) {
   if (!stats.length) return null;
   return (
-    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 8 }}>
       {stats.map((s, i) => (
         <StatCard key={i} label={s.label} value={s.value} color={color} />
       ))}
@@ -78,6 +78,15 @@ function ImagesSection({ stepId, color }) {
   );
 }
 
+// ── SectionLabel ───────────────────────────────────────────────
+function SectionLabel({ children }) {
+  return (
+    <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 9 }}>
+      {children}
+    </div>
+  );
+}
+
 // ── Render genérico a partir de payload del backend ────────────
 function ResultsRender({ stepId, data }) {
   const color = data.color || colorFor(stepId);
@@ -87,14 +96,23 @@ function ResultsRender({ stepId, data }) {
 
   return (
     <div style={{ animation: 'fadeUp 0.3s ease' }}>
-      <StatsRow stats={data.stats} color={color} />
+      {data.stats && data.stats.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <SectionLabel>Resumen del escaneo</SectionLabel>
+          <StatsRow stats={data.stats} color={color} />
+        </div>
+      )}
 
       {data.h_bars && data.h_bars.length > 0 && (
-        <HBarChart title={data.title} data={data.h_bars} color={color} unit={data.unit || '%'} />
+        <div style={{ marginBottom: 18 }}>
+          <HBarChart title={data.h_bars_title || data.title} data={data.h_bars} color={color} unit={data.h_bars_unit || data.unit || '%'} />
+        </div>
       )}
 
       {data.v_bars && data.v_bars.length > 0 && (
-        <VBarChart title={data.title} data={data.v_bars} color={color} unit={data.unit || 'ms'} note={data.note_inline} />
+        <div style={{ marginBottom: 18 }}>
+          <VBarChart title={data.v_bars_title || data.title} data={data.v_bars} color={color} unit={data.v_bars_unit || data.unit || 'ms'} note={data.note_inline} />
+        </div>
       )}
 
       {data.grouped && data.grouped.groups && data.grouped.groups.length > 0 && (
