@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PQC in TLS — Research Dashboard</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root[data-theme="dark"] {
+      --bg: oklch(0.09 0.018 280);
+      --surface: oklch(0.13 0.022 280);
+      --surface-2: oklch(0.17 0.022 280);
+      --surface-3: oklch(0.22 0.022 280);
+      --text: oklch(0.95 0.01 280);
+      --text-dim: oklch(0.65 0.018 280);
+      --text-muted: oklch(0.42 0.015 280);
+      --border: oklch(0.25 0.028 280);
+      --border-bright: oklch(0.36 0.035 280);
+      --shadow: 0 8px 32px oklch(0 0 0 / 0.45);
+      --purple: oklch(0.67 0.24 290);
+      --purple-bg: oklch(0.67 0.24 290 / 0.08);
+      --purple-border: oklch(0.67 0.24 290 / 0.28);
+      --purple-glow: oklch(0.67 0.24 290 / 0.4);
+      --green: oklch(0.72 0.19 148);
+      --green-bg: oklch(0.72 0.19 148 / 0.08);
+      --green-border: oklch(0.72 0.19 148 / 0.28);
+      --green-glow: oklch(0.72 0.19 148 / 0.4);
+      --term-bg: oklch(0.065 0.014 280);
+    }
+
+    :root[data-theme="light"] {
+      --bg: oklch(0.965 0.007 280);
+      --surface: oklch(1 0 0);
+      --surface-2: oklch(0.94 0.01 280);
+      --surface-3: oklch(0.88 0.013 280);
+      --text: oklch(0.14 0.02 280);
+      --text-dim: oklch(0.38 0.018 280);
+      --text-muted: oklch(0.58 0.015 280);
+      --border: oklch(0.84 0.018 280);
+      --border-bright: oklch(0.72 0.025 280);
+      --shadow: 0 8px 32px oklch(0 0 0 / 0.08);
+      --purple: oklch(0.52 0.24 290);
+      --purple-bg: oklch(0.52 0.24 290 / 0.07);
+      --purple-border: oklch(0.52 0.24 290 / 0.22);
+      --purple-glow: oklch(0.52 0.24 290 / 0.18);
+      --green: oklch(0.46 0.19 148);
+      --green-bg: oklch(0.46 0.19 148 / 0.07);
+      --green-border: oklch(0.46 0.19 148 / 0.22);
+      --green-glow: oklch(0.46 0.19 148 / 0.18);
+      --term-bg: oklch(0.11 0.014 280);
+    }
+
+    html, body, #root {
+      height: 100%;
+      font-family: 'Space Grotesk', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    @keyframes blink    { 0%,100%{opacity:1} 50%{opacity:0} }
+    @keyframes pulse    { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.55;transform:scale(0.82)} }
+    @keyframes fadeUp   { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes slideIn  { from{transform:translateX(100%)} to{transform:translateX(0)} }
+    @keyframes gradMove {
+      0%,100%{transform:translate(0,0) scale(1)}
+      33%{transform:translate(-4%,3%) scale(1.06)}
+      66%{transform:translate(3%,-4%) scale(0.96)}
+    }
+    @keyframes shimmer  {
+      0%{transform:translateX(-100%)}
+      100%{transform:translateX(200%)}
+    }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    input[type="number"], input[type="text"], select {
+      width: 100%;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 8px 11px;
+      font-size: 13px;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      outline: none;
+      transition: border-color 0.15s;
+      appearance: none;
+    }
+    input:focus, select:focus { border-color: var(--border-bright); }
+    select { cursor: pointer; }
+    select option { background: var(--surface-2); color: var(--text); }
+
+    input[type="range"] {
+      width: 100%; cursor: pointer;
+      background: none; border: none; padding: 4px 0;
+      accent-color: var(--purple);
+    }
+
+    /* Loader inicial mientras Babel compila los JSX */
+    #__boot {
+      position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+      background: var(--bg); color: var(--text-dim); font-size: 13px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    #__boot.hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div id="__boot">Cargando dashboard…</div>
+  <div id="root"></div>
+
+  <!-- React + ReactDOM (UMD) + Babel-standalone para compilar JSX en el navegador -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Orden importa: ui antes de results antes de App, para que window.* esté listo -->
+  <script type="text/babel" data-presets="react" src="/src/api.js"></script>
+  <script type="text/babel" data-presets="react" src="/src/ui.jsx"></script>
+  <script type="text/babel" data-presets="react" src="/src/results.jsx"></script>
+  <script type="text/babel" data-presets="react" src="/src/App.jsx"></script>
+
+  <script>
+    // Quitar el loader cuando el árbol ya esté montado
+    const hideBoot = () => {
+      const b = document.getElementById('__boot');
+      if (b) b.classList.add('hidden');
+    };
+    const obs = new MutationObserver(() => {
+      if (document.getElementById('root').children.length > 0) {
+        hideBoot(); obs.disconnect();
+      }
+    });
+    obs.observe(document.getElementById('root'), { childList: true });
+    // Fallback por si algo sale mal
+    setTimeout(hideBoot, 4000);
+  </script>
+</body>
+</html>
