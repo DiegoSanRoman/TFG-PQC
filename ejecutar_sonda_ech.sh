@@ -5,15 +5,19 @@ set -euo pipefail
 
 # Variables por defecto
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PYTHON_BIN="python3"
+if [[ -f "${PROJECT_DIR}/venv/bin/python3" ]]; then
+    PYTHON_BIN="${PROJECT_DIR}/venv/bin/python3"
+else
+    PYTHON_BIN="python3"
+fi
 
 INPUT_CSV="data/majestic_million.csv"
-MAX_DOMINIOS="10000"
+MAX_DOMINIOS="1000"
 MAX_CONCURRENCY="40"
 TLS_CLIENT="auto"
 DNS_TIMEOUT="8"
 TLS_TIMEOUT="20"
-BSSL_PATH=""
+BSSL_PATH="${PROJECT_DIR}/tools/boringssl/build/bssl"
 OUTPUT_JSON="resultados/resultados_ech_prevalencia.json"
 OUTPUT_CSV="resultados/resultados_ech_prevalencia.csv"
 
@@ -88,10 +92,15 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Verificar que el CSV de entrada existe
-if ! command -v "${PYTHON_BIN}" >/dev/null 2>&1; then
-    echo "ERROR - No se encontró python3 en PATH"
+if [[ ! -x "${PYTHON_BIN}" ]]; then
+    echo "ERROR - Python no ejecutable: ${PYTHON_BIN}"
     exit 1
 fi
+
+"${PYTHON_BIN}" -c "import dns" 2>/dev/null || {
+    echo "--- Instalando dependencias Python..."
+    "${PYTHON_BIN}" -m pip install -q dnspython cryptography
+}
 
 # Crear directorio de resultados si no existe
 mkdir -p "${PROJECT_DIR}/resultados"
@@ -123,8 +132,47 @@ echo
     --output-json "${OUTPUT_JSON}" \
     --output-csv "${OUTPUT_CSV}"
 
+# Extraer hostnames con ECH exitoso y escribir data/hostnames_ech.csv
+HOSTNAMES_ECH="${PROJECT_DIR}/data/hostnames_ech.csv"
+echo
+echo "====================================================================="
+echo "           Extrayendo hostnames con ECH exitoso..."
+echo "====================================================================="
+"${PYTHON_BIN}" - <<PYEOF
+import json, csv, sys
+from pathlib import Path
+
+json_path = Path("${OUTPUT_JSON}")
+out_path  = Path("${HOSTNAMES_ECH}")
+
+try:
+    data = json.loads(json_path.read_text(encoding="utf-8"))
+except Exception as e:
+    print(f"ERROR - No se pudo leer {json_path}: {e}", file=sys.stderr)
+    sys.exit(1)
+
+results = data.get("results") or data.get("datos") or []
+hostnames = [
+    r["domain"]
+    for r in results
+    if r.get("ech_negotiation_status") == "EXITO_OUTER_CLIENT_HELLO"
+    and r.get("handshake_completed") is True
+    and r.get("domain")
+]
+
+out_path.parent.mkdir(parents=True, exist_ok=True)
+with out_path.open("w", newline="", encoding="utf-8") as f:
+    w = csv.writer(f)
+    w.writerow(["hostname"])
+    for h in hostnames:
+        w.writerow([h])
+
+print(f"OK - {len(hostnames)} hostnames con ECH exitoso escritos en {out_path}")
+PYEOF
+
 # Mostrar resultados
 echo
 echo "OK - Sonda ECH finalizada"
-echo "- JSON: ${OUTPUT_JSON}"
-echo "- CSV:  ${OUTPUT_CSV}"
+echo "- JSON:            ${OUTPUT_JSON}"
+echo "- CSV:             ${OUTPUT_CSV}"
+echo "- Hostnames ECH:   ${HOSTNAMES_ECH}"

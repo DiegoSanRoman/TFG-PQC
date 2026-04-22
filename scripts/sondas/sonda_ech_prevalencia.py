@@ -664,7 +664,10 @@ async def simular_tls_ech(
             tls_connected = False
             handshake_completed = False
 
-        if client_hello_len is None and client_kind == "bssl":
+        # Solo medir baseline OpenSSL si bssl NO negoció ECH exitosamente.
+        # Si bssl tuvo éxito con ECH, el ClientHello de OpenSSL (sin ECH) no es
+        # comparable con el ClientHello ECH real → no hay fallback en ese caso.
+        if client_hello_len is None and client_kind == "bssl" and status != STATUS_EXITO_OUTER_CH:
             baseline_len = await medir_clienthello_len_openssl(domain, port, tls_timeout)
             if baseline_len is not None:
                 client_hello_len = baseline_len

@@ -353,7 +353,8 @@ def graficar_confusion_matrix(
 ) -> None:
     """Matriz de confusión normalizada evaluada sobre el test set (hostnames no vistos)."""
     y_pred = modelo.predict(X_test)
-    cm = confusion_matrix(y_test_enc, y_pred, normalize="true")
+    all_labels = list(range(len(le.classes_)))
+    cm = confusion_matrix(y_test_enc, y_pred, labels=all_labels, normalize="true")
     labels_short = [LABEL_MAP.get(c, c) for c in le.classes_]
 
     acc  = accuracy_score(y_test_enc, y_pred)
@@ -514,6 +515,40 @@ def main() -> None:
     print("=" * 70)
     print(f"\nMejor configuración (CV): {mejor_exp_nombre.replace(chr(10), ' ')}  (f1_macro={mejor_global_f1:.3f})")
     print(f"Imágenes guardadas en: {out_dir}/")
+
+    # --- Escribir resumen JSON para el frontend ---
+    y_pred_test = mejor_modelo_global.predict(X_test)
+    acc_test = accuracy_score(y_test_enc, y_pred_test)
+    f1_test  = f1_score(y_test_enc, y_pred_test, average="macro")
+    all_labels = list(range(len(le.classes_)))
+    cm_test = confusion_matrix(y_test_enc, y_pred_test, labels=all_labels, normalize="true")
+
+    experimentos_json = []
+    for exp_name, res_exp in resultados_por_exp.items():
+        experimentos_json.append({
+            "nombre": exp_name.replace("\n", " "),
+            "rf": round(res_exp["RandomForest"]["accuracy"], 4),
+            "gb": round(res_exp["GradientBoosting"]["accuracy"], 4),
+        })
+
+    resumen = {
+        "experimentos": experimentos_json,
+        "mejor": {
+            "modelo":   mejor_modelo_nombre_global,
+            "accuracy": round(acc_test, 4),
+            "f1":       round(f1_test, 4),
+            "exp":      mejor_exp_nombre.replace("\n", " "),
+        },
+        "confusion": {
+            "labels": [LABEL_MAP.get(c, c).replace("\n", " ") for c in le.classes_],
+            "matrix": [[round(v, 4) for v in row] for row in cm_test.tolist()],
+        },
+    }
+    results_dir = BASE_DIR / "resultados"
+    results_dir.mkdir(exist_ok=True)
+    out_json = results_dir / "resumen_clasificacion.json"
+    out_json.write_text(json.dumps(resumen, ensure_ascii=False, indent=2), encoding="utf-8")
+    logger.info("Resumen guardado: %s", out_json)
 
 
 if __name__ == "__main__":

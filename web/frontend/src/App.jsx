@@ -55,7 +55,7 @@ const STEPS = [
     desc: 'Mide el overhead real de ECH comparando handshakes TLS con y sin ECH activo usando bssl. Genera media y desviación típica por hostname.',
     unlocks: [],
     args: [
-      { key: 'input_csv',     label: '--input-csv',     type: 'text',   default: 'resultados/resultados_ech_prevalencia.csv', hint: 'CSV de hostnames con ECH (salida de la sonda ECH)' },
+      { key: 'input_csv',     label: '--input-csv',     type: 'text',   default: 'data/hostnames_ech.csv', hint: 'CSV de hostnames con ECH (salida de la sonda ECH)' },
       { key: 'repeticiones',  label: '--repeticiones',  type: 'number', default: 30,    min: 5,   max: 200,    hint: 'Mediciones por hostname para media/stddev' },
       { key: 'concurrency',   label: '--concurrency',   type: 'number', default: 10,    min: 1,   max: 50,     hint: 'Hostnames en paralelo' },
       { key: 'max_hostnames', label: '--max-hostnames', type: 'number', default: 10000, min: 1,   max: 100000, hint: 'Máximo de hostnames a procesar' },
@@ -69,7 +69,7 @@ const STEPS = [
     desc: 'Mide la latencia del handshake TLS para múltiples grupos PQC (bssl y OQS), combinando con ECH cuando es posible.',
     unlocks: [],
     args: [
-      { key: 'input_csv',     label: '--input-csv',     type: 'text',   default: 'resultados/resultados_ech_prevalencia.csv', hint: 'CSV de hostnames con ECH' },
+      { key: 'input_csv',     label: '--input-csv',     type: 'text',   default: 'data/hostnames_ech.csv', hint: 'CSV de hostnames con ECH' },
       { key: 'repeticiones',  label: '--repeticiones',  type: 'number', default: 30, min: 5, max: 200,    hint: 'Mediciones por combinación (hostname × grupo)' },
       { key: 'concurrency',   label: '--concurrency',   type: 'number', default: 5,  min: 1, max: 20,     hint: 'Hostnames en paralelo' },
       { key: 'max_hostnames', label: '--max-hostnames', type: 'number', default: 10000, min: 1, max: 100000, hint: 'Máximo de hostnames a procesar' },

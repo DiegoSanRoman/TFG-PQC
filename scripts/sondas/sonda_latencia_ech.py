@@ -471,12 +471,18 @@ async def ejecutar(args: argparse.Namespace) -> int:
     ]
 
     resultados: List[ResultadoLatenciaECH] = []
-    with tqdm(total=len(tasks), desc="Latencia ECH", unit="host") as pbar:
+    completados = 0
+    total_tasks = len(tasks)
+    log_cada = max(1, total_tasks // 20)  # ~5% intervals
+    with tqdm(total=total_tasks, desc="Latencia ECH", unit="host") as pbar:
         for coro in asyncio.as_completed(tasks):
             r = await coro
             resultados.append(r)
+            completados += 1
             estado = "ECH ✓" if r.ech_aceptado else ("ECH OK" if r.conexion_ech_exitosa else "sin ECH")
             pbar.set_postfix(host=r.hostname[:26], estado=estado)
+            if completados % log_cada == 0 or completados == total_tasks:
+                logger.info("[%d/%d] %s — %s", completados, total_tasks, r.hostname, estado)
             pbar.update(1)
 
     exportar_csv(resultados, Path(args.output_csv))

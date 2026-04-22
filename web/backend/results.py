@@ -325,42 +325,73 @@ def _pqc_clasificacion() -> dict:
 # ──────────────────────────────────────────────────────────────
 
 def _ech_sonda() -> dict:
-    csv_path = RESULTS_DIR / "resultados_ech_prevalencia.csv"
-    rows = _read_csv(csv_path)
+    """Lee resultados_ech_prevalencia.json (preferido) o CSV como fallback."""
+    json_path = RESULTS_DIR / "resultados_ech_prevalencia.json"
+    csv_path  = RESULTS_DIR / "resultados_ech_prevalencia.csv"
 
-    total = len(rows)
-    with_ech = 0
     cdn_counter: Counter = Counter()
+    total = con_https_rr = con_ech = 0
+    dominios_ech: list[str] = []
 
-    for r in rows:
-        has_ech = str(r.get("ech_activo") or r.get("ech") or r.get("tiene_ech") or "").lower() \
-                  in ("true", "1", "yes", "sí", "si")
-        if has_ech:
-            with_ech += 1
-            cdn = (r.get("cdn") or r.get("proveedor") or _guess_cdn(r)).strip() or "Otros"
-            cdn_counter[cdn] += 1
+    if json_path.exists():
+        data = _read_json(json_path)
+        summary  = data.get("summary") or data.get("resumen") or {}
+        results  = data.get("results") or data.get("datos") or data.get("data") or []
+
+        total       = summary.get("total_dominios",  len(results))
+        con_https_rr = summary.get("con_https_rr",   0)
+        con_ech     = summary.get("con_ech",         0)
+
+        for r in results:
+            has_ech = r.get("has_ech_param") or r.get("ech_activo") or r.get("tiene_ech") or False
+            if isinstance(has_ech, str):
+                has_ech = has_ech.lower() in ("true", "1", "yes", "sí", "si")
+            if has_ech:
+                cdn = (r.get("provider") or r.get("cdn") or r.get("proveedor") or
+                       _guess_cdn_json(r) or "Otros").strip()
+                cdn_counter[cdn] += 1
+                if r.get("domain") or r.get("hostname"):
+                    dominios_ech.append(r.get("domain") or r.get("hostname"))
+    else:
+        rows = _read_csv(csv_path)
+        total = len(rows)
+        for r in rows:
+            if str(r.get("https_rr_present", "")).lower() in ("true", "1"):
+                con_https_rr += 1
+            has_ech = str(r.get("has_ech_param") or r.get("ech_activo") or
+                          r.get("ech") or r.get("tiene_ech") or "").lower() \
+                      in ("true", "1", "yes", "sí", "si")
+            if has_ech:
+                con_ech += 1
+                cdn = (r.get("provider") or r.get("cdn") or r.get("proveedor") or
+                       _guess_cdn_json(r) or "Otros").strip()
+                cdn_counter[cdn] += 1
 
     h_bars = [{"label": k, "value": v} for k, v in cdn_counter.most_common()]
+    pct_https = _pct(con_https_rr, total)
+    pct_ech   = _pct(con_ech, total)
 
     return {
         "stats": [
-            {"label": "Dominios analizados", "value": f"{total:,}".replace(",", ".")},
-            {"label": "Con ECH activo",      "value": f"{with_ech} ({_pct(with_ech, total)}%)"},
-            {"label": "CDNs identificados",  "value": str(len(cdn_counter))},
-            {"label": "Exportado a",         "value": "resultados_ech_prevalencia.csv"},
+            {"label": "Dominios analizados",  "value": f"{total:,}".replace(",", ".")},
+            {"label": "Con registro HTTPS RR", "value": f"{con_https_rr:,}".replace(",", ".") + f" ({pct_https}%)"},
+            {"label": "Con ECH en DNS",        "value": f"{con_ech} ({pct_ech}%)"},
+            {"label": "Proveedores CDN",       "value": str(len(cdn_counter))},
         ],
-        "h_bars": h_bars,
-        "unit":   " dom.",
-        "color":  "green",
-        "title":  "Dominios con ECH por proveedor CDN",
-        "note":   f"{with_ech} hostnames con ECH disponibles para sondas de latencia.",
+        "h_bars":       h_bars,
+        "h_bars_title": "Dominios con ECH por proveedor CDN",
+        "unit":         " dom.",
+        "color":        "green",
+        "note":         f"{con_ech} dominios con soporte ECH detectado en DNS (parámetro ECH en registro HTTPS RR). "
+                        f"Cloudflare concentra la mayor parte del despliegue.",
     }
 
-def _guess_cdn(row: dict) -> str:
-    sni = (row.get("outer_sni") or row.get("ech_outer_sni") or "").lower()
-    if "cloudflare" in sni: return "Cloudflare"
-    if "fastly"     in sni: return "Fastly"
-    if "google"     in sni or "googleapis" in sni: return "Google"
+def _guess_cdn_json(r: dict) -> str:
+    for field in ("outer_sni", "ech_outer_sni", "domain", "hostname"):
+        sni = str(r.get(field) or "").lower()
+        if "cloudflare" in sni: return "Cloudflare"
+        if "fastly"     in sni: return "Fastly"
+        if "google"     in sni or "googleapis" in sni: return "Google"
     return "Otros"
 
 
@@ -377,8 +408,8 @@ def _ech_latencia_ech() -> dict:
     for r in rows:
         host = r.get("hostname") or r.get("host")
         if not host: continue
-        con   = _num(r.get("media_con_ech_ms") or r.get("latencia_con_ech_ms") or r.get("con_ech_ms"))
-        sin   = _num(r.get("media_sin_ech_ms") or r.get("latencia_sin_ech_ms") or r.get("sin_ech_ms"))
+        con   = _num(r.get("latencia_con_ech_media_ms") or r.get("media_con_ech_ms") or r.get("latencia_con_ech_ms") or r.get("con_ech_ms"))
+        sin   = _num(r.get("latencia_sin_ech_media_ms") or r.get("media_sin_ech_ms") or r.get("latencia_sin_ech_ms") or r.get("sin_ech_ms"))
         if con is not None: by_host[host]["con"] = con
         if sin is not None: by_host[host]["sin"] = sin
 
@@ -422,10 +453,10 @@ def _ech_latencia_pqc() -> dict:
     # Agrupamos por grupo PQC — media con/sin ECH entre hostnames
     by_group: dict[str, dict[str, list[float]]] = defaultdict(lambda: {"con": [], "sin": []})
     for r in rows:
-        g = r.get("grupo") or r.get("grupo_pqc") or r.get("group")
+        g = r.get("grupo_pqc") or r.get("grupo") or r.get("group")
         if not g: continue
-        con = _num(r.get("media_con_ech_ms") or r.get("con_ech_ms"))
-        sin = _num(r.get("media_sin_ech_ms") or r.get("sin_ech_ms"))
+        con = _num(r.get("latencia_ech_pqc_media_ms") or r.get("media_con_ech_ms") or r.get("con_ech_ms"))
+        sin = _num(r.get("latencia_sin_ech_pqc_media_ms") or r.get("media_sin_ech_ms") or r.get("sin_ech_ms"))
         if con is not None: by_group[g]["con"].append(con)
         if sin is not None: by_group[g]["sin"].append(sin)
 

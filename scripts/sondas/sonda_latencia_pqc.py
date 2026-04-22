@@ -516,14 +516,21 @@ async def ejecutar(args: argparse.Namespace) -> int:
     ]
 
     todos: List[ResultadoLatenciaPQC] = []
-    with tqdm(total=len(tasks), desc="Latencia PQC", unit="host") as pbar:
+    completados = 0
+    total_tasks = len(tasks)
+    log_cada = max(1, total_tasks // 20)  # ~5% intervals
+    with tqdm(total=total_tasks, desc="Latencia PQC", unit="host") as pbar:
         for coro in asyncio.as_completed(tasks):
             filas = await coro
             todos.extend(filas)
+            completados += 1
             if filas:
                 r0 = filas[0]
                 exitos = sum(1 for r in filas if r.conexion_sin_ech_pqc_exitosa)
                 pbar.set_postfix(host=r0.hostname[:22], pqc_ok=f"{exitos}/{len(filas)}")
+                if completados % log_cada == 0 or completados == total_tasks:
+                    logger.info("[%d/%d] %s — pqc_ok=%d/%d",
+                                completados, total_tasks, r0.hostname, exitos, len(filas))
             pbar.update(1)
 
     exportar_csv(todos, Path(args.output_csv))

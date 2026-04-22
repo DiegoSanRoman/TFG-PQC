@@ -16,7 +16,7 @@ MAX_WORKERS="20"
 DOCKER_IMAGE="tfg-sonda"
 DATASET_CSV="prueba.csv"
 DATASET_BASENAME=""
-FORCE_REBUILD="0"
+FORCE_REBUILD="1"
 IMAGE_HASH_FILE=""
 
 # Parsear argumentos
@@ -164,12 +164,11 @@ echo "Espera a que termine (puede tomar varios minutos)"
 echo ""
 
 # Ejecutar la sonda en Docker
-# -it: modo interactivo con pseudo-TTY para que se muestren los logs en tiempo real
 # --rm: elimina el contenedor al terminar (para no acumular contenedores parados)
 # -v host: contenedor monta carpetas del host dentro del contenedor
-# "${DOCKER_IMAGE}" es la imagen que se ejecuta
+# Sin -t para que funcione tanto desde terminal como desde el backend web (sin TTY)
 # Forzamos ENTRYPOINT a python3 para evitar recursión con test_pipeline.sh
-docker run -it --rm \
+docker run --rm \
     -v "${PROJECT_DIR}/data:/app/data" \
     -v "${PROJECT_DIR}/resultados:/app/resultados" \
     --entrypoint python3 \

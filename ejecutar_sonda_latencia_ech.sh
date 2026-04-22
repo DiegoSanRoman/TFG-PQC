@@ -5,13 +5,13 @@ set -euo pipefail
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${PROJECT_DIR}"
 
-# Activar venv si existe y no está ya activado
-if [[ -z "${VIRTUAL_ENV:-}" && -f "${PROJECT_DIR}/venv/bin/activate" ]]; then
-    source "${PROJECT_DIR}/venv/bin/activate"
+if [[ -f "${PROJECT_DIR}/venv/bin/python3" ]]; then
+    PYTHON_BIN="${PROJECT_DIR}/venv/bin/python3"
+else
+    PYTHON_BIN="python3"
 fi
-PYTHON_BIN="python3"
 
-INPUT_CSV="data/hostnames_ech.csv"
+INPUT_CSV="data/hostnames_ech.csv"  # poblado automáticamente por ejecutar_sonda_ech.sh
 OUTPUT_CSV="resultados/resultados_latencia_ech.csv"
 LOG_FILE="resultados/sonda_latencia_ech.log"
 LOG_LEVEL="INFO"
@@ -63,6 +63,11 @@ if ! command -v "${PYTHON_BIN}" >/dev/null 2>&1; then
     echo "ERROR - No se encontró python3 en PATH"
     exit 1
 fi
+
+"${PYTHON_BIN}" -c "import tqdm" 2>/dev/null || {
+    echo "--- Instalando dependencias Python..."
+    "${PYTHON_BIN}" -m pip install -q tqdm
+}
 
 if [[ ! -f "${INPUT_CSV}" ]]; then
     echo "ERROR - CSV de entrada no encontrado: ${INPUT_CSV}"
