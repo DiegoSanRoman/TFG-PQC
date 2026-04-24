@@ -15,7 +15,6 @@ import asyncio
 import csv
 import logging
 import random
-import statistics
 import sys
 import tempfile
 import time
@@ -39,6 +38,12 @@ from sondas.sonda_ech_prevalencia import (
     descubrir_https_rr,
     detectar_handshake_completo,
     resolver_cliente_tls,
+)
+from sondas.tls_utils import (
+    run_cmd as _run_cmd,
+    parsear_bssl as _parsear_bssl,
+    extraer_error as _extraer_error,
+    agregar as _agregar,
 )
 
 logger = logging.getLogger(__name__)
@@ -77,60 +82,6 @@ class ResultadoLatenciaECH:
     error_ech: Optional[str]
     error_sin_ech: Optional[str]
     dns_error: Optional[str]
-
-
-# ---------------------------------------------------------------------------
-# Helpers de subproceso y parseo
-# ---------------------------------------------------------------------------
-
-async def _run_cmd(
-    command: List[str],
-    timeout: float,
-    input_data: bytes = b"",
-) -> Tuple[int, str, str]:
-    """Ejecuta un subproceso con stdin=PIPE para que EOF cierre el proceso correctamente."""
-    proc = await asyncio.create_subprocess_exec(
-        *command,
-        stdin=asyncio.subprocess.PIPE,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-    try:
-        stdout, stderr = await asyncio.wait_for(
-            proc.communicate(input_data), timeout=timeout
-        )
-    except asyncio.TimeoutError:
-        proc.kill()
-        stdout, stderr = await proc.communicate()
-        return 124, stdout.decode(errors="replace"), stderr.decode(errors="replace") + "\nTIMEOUT"
-    return proc.returncode, stdout.decode(errors="replace"), stderr.decode(errors="replace")
-
-
-def _parsear_bssl(stderr: str) -> Tuple[Optional[str], Optional[bool]]:
-    """
-    Extrae cipher suite y confirmación ECH del stderr de bssl.
-    Devuelve (cipher, ech_aceptado).
-    """
-    cipher: Optional[str] = None
-    ech_aceptado: Optional[bool] = None
-    for line in stderr.splitlines():
-        stripped = line.strip()
-        if stripped.startswith("Cipher:"):
-            cipher = stripped.split(":", 1)[1].strip()
-        elif stripped.startswith("Encrypted ClientHello:"):
-            val = stripped.split(":", 1)[1].strip().lower()
-            ech_aceptado = val == "yes"
-    return cipher, ech_aceptado
-
-
-def _extraer_error(stdout: str, stderr: str, rc: int) -> str:
-    if rc == 124:
-        return "TIMEOUT"
-    lines = (stderr.strip() or stdout.strip()).splitlines()
-    relevant = [l for l in lines if any(k in l.lower() for k in ("error", "fail", "alert", "reject", "unable"))]
-    if relevant:
-        return " | ".join(relevant[-3:])[:400]
-    return " | ".join(lines[-3:])[:400] if lines else "HANDSHAKE_FALLIDO"
 
 
 # ---------------------------------------------------------------------------
@@ -248,15 +199,6 @@ async def _medir_sin_ech(
             ultimo_error = _extraer_error(stdout, stderr, rc)
 
     return bool(latencias), latencias, ultimo_error, cipher
-
-
-def _agregar(latencias: List[float]) -> Tuple[Optional[float], Optional[float]]:
-    """Calcula media y stddev de una lista de latencias."""
-    if not latencias:
-        return None, None
-    media = round(statistics.mean(latencias), 2)
-    stddev = round(statistics.pstdev(latencias), 2) if len(latencias) > 1 else 0.0
-    return media, stddev
 
 
 # ---------------------------------------------------------------------------

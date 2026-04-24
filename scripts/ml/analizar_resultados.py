@@ -376,55 +376,6 @@ def cargar_y_procesar(input_path: Path = RESULTADOS_PATH):
     
     return df, df_exitos
 
-def remover_outliers(df, columnas, metodo='iqr', umbral_z=3):
-    """
-    Remueve outliers usando IQR o Z-score.
-    IQR: Valores fuera de [Q1 - 1.5*IQR, Q3 + 1.5*IQR] se consideran outliers.
-    Z-score: Valores con |Z| > umbral_z se consideran outliers.
-    
-    Args:
-        df: DataFrame
-        columnas: lista de columnas a procesar
-        metodo: 'iqr' o 'zscore'
-        umbral_z: umbral de Z-score (default 3)
-    """
-    # Crear copia del DataFrame para no modificar el original
-    df_limpio = df.copy()
-    outliers_removidos = 0
-    
-    # Procesar cada columna
-    for col in columnas:
-        if col not in df_limpio.columns:
-            continue
-        
-        # Contar valores válidos antes
-        antes = df_limpio[col].notna().sum()
-        
-        # Método IQR
-        if metodo == 'iqr':
-            Q1 = df_limpio[col].quantile(0.25)
-            Q3 = df_limpio[col].quantile(0.75)
-            IQR = Q3 - Q1
-            lower_bound = Q1 - 1.5 * IQR
-            upper_bound = Q3 + 1.5 * IQR
-            df_limpio = df_limpio[(df_limpio[col].isna()) | (df_limpio[col] >= lower_bound) & (df_limpio[col] <= upper_bound)]
-        
-        # Método Z-score
-        elif metodo == 'zscore':
-            z_scores = np.abs((df_limpio[col] - df_limpio[col].mean()) / df_limpio[col].std())
-            df_limpio = df_limpio[(z_scores <= umbral_z) | (df_limpio[col].isna())]
-        
-        # Contar valores válidos después y calcular removidos
-        despues = df_limpio[col].notna().sum()
-        removidos = antes - despues
-        if removidos > 0:
-            outliers_removidos += removidos
-            logger.info(f"  {col}: removidos {removidos} outliers")
-    
-    logger.info(f"Total de outliers removidos: {outliers_removidos}")
-    return df_limpio
-
-
 def remover_outliers_por_grupo(df, columnas, grupo_col='grupo', metodo='iqr', umbral_z=3, min_muestras_columna=4):
     """
     Remueve outliers por grupo para evitar sesgos entre grupos con escalas distintas.

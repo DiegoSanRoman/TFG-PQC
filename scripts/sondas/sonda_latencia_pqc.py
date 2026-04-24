@@ -47,11 +47,11 @@ from sondas.sonda_ech_prevalencia import (
     detectar_handshake_completo,
     resolver_cliente_tls,
 )
-from sondas.sonda_latencia_ech import (
-    _run_cmd,
-    _parsear_bssl,
-    _extraer_error,
-    _agregar,
+from sondas.tls_utils import (
+    run_cmd as _run_cmd,
+    parsear_bssl as _parsear_bssl,
+    extraer_error as _extraer_error,
+    agregar as _agregar,
 )
 
 logger = logging.getLogger(__name__)
