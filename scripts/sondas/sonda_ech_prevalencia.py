@@ -624,7 +624,7 @@ async def simular_tls_ech(
         ]
         if ech_temp_file:
             cmd_local.extend(["-ech-config-list", ech_temp_file])
-            return cmd_local
+        return cmd_local
 
     # Para BoringSSL
     if client_kind == "bssl" and ech_value:

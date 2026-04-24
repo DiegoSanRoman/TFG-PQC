@@ -443,13 +443,11 @@ def sonda_pqc(  # noqa: C901
     # Si el pre-check TCP fue exitoso, procedemos a ejecutar OpenSSL para probar el handshake TLS/PQC
     # Ejecutamos el comando y capturamos la salida
     try:
-        # Medimos el tiempo de conexión total (para tiempo_conexion_segundos)
-        tiempo_inicio = time.perf_counter()
-
         # Ejecutamos con Popen (Process open) para controlar mejor timeouts y limpieza
         stdout_bytes = b""
         stderr_bytes = b""
         handshake_time_ms = None
+        tiempo_inicio = time.perf_counter()  # se resetea en cada intento dentro del bucle
 
         max_attempts = 2
         return_code = None
@@ -457,6 +455,7 @@ def sonda_pqc(  # noqa: C901
             if proc_semaphore:
                 proc_semaphore.acquire()
             try:
+                tiempo_inicio = time.perf_counter()  # reset: excluye tiempo de timeouts previos
                 process = subprocess.Popen(
                     cmd,
                     stdin=subprocess.PIPE,

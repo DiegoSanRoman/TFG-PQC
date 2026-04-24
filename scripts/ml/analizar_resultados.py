@@ -12,6 +12,7 @@ NOTA METODOLÓGICA:
 """
 
 # Importar librerías
+import argparse
 import json
 import logging
 import sys
@@ -297,7 +298,7 @@ def seleccionar_grupos_y_cohorte_comun(host_group, grupos_candidatos, min_hostna
     return [], set()
 
 # Funciones de análisis
-def cargar_y_procesar():
+def cargar_y_procesar(input_path: Path = RESULTADOS_PATH):
     """
     Carga datos y crea DataFrame filtrado y limpio.
     Input: JSON con resultados de pruebas de conexión TLS.
@@ -308,10 +309,10 @@ def cargar_y_procesar():
         - Filtra el DataFrame para obtener solo las conexiones exitosas (connection_result == "ACEPTADO").
         - Muestra estadísticas básicas de los datos cargados.
     """
-    logger.info(f"Cargando datos desde {RESULTADOS_PATH}")
-    
+    logger.info(f"Cargando datos desde {input_path}")
+
     # Cargar JSON
-    with RESULTADOS_PATH.open('r', encoding='utf-8') as f:
+    with input_path.open('r', encoding='utf-8') as f:
         data = json.load(f)
     
     # Extraer datos y crear DataFrame
@@ -809,12 +810,12 @@ def graficar_bytes(df, output_dir):
     logger.info(f"✓ Guardado: {output_path}")
     plt.close()
 
-def main():
+def main(input_path: Path = RESULTADOS_PATH, output_dir: Path = OUTPUT_DIR):
     # Crear carpeta de salida si no existe
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    
+    output_dir.mkdir(parents=True, exist_ok=True)
+
     # Cargar datos
-    df_total, df_exitos = cargar_y_procesar()
+    df_total, df_exitos = cargar_y_procesar(input_path)
 
     # Filtrar conexiones que necesitaron retry (latencia inflada por timeout acumulado)
     n_antes = len(df_exitos)
@@ -853,11 +854,15 @@ def main():
     
     # Generar gráficas
     logger.info("\n📈 Generando gráficas...")
-    graficar_latencia(df_filtrado, OUTPUT_DIR, df_ranking=df_exitos_ranking)
-    graficar_bytes(df_filtrado, OUTPUT_DIR)
-    
-    logger.info(f"\n✅ ¡Análisis completado! Gráficas guardadas en {OUTPUT_DIR}")
+    graficar_latencia(df_filtrado, output_dir, df_ranking=df_exitos_ranking)
+    graficar_bytes(df_filtrado, output_dir)
+
+    logger.info(f"\n✅ ¡Análisis completado! Gráficas guardadas en {output_dir}")
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Analiza resultados de sonda PQC y genera gráficas")
+    parser.add_argument("--input",  type=Path, default=RESULTADOS_PATH, help="Ruta al JSON de resultados")
+    parser.add_argument("--output", type=Path, default=OUTPUT_DIR,      help="Directorio de salida para gráficas")
+    args = parser.parse_args()
     configurar_logging(BASE_DIR / "resultados" / "analizar_resultados.log", to_console=True)
-    main()
+    main(input_path=args.input, output_dir=args.output)
