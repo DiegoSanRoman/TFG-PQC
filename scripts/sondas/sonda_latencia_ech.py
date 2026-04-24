@@ -15,6 +15,7 @@ import asyncio
 import csv
 import logging
 import random
+import socket
 import sys
 import tempfile
 import time
@@ -82,6 +83,7 @@ class ResultadoLatenciaECH:
     error_ech: Optional[str]
     error_sin_ech: Optional[str]
     dns_error: Optional[str]
+    ip_pop: Optional[str]          # IP resuelta en el momento de la medición (detecta cambios de PoP CDN)
 
 
 # ---------------------------------------------------------------------------
@@ -231,6 +233,15 @@ async def procesar_hostname(
         if parsed_configs:
             outer_sni = parsed_configs[0].get("public_name")
 
+        # Resolver IP del dominio para detectar cambios de PoP CDN entre mediciones
+        ip_pop: Optional[str] = None
+        try:
+            infos = socket.getaddrinfo(domain, None, type=socket.SOCK_STREAM)
+            if infos:
+                ip_pop = infos[0][4][0]
+        except OSError:
+            pass
+
         def _sin_ech_config(motivo: str) -> ResultadoLatenciaECH:
             return ResultadoLatenciaECH(
                 hostname=hostname, timestamp=ts,
@@ -242,6 +253,7 @@ async def procesar_hostname(
                 latencia_sin_ech_media_ms=None, latencia_sin_ech_stddev_ms=None,
                 delta_medio_ms=None, cliente_tls="none", outer_sni=outer_sni,
                 error_ech=motivo, error_sin_ech=None, dns_error=dns_error,
+                ip_pop=ip_pop,
             )
 
         if not https_present or not ech_value or not parsed_configs:
@@ -290,6 +302,7 @@ async def procesar_hostname(
                 latencia_sin_ech_stddev_ms=_agregar(lats_sin_ech)[1],
                 delta_medio_ms=None, cliente_tls="bssl", outer_sni=outer_sni,
                 error_ech=err_ech, error_sin_ech=err_sin_ech, dns_error=dns_error,
+                ip_pop=ip_pop,
             )
 
         media_ech, stddev_ech       = _agregar(lats_ech)
@@ -312,6 +325,7 @@ async def procesar_hostname(
             latencia_sin_ech_media_ms=media_sin_ech, latencia_sin_ech_stddev_ms=stddev_sin_ech,
             delta_medio_ms=delta, cliente_tls="bssl", outer_sni=outer_sni,
             error_ech=None, error_sin_ech=err_sin_ech, dns_error=dns_error,
+            ip_pop=ip_pop,
         )
 
 
@@ -383,6 +397,7 @@ def _preflight() -> Optional[str]:
 
 async def ejecutar(args: argparse.Namespace) -> int:
     configurar_logging(Path(args.log_file), args.log_level)
+    random.seed(args.seed)
 
     bssl_path = _preflight()
     if not bssl_path:
@@ -440,6 +455,8 @@ def construir_parser() -> argparse.ArgumentParser:
     p.add_argument("--max-hostnames",  type=int,   default=DEFAULT_MAX_HOSTNAMES)
     p.add_argument("--repeticiones",   type=int,   default=DEFAULT_REPETICIONES,
                    help="Número de mediciones por hostname para calcular media/stddev (default: 3)")
+    p.add_argument("--seed",           type=int,   default=None,
+                   help="Semilla para random (reproducibilidad del orden ECH/noECH; None = no determinista)")
     return p
 
 

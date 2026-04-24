@@ -211,6 +211,7 @@ class TestResultadoLatenciaECH:
             error_ech=None,
             error_sin_ech=None,
             dns_error=None,
+            ip_pop=None,
         )
         defaults.update(kwargs)
         return ResultadoLatenciaECH(**defaults)
@@ -243,6 +244,7 @@ class TestResultadoLatenciaECH:
             "latencia_sin_ech_media_ms", "latencia_sin_ech_stddev_ms",
             "delta_medio_ms", "cliente_tls", "outer_sni",
             "error_ech", "error_sin_ech", "dns_error",
+            "ip_pop",
         }
         assert campos_esperados == set(d.keys())
 
@@ -279,6 +281,7 @@ class TestExportarCsv:
             error_ech=None,
             error_sin_ech=None,
             dns_error=None,
+            ip_pop="1.2.3.4",
         )
 
     def test_crea_archivo(self):
@@ -300,6 +303,7 @@ class TestExportarCsv:
                 assert "latencia_con_ech_stddev_ms" in reader.fieldnames
                 assert "delta_medio_ms" in reader.fieldnames
                 assert "n_mediciones" in reader.fieldnames
+                assert "ip_pop" in reader.fieldnames
 
     def test_una_fila_por_resultado(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -377,6 +381,14 @@ class TestConstruirParser:
     def test_argumento_log_level(self):
         args = construir_parser().parse_args(["--log-level", "DEBUG"])
         assert args.log_level == "DEBUG"
+
+    def test_seed_por_defecto_none(self):
+        args = construir_parser().parse_args([])
+        assert args.seed is None
+
+    def test_argumento_seed(self):
+        args = construir_parser().parse_args(["--seed", "42"])
+        assert args.seed == 42
 
 
 # ============================================

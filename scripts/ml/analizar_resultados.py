@@ -2,7 +2,7 @@
 """
 Script analizar_resultados.py
 Analizar resultados de las pruebas de conexión TLS a los servidores PQC.
-Lee el JSON generado por hostname_conexion.py, procesa los datos, limpia outliers, y genera gráficas comparativas de latencia y overhead de bytes por grupo criptográfico. 
+Lee el JSON generado por sonda_pqc_final.py, procesa los datos, limpia outliers, y genera gráficas comparativas de latencia y overhead de bytes por grupo criptográfico.
 Las gráficas se guardan en la carpeta "imagenes" y se muestran estadísticas de cada grupo. Se aplica un filtro de muestras mínimas para asegurar comparaciones significativas. Se utiliza logging para mostrar el progreso y resultados del análisis.
 
 NOTA METODOLÓGICA:

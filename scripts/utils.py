@@ -4,8 +4,8 @@ utils.py
 Módulo de utilidades compartidas entre las sondas del proyecto TFG-PQC.
 
 Contiene funciones reutilizables de resolución DNS, análisis de certificados X.509
-y detección de versiones TLS soportadas. Todas estas funciones estaban duplicadas
-en sonda_base.py y hostname_conexion.py; se centralizan aquí para evitar divergencias.
+y detección de versiones TLS soportadas. Se centralizan aquí para evitar divergencias
+entre las distintas sondas del proyecto.
 """
 
 import hashlib

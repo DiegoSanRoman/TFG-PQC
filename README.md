@@ -709,8 +709,8 @@ Se necesitan al menos 30 muestras aceptadas por grupo. Aumentar `--max-hostnames
 **Diagnóstico de un host concreto:**
 
 ```bash
-# Dentro del contenedor Docker o con openssl-oqs instalado localmente
-python3 scripts/individuales/hostname_conexion.py
+# Con openssl-oqs instalado localmente, probar un host específico:
+python3 scripts/sondas/sonda_pqc_final.py --max-hostnames 1 --input-csv data/majestic_million.csv
 ```
 
 **La sonda de latencia ECH da TIMEOUT en todas las conexiones:**
