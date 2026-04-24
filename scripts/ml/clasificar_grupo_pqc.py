@@ -284,7 +284,7 @@ def graficar_distribucion_features(df: pd.DataFrame, out_dir: Path) -> None:
     )
     fig.tight_layout()
     out = out_dir / "clasificacion_distribucion_features.png"
-    fig.savefig(out, bbox_inches="tight", dpi=150)
+    fig.savefig(out, bbox_inches="tight", dpi=100)
     plt.close(fig)
     logger.info("Guardada: %s", out)
 
@@ -337,7 +337,7 @@ def graficar_comparativa_experimentos(
     )
     fig.tight_layout()
     out = out_dir / "clasificacion_experimentos_comparativa.png"
-    fig.savefig(out, bbox_inches="tight", dpi=150)
+    fig.savefig(out, bbox_inches="tight", dpi=100)
     plt.close(fig)
     logger.info("Guardada: %s", out)
 
@@ -373,7 +373,7 @@ def graficar_confusion_matrix(
     ax.tick_params(axis="y", labelsize=8)
     fig.tight_layout()
     out = out_dir / "clasificacion_confusion_mejor.png"
-    fig.savefig(out, bbox_inches="tight", dpi=150)
+    fig.savefig(out, bbox_inches="tight", dpi=100)
     plt.close(fig)
     logger.info("Guardada: %s", out)
     logger.info("Métricas en test set — accuracy=%.3f  f1_macro=%.3f", acc, f1m)
@@ -414,7 +414,7 @@ def graficar_importancia_features(
 
     fig.tight_layout()
     out = out_dir / "clasificacion_importancia_features.png"
-    fig.savefig(out, bbox_inches="tight", dpi=150)
+    fig.savefig(out, bbox_inches="tight", dpi=100)
     plt.close(fig)
     logger.info("Guardada: %s", out)
 

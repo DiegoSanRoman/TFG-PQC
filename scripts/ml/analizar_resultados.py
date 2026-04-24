@@ -506,7 +506,7 @@ def filtrar_por_muestras_minimas(df, min_muestras=20):
 def _guardar_figura_individual(fig, ax, path, logger):
     """Aplica tight_layout, guarda y cierra la figura."""
     fig.tight_layout()
-    fig.savefig(path, dpi=150, bbox_inches='tight')
+    fig.savefig(path, dpi=100, bbox_inches='tight')
     logger.info(f"✓ Guardado: {path}")
     plt.close(fig)
 

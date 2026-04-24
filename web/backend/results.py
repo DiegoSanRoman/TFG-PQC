@@ -28,8 +28,48 @@ from config import RESULTS_DIR, IMAGES_DIR
 
 
 # ──────────────────────────────────────────────────────────────
+# Caché basada en mtime: evita releer ficheros grandes en cada
+# request. Se auto-invalida cuando el fichero cambia en disco.
+# ──────────────────────────────────────────────────────────────
+
+_cache: dict[str, tuple[float, dict]] = {}  # step_id → (mtime_signature, data)
+
+def _mtime_sig(*paths: Path) -> float:
+    """Suma de mtimes de todos los paths existentes. Cambia si cualquier fichero es reescrito."""
+    total = 0.0
+    for p in paths:
+        try:
+            total += p.stat().st_mtime
+        except OSError:
+            pass
+    return total
+
+def _cached(step_id: str, data: dict, *paths: Path) -> dict:
+    _cache[step_id] = (_mtime_sig(*paths), data)
+    return data
+
+def _from_cache(step_id: str, *paths: Path) -> dict | None:
+    entry = _cache.get(step_id)
+    if entry and entry[0] == _mtime_sig(*paths):
+        return entry[1]
+    return None
+
+
+# ──────────────────────────────────────────────────────────────
 # Entry point
 # ──────────────────────────────────────────────────────────────
+
+# Ficheros que cada step necesita para invalidar la caché
+_STEP_FILES: dict[str, list[Path]] = {
+    "pqc_sonda":         [RESULTS_DIR / "resultados_sonda_pqc.json",
+                          RESULTS_DIR / "resumen_por_grupo.csv"],
+    "pqc_analisis":      [RESULTS_DIR / "resumen_por_grupo.csv"],
+    "pqc_clasificacion": [RESULTS_DIR / "resumen_clasificacion.json"],
+    "ech_sonda":         [RESULTS_DIR / "resultados_ech_prevalencia.json",
+                          RESULTS_DIR / "resultados_ech_prevalencia.csv"],
+    "ech_latencia_ech":  [RESULTS_DIR / "resultados_latencia_ech.csv"],
+    "ech_latencia_pqc":  [RESULTS_DIR / "resultados_latencia_pqc.csv"],
+}
 
 def load_results(step_id: str) -> dict:
     loaders = {
@@ -43,23 +83,54 @@ def load_results(step_id: str) -> dict:
     fn = loaders.get(step_id)
     if not fn:
         return {"error": f"step desconocido: {step_id}"}
+
+    paths = _STEP_FILES.get(step_id, [])
+    cached = _from_cache(step_id, *paths)
+    if cached is not None:
+        return cached
+
     try:
-        return fn()
+        result = fn()
     except FileNotFoundError as e:
         return {"error": f"archivo no encontrado: {e.filename}",
                 "hint": "ejecuta el paso correspondiente antes de ver resultados"}
     except Exception as e:
         return {"error": f"{type(e).__name__}: {e}"}
 
+    if "error" not in result:
+        _cached(step_id, result, *paths)
+    return result
+
 
 # ──────────────────────────────────────────────────────────────
 # Helpers
 # ──────────────────────────────────────────────────────────────
 
+def _images_for(*globs: str) -> list[str]:
+    if not IMAGES_DIR.exists():
+        return []
+    result = []
+    for pat in globs:
+        result.extend(sorted(p.name for p in IMAGES_DIR.glob(pat)))
+    return result
+
 def _pct(num: int, den: int) -> float:
     return round(100.0 * num / max(den, 1), 1)
 
 def _read_json(path: Path) -> Any:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+def _read_json_header(path: Path) -> dict:
+    """Lee solo las claves de primer nivel excepto 'datos', evitando cargar arrays grandes."""
+    with path.open(encoding="utf-8") as f:
+        chunk = f.read(8192)
+    datos_idx = chunk.find('"datos"')
+    if datos_idx > 0:
+        truncated = chunk[:datos_idx].rstrip().rstrip(',') + '}'
+        try:
+            return json.loads(truncated)
+        except json.JSONDecodeError:
+            pass
     return json.loads(path.read_text(encoding="utf-8"))
 
 def _read_csv(path: Path) -> list[dict]:
@@ -83,83 +154,76 @@ def _accepted(row: dict) -> bool:
 # ──────────────────────────────────────────────────────────────
 
 def _pqc_sonda() -> dict:
-    """Lee resultados/resultados_sonda_pqc.json → % de aceptación y latencia por grupo."""
-    path = RESULTS_DIR / "resultados_sonda_pqc.json"
-    data = _read_json(path)
+    """
+    Lee solo el header del JSON grande (8 KB) para el resumen global,
+    y el CSV de resumen por grupo (2 KB) para los charts.
+    Evita parsear los 43 MB de datos crudos en cada request.
+    """
+    json_path = RESULTS_DIR / "resultados_sonda_pqc.json"
+    csv_path  = RESULTS_DIR / "resumen_por_grupo.csv"
 
-    resumen = data.get("resumen", {}) if isinstance(data, dict) else {}
-    datos   = data.get("datos", [])   if isinstance(data, dict) else (data if isinstance(data, list) else [])
+    # Resumen global: solo los primeros 8 KB del JSON (donde está "resumen")
+    header = _read_json_header(json_path)
+    resumen = header.get("resumen", {}) if isinstance(header, dict) else {}
 
-    # Aplanar probes desde la estructura anidada {hostname, pruebas: [...]}
-    probes: list[dict] = []
-    for d in datos:
-        hn = d.get("hostname") or d.get("host") or ""
-        for p in d.get("pruebas", []):
-            probes.append({**p, "hostname": hn})
-    # Fallback: lista plana de probes directamente
-    if not probes and isinstance(data, list):
-        probes = data
-
-    hosts_ok: set[str] = set()
-    group_stats: dict[str, dict] = defaultdict(lambda: {"total": 0, "ok": 0, "hs_ms": [], "bytes": []})
-
-    for p in probes:
-        grupo    = p.get("grupo") or p.get("group") or p.get("grupo_pqc") or ""
-        hostname = p.get("hostname") or p.get("host") or ""
-        accepted = _accepted(p)
-        if accepted and hostname:
-            hosts_ok.add(hostname)
-        if not grupo:
-            continue
-        group_stats[grupo]["total"] += 1
-        if accepted:
-            group_stats[grupo]["ok"] += 1
-        hms = _num(p.get("handshake_time_ms"))
-        if hms is not None:
-            group_stats[grupo]["hs_ms"].append(hms)
-        bs = _num(p.get("bytes_sent"))
-        br = _num(p.get("bytes_received"))
-        if bs is not None and br is not None:
-            group_stats[grupo]["bytes"].append(bs + br)
-
-    # Usar resumen del JSON si existe (más fiable que recalcular)
-    total_hosts      = resumen.get("total_hostnames",              len(datos) or len(set(p.get("hostname","") for p in probes)))
-    hosts_con_exito  = resumen.get("hosts_con_al_menos_un_exito",  len(hosts_ok))
-    total_pruebas    = resumen.get("total_pruebas",                len(probes))
-    pruebas_exitosas = resumen.get("pruebas_exitosas",             sum(s["ok"] for s in group_stats.values()))
-    tasa_hosts       = resumen.get("tasa_exito_hosts_percent",     _pct(hosts_con_exito, total_hosts))
-    tasa_pruebas     = resumen.get("tasa_exito_pruebas_percent",   _pct(pruebas_exitosas, total_pruebas))
+    total_hosts      = resumen.get("total_hostnames", 0)
+    hosts_con_exito  = resumen.get("hosts_con_al_menos_un_exito", 0)
+    total_pruebas    = resumen.get("total_pruebas", 0)
+    pruebas_exitosas = resumen.get("pruebas_exitosas", 0)
+    tasa_hosts       = resumen.get("tasa_exito_hosts_percent",  _pct(hosts_con_exito, total_hosts))
+    tasa_pruebas     = resumen.get("tasa_exito_pruebas_percent", _pct(pruebas_exitosas, total_pruebas))
     tiempo_s         = resumen.get("tiempo_total_segundos")
+    n_grupos         = len(resumen.get("grupos_probados", []))
 
-    hybrid     = group_stats.get("X25519MLKEM768", {"total": 0, "ok": 0})
-    hybrid_pct = _pct(hybrid["ok"], hybrid["total"]) if hybrid["total"] else 0
+    # Por-grupo: tasa de aceptación y latencia mediana desde el CSV pequeño
+    rows = _read_csv(csv_path)
 
-    x25519_hs  = group_stats.get("X25519", {}).get("hs_ms", [])
-    x25519_ms  = round(statistics.median(x25519_hs), 1) if x25519_hs else None
+    def _field(r, *keys):
+        for k in keys:
+            if k in r and r[k] not in ("", None):
+                try: return float(r[k])
+                except ValueError: pass
+        return None
+
+    group_pct: dict[str, float] = {}
+    group_ms:  dict[str, float] = {}
+    for r in rows:
+        g = r.get("grupo") or r.get("group") or ""
+        if not g:
+            continue
+        pct = _field(r, "porcentaje_aceptacion", "tasa_exito", "acceptance_rate")
+        if pct is not None:
+            group_pct[g] = pct
+        ms = _field(r, "handshake_time_ms_mediana", "handshake_time_ms_median",
+                       "mediana_handshake_ms", "mediana_ms")
+        if ms is not None:
+            group_ms[g] = ms
+
+    hybrid_pct  = group_pct.get("X25519MLKEM768", 0)
+    x25519_ms   = group_ms.get("X25519")
 
     # Chart 1: tasa de aceptación por grupo (barras horizontales, ordenado desc)
-    h_bars = [
-        {"label": g, "value": _pct(s["ok"], s["total"])}
-        for g, s in sorted(group_stats.items(), key=lambda kv: -_pct(kv[1]["ok"], kv[1]["total"]))
-    ]
+    h_bars = sorted(
+        [{"label": g, "value": round(v, 1)} for g, v in group_pct.items()],
+        key=lambda x: -x["value"],
+    )
 
-    # Chart 2: latencia mediana de handshake por grupo (barras verticales, ordenado asc)
-    v_bars = [
-        {"label": g, "value": round(statistics.median(s["hs_ms"]), 1)}
-        for g, s in sorted(group_stats.items(), key=lambda kv: statistics.median(kv[1]["hs_ms"]) if kv[1]["hs_ms"] else 9999)
-        if s["hs_ms"]
-    ]
+    # Chart 2: latencia mediana por grupo — solo grupos con datos (barras verticales, asc)
+    v_bars = sorted(
+        [{"label": g, "value": round(v, 1)} for g, v in group_ms.items()],
+        key=lambda x: x["value"],
+    )
 
     stats = [
-        {"label": "Hosts escaneados",         "value": str(total_hosts)},
-        {"label": "Hosts con éxito",          "value": f"{hosts_con_exito} ({tasa_hosts}%)"},
-        {"label": "Pruebas totales",          "value": f"{total_pruebas:,}".replace(",", ".")},
-        {"label": "Pruebas exitosas",         "value": f"{pruebas_exitosas} ({tasa_pruebas}%)"},
-        {"label": "Grupos PQC probados",      "value": str(len(group_stats))},
-        {"label": "Éxito X25519MLKEM768",    "value": f"{hybrid_pct}%"},
+        {"label": "Hosts escaneados",      "value": str(total_hosts)},
+        {"label": "Hosts con éxito",       "value": f"{hosts_con_exito} ({tasa_hosts}%)"},
+        {"label": "Pruebas totales",       "value": f"{total_pruebas:,}".replace(",", ".")},
+        {"label": "Pruebas exitosas",      "value": f"{pruebas_exitosas} ({tasa_pruebas}%)"},
+        {"label": "Grupos PQC probados",   "value": str(n_grupos or len(group_pct))},
+        {"label": "Éxito X25519MLKEM768", "value": f"{round(hybrid_pct, 1)}%"},
     ]
     if x25519_ms is not None:
-        stats.append({"label": "Latencia X25519 (mediana)", "value": f"{x25519_ms} ms"})
+        stats.append({"label": "Latencia X25519 (mediana)", "value": f"{round(x25519_ms, 1)} ms"})
     if tiempo_s is not None:
         mins = int(tiempo_s // 60)
         secs = int(tiempo_s % 60)
@@ -175,6 +239,7 @@ def _pqc_sonda() -> dict:
         "unit":         "%",
         "color":        "purple",
         "note":         "Los grupos híbridos (X25519+PQC) muestran tasas de aceptación significativamente más altas que los PQC puros.",
+        "images":       _images_for(),
     }
 
 
@@ -253,6 +318,7 @@ def _pqc_analisis() -> dict:
         "unit":         "ms",
         "color":        "purple",
         "note":         "Delta calculado por hostname para aislar el ruido de red. Negativo = más rápido que X25519.",
+        "images":       _images_for("latencia_0*.png", "bytes_0*.png"),
     }
 
 
@@ -317,6 +383,7 @@ def _pqc_clasificacion() -> dict:
         "grouped_title": "Accuracy por experimento y modelo (%)",
         "conf_matrix":   data.get("confusion"),
         "color":         "purple",
+        "images":        _images_for("clasificacion_*.png"),
     }
 
 
@@ -439,6 +506,7 @@ def _ech_latencia_ech() -> dict:
         "grouped_title": "Latencia handshake TLS — con vs sin ECH (ms)",
         "color":         "green",
         "note":          "El overhead de ECH es bajo, debido al intercambio de clave HPKE adicional durante el handshake.",
+        "images":        _images_for("latencia_ech_vs_sin_ech.png"),
     }
 
 
@@ -487,6 +555,7 @@ def _ech_latencia_pqc() -> dict:
         "grouped_title": "Latencia handshake TLS por grupo PQC (ms)",
         "color":         "green",
         "note":          "Los grupos OQS puros solo se miden sin ECH vía OpenSSL OQS. Los grupos bssl soportan ECH simultáneamente.",
+        "images":        _images_for("latencia_pqc_*.png"),
     }
 
 

@@ -36,8 +36,8 @@ function StatsRow({ stats = [], color }) {
 }
 
 // ── ImagesList (miniaturas con link al backend) ─────────────────
-function ImagesSection({ stepId, color }) {
-  // Mapeo de step → imágenes esperadas en /imagenes
+function ImagesSection({ stepId, color, images: providedImages }) {
+  // Mapeo de step → imágenes esperadas en /imagenes (fallback si el backend no las incluye)
   const patterns = {
     pqc_analisis:      [/^latencia_0\d_.*\.png$/i, /^bytes_0\d_.*\.png$/i],
     pqc_clasificacion: [/^clasificacion_.*\.png$/i],
@@ -48,11 +48,15 @@ function ImagesSection({ stepId, color }) {
   const [imgs, setImgs] = useState(null);
 
   useEffect(() => {
+    if (providedImages !== undefined) {
+      setImgs(providedImages);
+      return;
+    }
     if (!pats) { setImgs([]); return; }
     API.fetchImages()
       .then(all => setImgs(all.filter(n => pats.some(p => p.test(n)))))
       .catch(() => setImgs([]));
-  }, [stepId]);
+  }, [stepId, providedImages]);
 
   if (!pats || imgs === null || imgs.length === 0) return null;
 
@@ -132,7 +136,7 @@ function ResultsRender({ stepId, data }) {
         </div>
       )}
 
-      <ImagesSection stepId={stepId} color={color} />
+      <ImagesSection stepId={stepId} color={color} images={data.images} />
 
       {data.note && (
         <div style={{ marginTop: 14, padding: '10px 14px', background: noteBg, border: `1px solid ${noteBorder}`, borderRadius: 8, fontSize: 12, color: 'var(--text-dim)', lineHeight: 1.5 }}>
