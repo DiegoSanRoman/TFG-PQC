@@ -71,13 +71,12 @@ DEFAULT_REPETICIONES  = 3
 # Grupos NO presentes en este mapa se miden con OpenSSL OQS (sin ECH).
 BSSL_CURVE_MAP: Dict[str, str] = {
     "X25519Kyber768Draft00": "X25519Kyber768Draft00",
-    "x25519_kyber768":       "X25519Kyber768Draft00",  # mismo algoritmo, nombre OQS
     "X25519MLKEM768":        "X25519MLKEM768",
 }
 
 # Lista completa de grupos PQC a probar por defecto
 DEFAULT_GRUPOS_PQC: List[str] = [
-    "X25519Kyber768Draft00",   # bssl: híbrido draft (≡ x25519_kyber768)
+    "X25519Kyber768Draft00",   # bssl: híbrido draft Kyber768
     "X25519MLKEM768",          # bssl: estándar NIST híbrido
     "mlkem768",                # OQS: puro moderno (ML-KEM-768)
     "kyber768",                # OQS: puro previo (Kyber768)

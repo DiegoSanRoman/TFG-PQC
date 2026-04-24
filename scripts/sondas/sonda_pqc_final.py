@@ -308,7 +308,7 @@ def sonda_pqc(  # noqa: C901
     '''
     Función que intenta conectarse a un servidor HTTPS usando OpenSSL con soporte para cifrados post-cuánticos (híbridos y puros).
     :param hostname: El nombre del host o dominio del servidor HTTPS a escanear (puede incluir puerto: "hostname:puerto")
-    :param group: El grupo de cifrado a usar (None para automático)
+    :param group: El grupo de cifrado a usar (None deja que OpenSSL negocie libremente)
     :param openssl_bin: Ruta al binario de OpenSSL personalizado con soporte PQC (opcional)
     :param proc_semaphore: Semáforo para limitar concurrencia de procesos (opcional)
     :return: Diccionario con el resultado de la conexión
@@ -344,7 +344,7 @@ def sonda_pqc(  # noqa: C901
     if group:
         cmd += ["-tls1_3", "-groups", group]
     
-    logger.debug("Probando %s con grupo %s", hostname, group if group else "Automático")
+    logger.debug("Probando %s con grupo %s", hostname, group)
     
     # Pre-check DNS/TCP para separar fallos de infraestructura de PQC
     dns_time_ms = None
@@ -484,7 +484,7 @@ def sonda_pqc(  # noqa: C901
                     if intento < max_attempts:
                         retried = True
                         continue
-                    logger.warning("Timeout en %s con grupo %s", hostname, group if group else "Automático")
+                    logger.warning("Timeout en %s con grupo %s", hostname, group)
                     return _build_result(
                         error_category=ERROR_TLS_TIMEOUT,
                         connection_result=None,
@@ -526,7 +526,7 @@ def sonda_pqc(  # noqa: C901
         # Log de advertencia si no se pudieron medir bytes
         if measurement_method == "unknown":
             logger.debug("No se pudieron medir bytes desde trace para %s (grupo %s)", 
-                        hostname, group if group else "Automático")
+                        hostname, group)
 
         # Parseo de TLS: versión, cipher y ALPN
         tls_version = None
@@ -669,7 +669,7 @@ def sonda_pqc(  # noqa: C901
 
         # Si hay fallo de handshake confirmado, es RECHAZADO
         if handshake_failed:
-            logger.debug("Rechazado (handshake failed): %s - %s", hostname, group if group else "Automático")
+            logger.debug("Rechazado (handshake failed): %s - %s", hostname, group)
             return _build_result(
                 error_category=ERROR_TLS_ALERT,
                 connection_result=CONNECTION_REJECTED,
@@ -686,7 +686,7 @@ def sonda_pqc(  # noqa: C901
 
         # Éxito real: hay Server Temp Key Y (hay certificado O cipher válido)
         if return_code == 0 and negotiated_line and (cert_issuer or (cipher_suite and "(NONE)" not in cipher_suite)):
-            logger.debug("Éxito: %s - %s - %s", hostname, group if group else "Automático", negotiated_line)
+            logger.debug("Éxito: %s - %s - %s", hostname, group, negotiated_line)
             return _build_result(
                 error_category=None,
                 connection_result=CONNECTION_ACCEPTED,
@@ -696,7 +696,7 @@ def sonda_pqc(  # noqa: C901
 
         # Fallback: conexión exitosa si hay cipher válido Y certificado
         if return_code == 0 and cipher_suite and "(NONE)" not in cipher_suite and cert_issuer:
-            logger.debug("Éxito: %s - %s - Conectado (TLS 1.3)", hostname, group if group else "Automático")
+            logger.debug("Éxito: %s - %s - Conectado (TLS 1.3)", hostname, group)
             return _build_result(
                 error_category=None,
                 connection_result=CONNECTION_ACCEPTED,
@@ -705,7 +705,7 @@ def sonda_pqc(  # noqa: C901
             )
 
         # Si hay un error específico de incompatibilidad de protocolo/draft
-        logger.debug("Rechazado: %s - %s - %s", hostname, group if group else "Automático", stderr.strip())
+        logger.debug("Rechazado: %s - %s - %s", hostname, group, stderr.strip())
         return _build_result(
             error_category=ERROR_TLS_ALERT,
             connection_result=CONNECTION_REJECTED,
@@ -715,7 +715,7 @@ def sonda_pqc(  # noqa: C901
 
     # Capturamos cualquier excepción (timeout, fallo, etc.)
     except Exception as e:
-        logger.warning("Error en %s con grupo %s: %s", hostname, group if group else "Automático", str(e))
+        logger.warning("Error en %s con grupo %s: %s", hostname, group, str(e))
         return _build_result(
             error_category=ERROR_UNKNOWN,
             connection_result=None,
@@ -730,11 +730,11 @@ def sonda_pqc(  # noqa: C901
         )
 
 
-def escanear_servidor_pqc(hostname: str, grupos: List[Optional[str]], openssl_bin: str, proc_semaphore: threading.Semaphore, repeticiones: int = 3) -> Dict[str, Any]:
+def escanear_servidor_pqc(hostname: str, grupos: List[str], openssl_bin: str, proc_semaphore: threading.Semaphore, repeticiones: int = 3) -> Dict[str, Any]:
     '''
     Escanea un servidor con múltiples grupos PQC y retorna los resultados
     :param hostname: Nombre del host a escanear
-    :param grupos: Lista de grupos a probar (None para automático)
+    :param grupos: Lista de grupos a probar
     :param openssl_bin: Ruta al binario de OpenSSL
     :param proc_semaphore: Semáforo para controlar procesos concurrentes
     :param repeticiones: Número de repeticiones por grupo (default: 3)
@@ -749,8 +749,8 @@ def escanear_servidor_pqc(hostname: str, grupos: List[Optional[str]], openssl_bi
     
     # Probar cada grupo
     for g in grupos:
-        label = g if g else "Automático"
-        
+        label = g
+
         # Realizar múltiples repeticiones
         intentos = []
         for i in range(repeticiones):
@@ -767,7 +767,7 @@ def escanear_servidor_pqc(hostname: str, grupos: List[Optional[str]], openssl_bi
     return resultado_host
 
 
-def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupos: List[Optional[str]]) -> List[Dict[str, Any]]:
+def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupos: List[str]) -> List[Dict[str, Any]]:
     '''
     Genera estadísticas agregadas por grupo de cifrado
     :param lista_resultados: Lista de resultados de todos los hosts
@@ -779,7 +779,7 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
     
     # Para cada grupo, recolectar todas las pruebas y calcular métricas
     for grupo in grupos:
-        label = grupo if grupo else "Automático"
+        label = grupo
         
         # Recolectar todas las pruebas de este grupo
         pruebas_grupo = []
@@ -1142,7 +1142,7 @@ class PQCProbe:
         Ejecuta la sonda PQC para un hostname y grupo dado.
 
         :param hostname: Nombre del host objetivo (p.ej. ``"example.com"``).
-        :param group:    Grupo de cifrado PQC (p.ej. ``"X25519MLKEM768"``); None para automático.
+        :param group:    Grupo de cifrado PQC (p.ej. ``"X25519MLKEM768"``); None deja que OpenSSL negocie libremente.
         :raises PQCValidationError: Si el hostname no es un nombre de dominio válido.
         :return: :class:`ProbeResults` con el resultado de la conexión.
         """
@@ -1200,9 +1200,8 @@ if __name__ == "__main__":
 
     # Probamos diferentes protocolos, desde automático (None) hasta algunos híbridos y algunos puros PQC
     grupos = [
-        # --- Automático y Clásico ---
-                           # 1. Automático
-        "X25519",               # 2. Clásico (Control)
+        # --- Clásico ---
+        "X25519",               # 1. Clásico (Control)
         # --- Éxitos Casi Confirmados ---                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
         "X25519MLKEM768",       # 3. Estándar NIST Híbrido 
         "x25519_kyber768",      # 4. Estándar Previo Híbrido
@@ -1232,7 +1231,7 @@ if __name__ == "__main__":
         raise SystemExit(1)
     
     logger.info("Se han cargado %s hostnames desde %s", len(hostnames), ruta_csv)
-    logger.info("Grupos PQC a probar: %s", ", ".join([g if g else "Automático" for g in grupos]))
+    logger.info("Grupos PQC a probar: %s", ", ".join(grupos))
     
     # Lista para almacenar todos los resultados
     lista_resultados = []
@@ -1304,7 +1303,7 @@ if __name__ == "__main__":
             "pruebas_exitosas": pruebas_exitosas,
             "tasa_exito_hosts_percent": round((hosts_con_exito / total_hosts * 100) if total_hosts else 0, 2),
             "tasa_exito_pruebas_percent": round((pruebas_exitosas / total_pruebas * 100) if total_pruebas else 0, 2),
-            "grupos_probados": [g if g else "Automático" for g in grupos]
+            "grupos_probados": grupos
         }
     }
 

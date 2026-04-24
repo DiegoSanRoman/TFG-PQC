@@ -37,7 +37,6 @@ plt.rcParams['figure.figsize'] = (14, 8)
 plt.rcParams['font.size'] = 10
 
 COLORES_GRUPOS = {
-    'Automático': '#1f77b4',
     'X25519': '#ff7f0e',
     'X25519MLKEM768': '#2ca02c',
     'x25519_kyber768': '#d62728',
