@@ -767,6 +767,147 @@ def graficar_bytes(df, output_dir):
     logger.info(f"✓ Guardado: {output_path}")
     plt.close()
 
+def _bh_correction(pvalues):
+    """Corrección Benjamini-Hochberg (FDR) sobre una lista de p-values."""
+    n = len(pvalues)
+    if n == 0:
+        return []
+    orden = sorted(range(n), key=lambda i: pvalues[i])
+    corr = [min(pvalues[orden[j]] * n / (j + 1), 1.0) for j in range(n)]
+    for j in range(n - 2, -1, -1):
+        corr[j] = min(corr[j], corr[j + 1])
+    resultado = [0.0] * n
+    for rank, idx in enumerate(orden):
+        resultado[idx] = corr[rank]
+    return resultado
+
+
+def calcular_significancia(df, metrica_col, grupo_clasico='X25519', alpha=0.05, min_pares=10):
+    """
+    Wilcoxon signed-rank pareado: para cada grupo no clásico comprueba si la
+    distribución de deltas (grupo - X25519) por hostname es significativamente
+    distinta de cero.
+
+    Se usa Wilcoxon (no t-test ni Mann-Whitney) porque:
+    - Los datos son pareados por hostname → control del ruido de red entre hosts.
+    - Las latencias no son normales → test no paramétrico.
+
+    Aplica corrección Benjamini-Hochberg para controlar el FDR en comparaciones múltiples.
+
+    Devuelve DataFrame con: grupo, n_pares, delta_mediana_ms, delta_media_ms,
+                             p_valor, p_valor_bh, significativo, etiqueta.
+    """
+    from scipy.stats import wilcoxon
+
+    host_group = _agregar_por_hostname_grupo(df, metrica_col)
+    if host_group.empty:
+        return pd.DataFrame()
+
+    pivot = host_group.pivot(index='hostname', columns='grupo', values=metrica_col)
+    if grupo_clasico not in pivot.columns:
+        return pd.DataFrame()
+
+    filas = []
+    for grupo in [g for g in pivot.columns if g != grupo_clasico]:
+        pares = pivot[[grupo_clasico, grupo]].dropna()
+        n = len(pares)
+        if n < min_pares:
+            logger.info("Significancia: %s omitido (solo %d pares, mínimo %d)", grupo, n, min_pares)
+            continue
+
+        deltas = pares[grupo] - pares[grupo_clasico]
+
+        if (deltas == 0).all():
+            p_val = 1.0
+        else:
+            try:
+                _, p_val = wilcoxon(deltas, zero_method='zsplit', alternative='two-sided')
+            except ValueError:
+                p_val = 1.0
+
+        filas.append({
+            'grupo': grupo,
+            'n_pares': n,
+            'delta_mediana_ms': round(float(deltas.median()), 2),
+            'delta_media_ms': round(float(deltas.mean()), 2),
+            'p_valor': p_val,
+        })
+
+    if not filas:
+        return pd.DataFrame()
+
+    res = pd.DataFrame(filas)
+    res['p_valor_bh'] = _bh_correction(res['p_valor'].tolist())
+    res['significativo'] = res['p_valor_bh'] < alpha
+
+    def _etiqueta(p):
+        if p < 0.001:
+            return '***'
+        if p < 0.01:
+            return '**'
+        if p < 0.05:
+            return '*'
+        return 'ns'
+
+    res['etiqueta'] = res['p_valor_bh'].apply(_etiqueta)
+    return res.sort_values('delta_mediana_ms', ascending=True).reset_index(drop=True)
+
+
+def graficar_significancia(df_sig, output_dir):
+    """
+    Barras horizontales de delta_mediana_ms por grupo, anotadas con la
+    etiqueta de significancia (*** / ** / * / ns).
+
+    Color:
+    - Verde: delta negativo significativo (grupo PQC más rápido que X25519).
+    - Rojo:  delta positivo significativo (grupo PQC más lento).
+    - Gris:  no significativo.
+    """
+    if df_sig.empty:
+        return
+
+    fig, ax = plt.subplots(figsize=(10, max(5, len(df_sig) * 0.6)))
+
+    colores = []
+    for _, row in df_sig.iterrows():
+        if not row['significativo']:
+            colores.append('#aaaaaa')
+        elif row['delta_mediana_ms'] < 0:
+            colores.append('#2ca02c')
+        else:
+            colores.append('#d62728')
+
+    etiquetas_y = [
+        f"{row['grupo']}  (n={row['n_pares']})"
+        for _, row in df_sig.iterrows()
+    ]
+
+    bars = ax.barh(etiquetas_y, df_sig['delta_mediana_ms'], color=colores, alpha=0.8)
+
+    for bar, (_, row) in zip(bars, df_sig.iterrows()):
+        x = bar.get_width()
+        offset = max(abs(df_sig['delta_mediana_ms'].max()), 1) * 0.02
+        ha = 'left' if x >= 0 else 'right'
+        ax.text(x + (offset if x >= 0 else -offset), bar.get_y() + bar.get_height() / 2,
+                row['etiqueta'], va='center', ha=ha, fontsize=10, fontweight='bold')
+
+    ax.axvline(0, color='black', linewidth=1)
+    ax.set_xlabel('Δ mediana handshake (ms) vs X25519', fontweight='bold')
+    ax.set_title(
+        'Significancia estadística del overhead de latencia PQC\n'
+        'Wilcoxon signed-rank pareado + corrección Benjamini-Hochberg\n'
+        '*** p<0.001  ** p<0.01  * p<0.05  ns = no significativo',
+        fontweight='bold'
+    )
+    ax.grid(axis='x', alpha=0.3)
+    plt.tight_layout()
+
+    output_path = output_dir / 'significancia_latencia.png'
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    logger.info(f"✓ Guardado: {output_path}")
+    plt.close()
+
+
 def graficar_tasas_resultado(df_total, output_dir):
     """
     Stacked bar por algoritmo: aceptado / timeout / rechazado (TLS alert) / otro error.
@@ -877,7 +1018,25 @@ def main(input_path: Path = RESULTADOS_PATH, output_dir: Path = OUTPUT_DIR):
         min_muestras_columna=4
     )
     df_exitos_ranking = df_exitos.copy()
-    
+
+    # Tests de significancia estadística (Wilcoxon + BH) sobre la cohorte limpia
+    logger.info("\n📐 Calculando tests de significancia estadística...")
+    df_sig = calcular_significancia(df_exitos_ranking, METRICA_CONNECT_TLS_MS)
+    if not df_sig.empty:
+        sig_csv = output_dir / 'significancia_latencia.csv'
+        df_sig.to_csv(sig_csv, index=False)
+        logger.info(f"✓ Guardado: {sig_csv}")
+        graficar_significancia(df_sig, output_dir)
+        logger.info("\nResultados de significancia:")
+        for _, row in df_sig.iterrows():
+            logger.info(
+                "  %-22s  Δ=%+.1f ms  p=%.4f  p_BH=%.4f  %s",
+                row['grupo'], row['delta_mediana_ms'],
+                row['p_valor'], row['p_valor_bh'], row['etiqueta']
+            )
+    else:
+        logger.warning("Sin pares suficientes para tests de significancia")
+
     # Aplicar filtro de muestras mínimas
     logger.info("\n📊 Aplicando filtro de muestras mínimas...")
     df_filtrado = filtrar_por_muestras_minimas(df_exitos, min_muestras=MIN_MUESTRAS_ANALISIS)
