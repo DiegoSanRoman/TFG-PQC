@@ -95,13 +95,12 @@ EXPERIMENTOS = {
     ],
     "Exp 2\nTiming + bytes TLS": [
         "dns_time_ms", "tcp_time_ms", "handshake_time_ms",
-        "bytes_sent", "bytes_received", "handshake_overhead",
+        "bytes_sent", "bytes_received",
     ],
     "Exp 3\nTiming + bytes totales": [
         "dns_time_ms", "tcp_time_ms", "handshake_time_ms",
-        "bytes_sent", "bytes_received", "handshake_overhead",
+        "bytes_sent", "bytes_received",
         "handshake_total_bytes_sent", "handshake_total_bytes_received",
-        "handshake_total_overhead",
     ],
 }
 

@@ -399,7 +399,7 @@ def sonda_pqc(  # noqa: C901
         handshake_time_ms = None
         tiempo_inicio = time.perf_counter()  # se resetea en cada intento dentro del bucle
 
-        max_attempts = 2
+        max_attempts = 1
         return_code = None
         for intento in range(1, max_attempts + 1):
             if proc_semaphore:

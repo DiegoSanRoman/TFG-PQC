@@ -95,30 +95,6 @@ def construir_dataset_justo(df, grupo_clasico='X25519'):
     return base[base['hostname'].isin(hosts_validos)].copy()
 
 
-def calcular_ranking_justo_handshake(df, grupo_clasico='X25519'):
-    """
-    Ranking justo de rapidez con tiempos absolutos (ms):
-    - Usa solo hostnames comparables (aceptan clásico + >=1 no clásico).
-    - Calcula media por (hostname, grupo).
-    - Luego promedia por grupo para evitar sesgo de hostnames con más repeticiones.
-    """
-    df_justo = construir_dataset_justo(df, grupo_clasico=grupo_clasico)
-    if df_justo.empty:
-        return pd.DataFrame()
-
-    host_group = df_justo.groupby(['hostname', 'grupo'], as_index=False)[METRICA_CONNECT_TLS_MS].mean()
-    ranking = host_group.groupby('grupo').agg(
-        handshake_medio_ms=(METRICA_CONNECT_TLS_MS, 'mean'),
-        handshake_std_ms=(METRICA_CONNECT_TLS_MS, 'std'),
-        hostnames=('hostname', 'nunique')
-    ).reset_index()
-
-    ranking['handshake_std_ms'] = ranking['handshake_std_ms'].fillna(0.0)
-    ranking = ranking.sort_values('handshake_medio_ms', ascending=True)
-    ranking['ranking_rapidez'] = np.arange(1, len(ranking) + 1)
-    return ranking
-
-
 def _agregar_por_hostname_grupo(df, metrica_col):
     """
     Agrega una métrica por (hostname, grupo) para evitar sesgo por repeticiones desbalanceadas.
@@ -634,9 +610,10 @@ def graficar_latencia(df, output_dir, df_ranking=None):
     logger.info(f"✓ Guardado: {output_path}")
     plt.close()
 
+    return grupos_concluyentes, hosts_comunes_concluyentes
 
 
-def graficar_bytes(df, output_dir):
+def graficar_bytes(df, output_dir, grupos_latencia=None, hosts_latencia=None):
     """
     Gráfica de bytes por grupo - Robusta ante datos faltantes.
     Crea una figura con 4 subplots mostrando promedios por grupo con barras de error.
@@ -648,29 +625,33 @@ def graficar_bytes(df, output_dir):
     fig.suptitle('Análisis de Overhead de Bytes por Grupo Criptográfico (Datos Limpios)', 
                  fontsize=16, fontweight='bold')
 
-    # Cohorte común (metodología equivalente a latencia robusta)
+    # Usar la misma cohorte que latencia para que ambas gráficas sean comparables
     min_hostnames_concluyente = 30
-    grupos_concluyentes = []
-    hosts_comunes_concluyentes = set()
-    metrica_cohorte = None
+    if grupos_latencia is not None and hosts_latencia is not None:
+        grupos_concluyentes = grupos_latencia
+        hosts_comunes_concluyentes = hosts_latencia
+    else:
+        grupos_concluyentes = []
+        hosts_comunes_concluyentes = set()
+        metrica_cohorte = None
 
-    for candidata in ['handshake_overhead', 'bytes_sent', 'bytes_received', 'handshake_total_overhead']:
-        if candidata in df.columns and df[candidata].notna().any():
-            metrica_cohorte = candidata
-            break
+        for candidata in ['handshake_overhead', 'bytes_sent', 'bytes_received', 'handshake_total_overhead']:
+            if candidata in df.columns and df[candidata].notna().any():
+                metrica_cohorte = candidata
+                break
 
-    if metrica_cohorte:
-        ranking_base = resumen_justo_metrica(df, metrica_cohorte, grupo_clasico='X25519')
-        if not ranking_base.empty:
-            ranking_concluyente = ranking_base[ranking_base['hostnames'] >= min_hostnames_concluyente].copy()
-            if not ranking_concluyente.empty:
-                hg = _agregar_por_hostname_grupo(df, metrica_cohorte)
-                grupos_concluyentes, hosts_comunes_concluyentes = seleccionar_grupos_y_cohorte_comun(
-                    hg,
-                    ranking_concluyente['grupo'].tolist(),
-                    min_hostnames=min_hostnames_concluyente,
-                    grupo_clasico='X25519'
-                )
+        if metrica_cohorte:
+            ranking_base = resumen_justo_metrica(df, metrica_cohorte, grupo_clasico='X25519')
+            if not ranking_base.empty:
+                ranking_concluyente = ranking_base[ranking_base['hostnames'] >= min_hostnames_concluyente].copy()
+                if not ranking_concluyente.empty:
+                    hg = _agregar_por_hostname_grupo(df, metrica_cohorte)
+                    grupos_concluyentes, hosts_comunes_concluyentes = seleccionar_grupos_y_cohorte_comun(
+                        hg,
+                        ranking_concluyente['grupo'].tolist(),
+                        min_hostnames=min_hostnames_concluyente,
+                        grupo_clasico='X25519'
+                    )
 
     usar_cohorte_comun = bool(grupos_concluyentes) and len(hosts_comunes_concluyentes) >= min_hostnames_concluyente
     if usar_cohorte_comun:
@@ -792,7 +773,7 @@ def _bh_correction(pvalues):
     return resultado
 
 
-def calcular_significancia(df, metrica_col, grupo_clasico='X25519', alpha=0.05, min_pares=10):
+def calcular_significancia(df, metrica_col, grupo_clasico='X25519', alpha=0.05, min_pares=20):
     """
     Wilcoxon signed-rank pareado: para cada grupo no clásico comprueba si la
     distribución de deltas (grupo - X25519) por hostname es significativamente
@@ -1003,7 +984,7 @@ def main(input_path: Path = RESULTADOS_PATH, output_dir: Path = OUTPUT_DIR):
 
     # Filtrar conexiones que necesitaron retry (latencia inflada por timeout acumulado)
     n_antes = len(df_exitos)
-    df_exitos = df_exitos[df_exitos['retry'] != True].copy()
+    df_exitos = df_exitos[df_exitos['retry'] == False].copy()
     n_filtrados = n_antes - len(df_exitos)
     if n_filtrados > 0:
         logger.info(f"Filtrados {n_filtrados} registros con retry=True de la latencia")
@@ -1050,14 +1031,12 @@ def main(input_path: Path = RESULTADOS_PATH, output_dir: Path = OUTPUT_DIR):
     # Aplicar filtro de muestras mínimas
     logger.info("\n📊 Aplicando filtro de muestras mínimas...")
     df_filtrado = filtrar_por_muestras_minimas(df_exitos, min_muestras=MIN_MUESTRAS_ANALISIS)
-    # df_filtrado = df_exitos.copy() # --- IGNORE ---
-    
     logger.info(f"\nDatos finales para gráficas: {len(df_filtrado)} registros de {df_filtrado['grupo'].nunique()} grupos")
     
     # Generar gráficas
     logger.info("\n📈 Generando gráficas...")
-    graficar_latencia(df_filtrado, output_dir, df_ranking=df_exitos_ranking)
-    graficar_bytes(df_filtrado, output_dir)
+    grupos_lat, hosts_lat = graficar_latencia(df_filtrado, output_dir, df_ranking=df_exitos_ranking)
+    graficar_bytes(df_filtrado, output_dir, grupos_latencia=grupos_lat, hosts_latencia=hosts_lat)
 
     logger.info(f"\n✅ ¡Análisis completado! Gráficas guardadas en {output_dir}")
 
