@@ -356,75 +356,25 @@ def sonda_pqc(  # noqa: C901
     retried = False
     skip_precheck = False
 
-    # Intentamos resolver el hostname y conectar al puerto antes de ejecutar OpenSSL para detectar fallos de DNS o TCP que no estén relacionados con el handshake TLS/PQC
+    # Resolver DNS para obtener la IP antes de lanzar OpenSSL.
+    # No se abre una conexión TCP extra: evita consumir slots en servidores con
+    # rate-limiting y garantiza que OpenSSL usa exactamente la misma IP (fijada
+    # vía -connect más abajo), sin riesgo de rotación anycast entre resoluciones.
     try:
         dns_inicio = time.perf_counter()
-        # getaddrinfo devuelve una lista de tuplas con información de cada dirección resuelta (familia, tipo, protocolo, nombre canónico, sockaddr)
         addrinfos = socket.getaddrinfo(base_hostname, int(puerto), type=socket.SOCK_STREAM)
         dns_time_ms = round((time.perf_counter() - dns_inicio) * 1000, 2)
 
         if not addrinfos:
             raise socket.gaierror("Sin resultados de DNS")
 
-        # Tomamos la primera dirección resuelta para el pre-check TCP
         family, socktype, proto, canonname, sockaddr = addrinfos[0]
         ip_resuelta = sockaddr[0]
         ip_familia = "IPv6" if family == socket.AF_INET6 else "IPv4"
-
-        # TCP pre-check: intentamos conectar al puerto para detectar fallos de red o puertos cerrados antes de ejecutar OpenSSL
-        tcp_inicio = time.perf_counter()
-        with socket.socket(family, socktype, proto) as sock:
-            sock.settimeout(3)
-            sock.connect(sockaddr)
-        tcp_time_ms = round((time.perf_counter() - tcp_inicio) * 1000, 2)
+        # tcp_time_ms no se mide en pre-check para no abrir una conexión extra
     except socket.gaierror as e:
-        # En lugar de fallar, intentaremos conectar con OpenSSL directamente
-        # (OpenSSL tiene su propio resolver DNS que puede funcionar mejor en algunos ambientes)
         logger.debug("Pre-check DNS falló para %s (omitiendo, OpenSSL lo intentará): %s", hostname, e)
         skip_precheck = True
-    except ConnectionRefusedError:
-        logger.warning("Conexión rechazada para %s:%s", base_hostname, puerto)
-        skip_precheck = False  # No omitir, es un error real
-        return _build_result(
-            error_category=ERROR_TCP_REFUSED,
-            connection_result=None,
-            res=f"Puerto {puerto} cerrado o rechazado",
-            dns_time_ms=dns_time_ms,
-            tcp_time_ms=tcp_time_ms,
-            ip=ip_resuelta,
-            ip_familia=ip_familia,
-            sni_usado=sni_usado,
-            sni_difiere=sni_difiere,
-            retry=retried,
-        )
-    except socket.timeout:
-        logger.warning("Timeout TCP para %s:%s", base_hostname, puerto)
-        return _build_result(
-            error_category=ERROR_TCP_TIMEOUT,
-            connection_result=None,
-            res=f"Timeout TCP {puerto}",
-            dns_time_ms=dns_time_ms,
-            tcp_time_ms=tcp_time_ms,
-            ip=ip_resuelta,
-            ip_familia=ip_familia,
-            sni_usado=sni_usado,
-            sni_difiere=sni_difiere,
-            retry=retried,
-        )
-    except OSError as e:
-        logger.warning("Error TCP para %s: %s", hostname, e)
-        return _build_result(
-            error_category=ERROR_TCP_OTHER,
-            connection_result=None,
-            res=f"Error TCP: {e}",
-            dns_time_ms=dns_time_ms,
-            tcp_time_ms=tcp_time_ms,
-            ip=ip_resuelta,
-            ip_familia=ip_familia,
-            sni_usado=sni_usado,
-            sni_difiere=sni_difiere,
-            retry=retried,
-        )
 
     # Fijar destino de conexión para comparaciones justas entre grupos:
     # - Si tenemos IP resuelta en pre-check, conectar a esa IP.
