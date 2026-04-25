@@ -27,7 +27,12 @@ import seaborn as sns
 _SCRIPTS_DIR = Path(__file__).parent.parent
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
-from constants import CONNECTION_ACCEPTED  # noqa: E402
+from constants import (          # noqa: E402
+    CONNECTION_ACCEPTED,
+    CONNECTION_REJECTED,
+    ERROR_TLS_TIMEOUT,
+    ERROR_TLS_ALERT,
+)
 from utils import configurar_logging      # noqa: E402
 
 logger = logging.getLogger(__name__)
@@ -329,6 +334,7 @@ def cargar_y_procesar(input_path: Path = RESULTADOS_PATH):
                 'hostname': hostname,
                 'grupo': prueba.get('grupo'),
                 'connection_result': prueba.get('connection_result'),
+                'error_category': prueba.get('error_category'),
                 'retry': prueba.get('retry', False),
                 'dns_time_ms': prueba.get('dns_time_ms'),
                 'tcp_time_ms': prueba.get('tcp_time_ms'),
@@ -761,12 +767,88 @@ def graficar_bytes(df, output_dir):
     logger.info(f"✓ Guardado: {output_path}")
     plt.close()
 
+def graficar_tasas_resultado(df_total, output_dir):
+    """
+    Stacked bar por algoritmo: aceptado / timeout / rechazado (TLS alert) / otro error.
+
+    Distingue explícitamente entre dos causas de fallo muy diferentes:
+    - Rechazado (TLS alert): el servidor envió handshake_failure o similar → no soporta el algoritmo.
+    - Timeout (>8 s): la conexión no terminó a tiempo → puede ser latencia excesiva del intercambio
+      de claves PQC, no rechazo activo. Con un timeout mayor podría funcionar.
+
+    Esta distinción es crítica para interpretar el 0% de aceptación de algoritmos como frodo640aes
+    o bikel1: si su fallo viene de timeouts, la conclusión correcta es "latencia excesiva en redes
+    reales", no "el servidor rechaza estos algoritmos".
+    """
+    if df_total.empty or 'error_category' not in df_total.columns:
+        logger.warning("Sin columna error_category en df_total; omitiendo graficar_tasas_resultado")
+        return
+
+    def _clasificar(row):
+        if row['connection_result'] == CONNECTION_ACCEPTED:
+            return 'Aceptado'
+        if row['error_category'] == ERROR_TLS_TIMEOUT:
+            return 'Timeout (>8 s)'
+        if row['connection_result'] == CONNECTION_REJECTED or row['error_category'] == ERROR_TLS_ALERT:
+            return 'Rechazado (TLS alert)'
+        return 'Otro error'
+
+    df = df_total[df_total['grupo'].notna()].copy()
+    df['resultado_clase'] = df.apply(_clasificar, axis=1)
+
+    totals = df.groupby('grupo').size().rename('total')
+    counts = df.groupby(['grupo', 'resultado_clase']).size().rename('count').reset_index()
+    counts = counts.merge(totals.reset_index(), on='grupo')
+    counts['porcentaje'] = (counts['count'] / counts['total'] * 100).round(1)
+
+    clases = ['Aceptado', 'Timeout (>8 s)', 'Rechazado (TLS alert)', 'Otro error']
+    pivot = counts.pivot(index='grupo', columns='resultado_clase', values='porcentaje').fillna(0.0)
+    for col in clases:
+        if col not in pivot.columns:
+            pivot[col] = 0.0
+    pivot = pivot[clases].sort_values('Aceptado', ascending=True)
+
+    # CSV de auditoría
+    csv_path = output_dir / 'tasas_resultado_por_grupo.csv'
+    pivot.reset_index().to_csv(csv_path, index=False)
+    logger.info(f"✓ Guardado: {csv_path}")
+
+    # Gráfica
+    colores = ['#2ca02c', '#ff7f0e', '#d62728', '#aec7e8']
+    fig, ax = plt.subplots(figsize=(12, max(6, len(pivot) * 0.65)))
+
+    left = pd.Series(0.0, index=pivot.index)
+    for clase, color in zip(clases, colores):
+        ax.barh(pivot.index, pivot[clase], left=left, label=clase, color=color, alpha=0.85)
+        left = left + pivot[clase]
+
+    ax.axvline(50, color='gray', linestyle='--', linewidth=0.8, alpha=0.5)
+    ax.set_xlabel('% de pruebas', fontweight='bold')
+    ax.set_xlim(0, 100)
+    ax.set_title(
+        'Resultado por algoritmo: aceptado vs timeout vs rechazado\n'
+        'Timeout ≠ rechazo activo: puede indicar overhead de red del algoritmo PQC puro',
+        fontweight='bold'
+    )
+    ax.legend(loc='lower right', fontsize=9)
+    ax.grid(axis='x', alpha=0.3)
+
+    plt.tight_layout()
+    output_path = output_dir / 'tasas_resultado_por_grupo.png'
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    logger.info(f"✓ Guardado: {output_path}")
+    plt.close()
+
+
 def main(input_path: Path = RESULTADOS_PATH, output_dir: Path = OUTPUT_DIR):
     # Crear carpeta de salida si no existe
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Cargar datos
     df_total, df_exitos = cargar_y_procesar(input_path)
+
+    # Gráfica de tasas de resultado (aceptado/timeout/rechazado/otro) usando TODOS los datos
+    graficar_tasas_resultado(df_total, output_dir)
 
     # Filtrar conexiones que necesitaron retry (latencia inflada por timeout acumulado)
     n_antes = len(df_exitos)

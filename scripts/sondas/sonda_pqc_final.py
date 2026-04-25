@@ -790,16 +790,21 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
         if not pruebas_grupo:
             continue
         
-        # Contar aceptados
+        # Contar aceptados — distinguiendo timeout de rechazo activo:
+        # - timeout: el handshake no terminó en el tiempo límite (puede ser latencia del algoritmo)
+        # - rechazado: el servidor envió un TLS alert explícito (no soporta el algoritmo)
+        # Mezclarlos daría la falsa impresión de que todos los fallos son rechazos activos.
         total_pruebas = len(pruebas_grupo)
-        aceptados = sum(1 for p in pruebas_grupo if p.get("connection_result") == CONNECTION_ACCEPTED)
+        aceptados  = sum(1 for p in pruebas_grupo if p.get("connection_result") == CONNECTION_ACCEPTED)
         rechazados = sum(1 for p in pruebas_grupo if p.get("connection_result") == CONNECTION_REJECTED)
-        errores = total_pruebas - aceptados - rechazados
-        
+        timeouts   = sum(1 for p in pruebas_grupo if p.get("error_category") == ERROR_TLS_TIMEOUT)
+        errores    = total_pruebas - aceptados - rechazados - timeouts
+
         # Calcular porcentajes
-        porcentaje_aceptacion = round((aceptados / total_pruebas * 100) if total_pruebas else 0, 2)
-        porcentaje_rechazo = round((rechazados / total_pruebas * 100) if total_pruebas else 0, 2)
-        porcentaje_error = round((errores / total_pruebas * 100) if total_pruebas else 0, 2)
+        porcentaje_aceptacion = round((aceptados  / total_pruebas * 100) if total_pruebas else 0, 2)
+        porcentaje_rechazo    = round((rechazados / total_pruebas * 100) if total_pruebas else 0, 2)
+        porcentaje_timeout    = round((timeouts   / total_pruebas * 100) if total_pruebas else 0, 2)
+        porcentaje_error      = round((errores    / total_pruebas * 100) if total_pruebas else 0, 2)
         
         # Recolectar métricas numéricas solo de conexiones exitosas
         # Creamos las listas para cada métrica que queremos analizar
@@ -864,9 +869,11 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
             "total_pruebas": total_pruebas,
             "aceptados": aceptados,
             "rechazados": rechazados,
+            "timeouts": timeouts,
             "errores": errores,
             "porcentaje_aceptacion": porcentaje_aceptacion,
             "porcentaje_rechazo": porcentaje_rechazo,
+            "porcentaje_timeout": porcentaje_timeout,
             "porcentaje_error": porcentaje_error,
             "handshake_time_ms": stats_handshake,
             "dns_time_ms": stats_dns,
