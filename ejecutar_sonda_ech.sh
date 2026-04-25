@@ -5,6 +5,12 @@ set -euo pipefail
 
 # Variables por defecto
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Activar venv si existe y no está ya activado
+if [[ -z "${VIRTUAL_ENV:-}" && -f "${PROJECT_DIR}/venv/bin/activate" ]]; then
+    source "${PROJECT_DIR}/venv/bin/activate"
+fi
+
 PYTHON_BIN="python3"
 
 INPUT_CSV="data/majestic_million.csv"

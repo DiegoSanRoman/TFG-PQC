@@ -3,10 +3,10 @@
 Sonda de latencia ECH: compara el tiempo de handshake TLS con y sin ECH.
 
 Para cada hostname:
-  1. Mide latencia DNS de la consulta HTTPS RR.
-  2. Conecta N veces con ECH (bssl + ech-config-list) y recoge latencias.
-  3. Si ECH tiene éxito, conecta N veces sin ECH (bssl sin config) y recoge latencias.
-  4. Agrega media ± stddev, confirma si ECH fue realmente aceptado, y captura cipher suite.
+  1. Mide latencia DNS de la consulta HTTPS RR y resuelve la IP del PoP CDN.
+  2. Realiza N pares de mediciones (ECH, noECH) intercalados con orden aleatorio
+     por par para eliminar autocorrelación temporal (IP fijada al PoP resuelto).
+  3. Agrega media ± stddev (muestra), confirma si ECH fue aceptado, y captura cipher suite.
 """
 from __future__ import annotations
 
@@ -93,6 +93,7 @@ class ResultadoLatenciaECH:
 async def _una_medicion_con_ech(
     domain: str,
     port: int,
+    connect_host: str,
     tmp_path: str,
     bssl_path: str,
     timeout: float,
@@ -100,7 +101,7 @@ async def _una_medicion_con_ech(
     """Una sola medición con ECH. Devuelve (ok, latencia_ms, error, ech_aceptado, cipher)."""
     cmd = [
         bssl_path, "client",
-        "-connect", f"{domain}:{port}",
+        "-connect", f"{connect_host}:{port}",
         "-server-name", domain,
         "-ech-config-list", tmp_path,
         "-debug",
@@ -118,17 +119,47 @@ async def _una_medicion_con_ech(
     return True, round(elapsed_ms, 2), None, ech_aceptado, cipher
 
 
-async def _medir_con_ech(
+async def _una_medicion_sin_ech(
     domain: str,
     port: int,
+    connect_host: str,
+    bssl_path: str,
+    timeout: float,
+) -> Tuple[bool, Optional[float], Optional[str], Optional[str]]:
+    """Una sola medición sin ECH. Devuelve (ok, latencia_ms, error, cipher)."""
+    cmd = [
+        bssl_path, "client",
+        "-connect", f"{connect_host}:{port}",
+        "-server-name", domain,
+        "-debug",
+    ]
+    t0 = time.perf_counter()
+    rc, stdout, stderr = await _run_cmd(cmd, timeout=timeout)
+    elapsed_ms = (time.perf_counter() - t0) * 1000
+
+    combined = f"{stdout}\n{stderr}"
+    ok = detectar_handshake_completo(combined, rc)
+    if not ok:
+        return False, None, _extraer_error(stdout, stderr, rc), None
+
+    cipher, _ = _parsear_bssl(stderr)
+    return True, round(elapsed_ms, 2), None, cipher
+
+
+async def _medir_intercalado(
+    domain: str,
+    port: int,
+    connect_host: str,
     ech_value: str,
     bssl_path: str,
     timeout: float,
     repeticiones: int,
-) -> Tuple[bool, List[float], Optional[str], Optional[bool], Optional[str]]:
+) -> Tuple[bool, bool, List[float], List[float], Optional[str], Optional[str], Optional[bool], Optional[str], Optional[str]]:
     """
-    Realiza `repeticiones` mediciones con ECH.
-    Devuelve (alguna_ok, latencias_validas, error_ultimo, ech_aceptado, cipher).
+    Realiza `repeticiones` pares (ECH, noECH) intercalados con orden aleatorio por par
+    para eliminar la autocorrelación temporal entre condiciones.
+    Devuelve (ech_ok, sin_ech_ok, lats_ech, lats_sin_ech, err_ech, err_sin_ech,
+              ech_aceptado, cipher_ech, cipher_sin_ech).
     """
     try:
         raw_ech = _decode_ech_base64(ech_value)
@@ -138,69 +169,57 @@ async def _medir_con_ech(
         tmp.close()
         tmp_path = tmp.name
     except Exception as exc:
-        return False, [], f"ECH_DECODE_ERROR:{exc}", None, None
+        return False, False, [], [], f"ECH_DECODE_ERROR:{exc}", None, None, None, None
 
-    latencias: List[float] = []
-    ultimo_error: Optional[str] = None
+    lats_ech: List[float] = []
+    lats_sin_ech: List[float] = []
+    ultimo_err_ech: Optional[str] = None
+    ultimo_err_sin_ech: Optional[str] = None
     ech_aceptado: Optional[bool] = None
-    cipher: Optional[str] = None
+    cipher_ech: Optional[str] = None
+    cipher_sin_ech: Optional[str] = None
 
     try:
         for _ in range(repeticiones):
-            ok, lat, err, ea, ci = await _una_medicion_con_ech(
-                domain, port, tmp_path, bssl_path, timeout
-            )
-            if ok and lat is not None:
-                latencias.append(lat)
+            if random.random() < 0.5:
+                ok_e, lat_e, err_e, ea, ci_e = await _una_medicion_con_ech(
+                    domain, port, connect_host, tmp_path, bssl_path, timeout
+                )
+                ok_s, lat_s, err_s, ci_s = await _una_medicion_sin_ech(
+                    domain, port, connect_host, bssl_path, timeout
+                )
+            else:
+                ok_s, lat_s, err_s, ci_s = await _una_medicion_sin_ech(
+                    domain, port, connect_host, bssl_path, timeout
+                )
+                ok_e, lat_e, err_e, ea, ci_e = await _una_medicion_con_ech(
+                    domain, port, connect_host, tmp_path, bssl_path, timeout
+                )
+
+            if ok_e and lat_e is not None:
+                lats_ech.append(lat_e)
                 if ech_aceptado is None:
                     ech_aceptado = ea
-                if cipher is None:
-                    cipher = ci
+                if cipher_ech is None:
+                    cipher_ech = ci_e
             else:
-                ultimo_error = err
+                ultimo_err_ech = err_e
+
+            if ok_s and lat_s is not None:
+                lats_sin_ech.append(lat_s)
+                if cipher_sin_ech is None:
+                    cipher_sin_ech = ci_s
+            else:
+                ultimo_err_sin_ech = err_s
     finally:
         Path(tmp_path).unlink(missing_ok=True)
 
-    return bool(latencias), latencias, ultimo_error, ech_aceptado, cipher
-
-
-async def _medir_sin_ech(
-    domain: str,
-    port: int,
-    bssl_path: str,
-    timeout: float,
-    repeticiones: int,
-) -> Tuple[bool, List[float], Optional[str], Optional[str]]:
-    """
-    Realiza `repeticiones` mediciones sin ECH (bssl sin config).
-    Devuelve (alguna_ok, latencias_validas, error_ultimo, cipher).
-    """
-    cmd = [
-        bssl_path, "client",
-        "-connect", f"{domain}:{port}",
-        "-server-name", domain,
-        "-debug",
-    ]
-
-    latencias: List[float] = []
-    ultimo_error: Optional[str] = None
-    cipher: Optional[str] = None
-
-    for _ in range(repeticiones):
-        t0 = time.perf_counter()
-        rc, stdout, stderr = await _run_cmd(cmd, timeout=timeout)
-        elapsed_ms = (time.perf_counter() - t0) * 1000
-
-        combined = f"{stdout}\n{stderr}"
-        ok = detectar_handshake_completo(combined, rc)
-        if ok:
-            latencias.append(round(elapsed_ms, 2))
-            if cipher is None:
-                cipher, _ = _parsear_bssl(stderr)
-        else:
-            ultimo_error = _extraer_error(stdout, stderr, rc)
-
-    return bool(latencias), latencias, ultimo_error, cipher
+    return (
+        bool(lats_ech), bool(lats_sin_ech),
+        lats_ech, lats_sin_ech,
+        ultimo_err_ech, ultimo_err_sin_ech,
+        ech_aceptado, cipher_ech, cipher_sin_ech,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -271,23 +290,18 @@ async def procesar_hostname(
             logger.warning("bssl no disponible para %s", hostname)
             return _sin_ech_config("bssl no disponible")
 
-        # 2+3. Mediciones con y sin ECH en orden aleatorio para evitar sesgo de calentamiento
-        medir_ech_primero = random.random() < 0.5
-
-        if medir_ech_primero:
-            ech_ok, lats_ech, err_ech, ech_aceptado, cipher_ech = await _medir_con_ech(
-                domain, port, ech_value, bssl_path, tls_timeout, repeticiones
-            )
-            sin_ech_ok, lats_sin_ech, err_sin_ech, cipher_sin_ech = await _medir_sin_ech(
-                domain, port, bssl_path, tls_timeout, repeticiones
-            )
-        else:
-            sin_ech_ok, lats_sin_ech, err_sin_ech, cipher_sin_ech = await _medir_sin_ech(
-                domain, port, bssl_path, tls_timeout, repeticiones
-            )
-            ech_ok, lats_ech, err_ech, ech_aceptado, cipher_ech = await _medir_con_ech(
-                domain, port, ech_value, bssl_path, tls_timeout, repeticiones
-            )
+        # 2+3. Mediciones intercaladas ECH/noECH: cada repetición alterna el orden
+        # para eliminar autocorrelación temporal. Usa IP resuelta (pinning) para
+        # conectar siempre al mismo PoP CDN durante toda la sesión de medición.
+        connect_host = ip_pop or domain
+        (
+            ech_ok, sin_ech_ok,
+            lats_ech, lats_sin_ech,
+            err_ech, err_sin_ech,
+            ech_aceptado, cipher_ech, cipher_sin_ech,
+        ) = await _medir_intercalado(
+            domain, port, connect_host, ech_value, bssl_path, tls_timeout, repeticiones
+        )
 
         if not ech_ok:
             logger.debug("ECH fallido para %s: %s", hostname, err_ech)

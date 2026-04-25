@@ -166,9 +166,9 @@ class TestAgregar:
         assert media == 20.0
 
     def test_stddev_correcta(self):
-        # pstdev([10, 20, 30]) = sqrt(((10-20)^2 + (20-20)^2 + (30-20)^2) / 3) ≈ 8.16
+        # stdev([10, 20, 30]) = sqrt(200/2) = 10.0  (corrección de Bessel, n-1)
         _, stddev = _agregar([10.0, 20.0, 30.0])
-        assert abs(stddev - 8.16) < 0.01
+        assert abs(stddev - 10.0) < 0.01
 
     def test_valores_iguales_stddev_cero(self):
         _, stddev = _agregar([5.0, 5.0, 5.0])
@@ -433,7 +433,7 @@ class TestRunCmd:
 _BSSL_FAKE = "/fake/bssl"
 
 _PARSED_CONFIGS = [{"public_name": "cloudflare-ech.com", "kem_id": 32}]
-_ECH_VALUE = "AAAA"  # valor ficticio, no se decodifica porque mockeamos _medir_con_ech
+_ECH_VALUE = "AAAA"  # valor ficticio, no se decodifica porque mockeamos _medir_intercalado
 
 
 class TestProcesarHostnameSinEch:
@@ -516,11 +516,11 @@ class TestProcesarHostnameConEch:
 
     def test_ech_falla_sin_ech_se_mide_igual(self):
         with self._mock_dns_ok(), self._mock_bssl(), patch(
-            "sonda_latencia_ech._medir_con_ech",
-            new=AsyncMock(return_value=(False, [], "CONNECTION_REFUSED", None, None)),
-        ), patch(
-            "sonda_latencia_ech._medir_sin_ech",
-            new=AsyncMock(return_value=(True, [20.0, 21.0], None, "TLS_AES_128_GCM_SHA256")),
+            "sonda_latencia_ech._medir_intercalado",
+            new=AsyncMock(return_value=(
+                False, True, [], [20.0, 21.0],
+                "CONNECTION_REFUSED", None, None, None, "TLS_AES_128_GCM_SHA256",
+            )),
         ):
             r = self._run(procesar_hostname(
                 "example.com", MagicMock(), self._make_semaphore(), 5.0, 10.0, 3
@@ -532,11 +532,11 @@ class TestProcesarHostnameConEch:
 
     def test_exito_completo(self):
         with self._mock_dns_ok(), self._mock_bssl(), patch(
-            "sonda_latencia_ech._medir_con_ech",
-            new=AsyncMock(return_value=(True, [25.0, 26.0, 24.0], None, True, "TLS_AES_128_GCM_SHA256")),
-        ), patch(
-            "sonda_latencia_ech._medir_sin_ech",
-            new=AsyncMock(return_value=(True, [20.0, 21.0, 19.0], None, "TLS_AES_128_GCM_SHA256")),
+            "sonda_latencia_ech._medir_intercalado",
+            new=AsyncMock(return_value=(
+                True, True, [25.0, 26.0, 24.0], [20.0, 21.0, 19.0],
+                None, None, True, "TLS_AES_128_GCM_SHA256", "TLS_AES_128_GCM_SHA256",
+            )),
         ):
             r = self._run(procesar_hostname(
                 "wpguardian.com", MagicMock(), self._make_semaphore(), 5.0, 10.0, 3
@@ -551,11 +551,11 @@ class TestProcesarHostnameConEch:
 
     def test_delta_es_sin_ech_menos_con_ech(self):
         with self._mock_dns_ok(), self._mock_bssl(), patch(
-            "sonda_latencia_ech._medir_con_ech",
-            new=AsyncMock(return_value=(True, [30.0], None, True, "TLS_AES_128_GCM_SHA256")),
-        ), patch(
-            "sonda_latencia_ech._medir_sin_ech",
-            new=AsyncMock(return_value=(True, [20.0], None, "TLS_AES_128_GCM_SHA256")),
+            "sonda_latencia_ech._medir_intercalado",
+            new=AsyncMock(return_value=(
+                True, True, [30.0], [20.0],
+                None, None, True, "TLS_AES_128_GCM_SHA256", "TLS_AES_128_GCM_SHA256",
+            )),
         ):
             r = self._run(procesar_hostname(
                 "example.com", MagicMock(), self._make_semaphore(), 5.0, 10.0, 1
@@ -565,11 +565,11 @@ class TestProcesarHostnameConEch:
 
     def test_outer_sni_se_captura(self):
         with self._mock_dns_ok(), self._mock_bssl(), patch(
-            "sonda_latencia_ech._medir_con_ech",
-            new=AsyncMock(return_value=(True, [25.0], None, True, "TLS_AES_128_GCM_SHA256")),
-        ), patch(
-            "sonda_latencia_ech._medir_sin_ech",
-            new=AsyncMock(return_value=(True, [20.0], None, "TLS_AES_128_GCM_SHA256")),
+            "sonda_latencia_ech._medir_intercalado",
+            new=AsyncMock(return_value=(
+                True, True, [25.0], [20.0],
+                None, None, True, "TLS_AES_128_GCM_SHA256", "TLS_AES_128_GCM_SHA256",
+            )),
         ):
             r = self._run(procesar_hostname(
                 "example.com", MagicMock(), self._make_semaphore(), 5.0, 10.0, 1
@@ -578,11 +578,11 @@ class TestProcesarHostnameConEch:
 
     def test_latencia_dns_se_mide(self):
         with self._mock_dns_ok(), self._mock_bssl(), patch(
-            "sonda_latencia_ech._medir_con_ech",
-            new=AsyncMock(return_value=(True, [25.0], None, True, "TLS_AES_128_GCM_SHA256")),
-        ), patch(
-            "sonda_latencia_ech._medir_sin_ech",
-            new=AsyncMock(return_value=(True, [20.0], None, "TLS_AES_128_GCM_SHA256")),
+            "sonda_latencia_ech._medir_intercalado",
+            new=AsyncMock(return_value=(
+                True, True, [25.0], [20.0],
+                None, None, True, "TLS_AES_128_GCM_SHA256", "TLS_AES_128_GCM_SHA256",
+            )),
         ):
             r = self._run(procesar_hostname(
                 "example.com", MagicMock(), self._make_semaphore(), 5.0, 10.0, 1
@@ -592,11 +592,11 @@ class TestProcesarHostnameConEch:
 
     def test_sin_ech_falla_delta_es_none(self):
         with self._mock_dns_ok(), self._mock_bssl(), patch(
-            "sonda_latencia_ech._medir_con_ech",
-            new=AsyncMock(return_value=(True, [25.0], None, True, "TLS_AES_128_GCM_SHA256")),
-        ), patch(
-            "sonda_latencia_ech._medir_sin_ech",
-            new=AsyncMock(return_value=(False, [], "TIMEOUT", None)),
+            "sonda_latencia_ech._medir_intercalado",
+            new=AsyncMock(return_value=(
+                True, False, [25.0], [],
+                None, "TIMEOUT", True, "TLS_AES_128_GCM_SHA256", None,
+            )),
         ):
             r = self._run(procesar_hostname(
                 "example.com", MagicMock(), self._make_semaphore(), 5.0, 10.0, 1

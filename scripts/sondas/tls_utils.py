@@ -69,5 +69,5 @@ def agregar(latencias: List[float]) -> Tuple[Optional[float], Optional[float]]:
     if not latencias:
         return None, None
     media = round(statistics.mean(latencias), 2)
-    stddev = round(statistics.pstdev(latencias), 2) if len(latencias) > 1 else 0.0
+    stddev = round(statistics.stdev(latencias), 2) if len(latencias) > 1 else 0.0
     return media, stddev
