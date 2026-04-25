@@ -702,45 +702,52 @@ def graficar_bytes(df, output_dir):
 
         # Usar mediana e IQR para consistencia metodológica con latencia (robusto ante outliers)
         resumen = host_group.groupby('grupo').agg(
-            mean=(metrica_col, 'median'),
+            median=(metrica_col, 'median'),
             q1=(metrica_col, lambda s: s.quantile(0.25)),
             q3=(metrica_col, lambda s: s.quantile(0.75)),
             hostnames=('hostname', 'nunique')
         ).reset_index()
-        resumen['iqr'] = resumen['q3'] - resumen['q1']
-        resumen = resumen.drop(columns=['q1', 'q3'])
-        return resumen.sort_values('mean', ascending=False)
+        return resumen.sort_values('median', ascending=False)
 
     sufijo_titulo = ' (cohorte común)' if usar_cohorte_comun else ' (agregado por hostname)'
     
     # Bytes Sent
     df_sent = resumir_bytes_metrica('bytes_sent')
     if not df_sent.empty:
-        axes[0, 0].barh(df_sent['grupo'], df_sent['mean'], xerr=df_sent['iqr'],
+        err_left  = df_sent['median'].to_numpy() - df_sent['q1'].to_numpy()
+        err_right = df_sent['q3'].to_numpy() - df_sent['median'].to_numpy()
+        axes[0, 0].barh(df_sent['grupo'], df_sent['median'],
+                             xerr=np.vstack([err_left, err_right]),
                              color=[COLORES_GRUPOS.get(g, '#999999') for g in df_sent['grupo']], alpha=0.7, capsize=5)
         axes[0, 0].set_xlabel('Bytes', fontweight='bold')
-        axes[0, 0].set_title(f'Bytes Enviados (Trace TLS) Promedio{sufijo_titulo}', fontweight='bold')
+        axes[0, 0].set_title(f'Bytes Enviados (Trace TLS) Mediana{sufijo_titulo}', fontweight='bold')
         axes[0, 0].grid(axis='x', alpha=0.3)
     else:
         axes[0, 0].text(0.5, 0.5, 'Sin datos', ha='center', va='center', transform=axes[0, 0].transAxes)
-        axes[0, 0].set_title(f'Bytes Enviados (Trace TLS) Promedio{sufijo_titulo}', fontweight='bold')
+        axes[0, 0].set_title(f'Bytes Enviados (Trace TLS) Mediana{sufijo_titulo}', fontweight='bold')
 
     # Bytes Received
     df_recv = resumir_bytes_metrica('bytes_received')
     if not df_recv.empty:
-        axes[0, 1].barh(df_recv['grupo'], df_recv['mean'], xerr=df_recv['iqr'],
+        err_left  = df_recv['median'].to_numpy() - df_recv['q1'].to_numpy()
+        err_right = df_recv['q3'].to_numpy() - df_recv['median'].to_numpy()
+        axes[0, 1].barh(df_recv['grupo'], df_recv['median'],
+                             xerr=np.vstack([err_left, err_right]),
                              color=[COLORES_GRUPOS.get(g, '#999999') for g in df_recv['grupo']], alpha=0.7, capsize=5)
         axes[0, 1].set_xlabel('Bytes', fontweight='bold')
-        axes[0, 1].set_title(f'Bytes Recibidos (Trace TLS) Promedio{sufijo_titulo}', fontweight='bold')
+        axes[0, 1].set_title(f'Bytes Recibidos (Trace TLS) Mediana{sufijo_titulo}', fontweight='bold')
         axes[0, 1].grid(axis='x', alpha=0.3)
     else:
         axes[0, 1].text(0.5, 0.5, 'Sin datos', ha='center', va='center', transform=axes[0, 1].transAxes)
-        axes[0, 1].set_title(f'Bytes Recibidos (Trace TLS) Promedio{sufijo_titulo}', fontweight='bold')
+        axes[0, 1].set_title(f'Bytes Recibidos (Trace TLS) Mediana{sufijo_titulo}', fontweight='bold')
 
     # Handshake Overhead
     df_ovh = resumir_bytes_metrica('handshake_overhead')
     if not df_ovh.empty:
-        axes[1, 0].barh(df_ovh['grupo'], df_ovh['mean'], xerr=df_ovh['iqr'],
+        err_left  = df_ovh['median'].to_numpy() - df_ovh['q1'].to_numpy()
+        err_right = df_ovh['q3'].to_numpy() - df_ovh['median'].to_numpy()
+        axes[1, 0].barh(df_ovh['grupo'], df_ovh['median'],
+                             xerr=np.vstack([err_left, err_right]),
                              color=[COLORES_GRUPOS.get(g, '#999999') for g in df_ovh['grupo']], alpha=0.7, capsize=5)
         axes[1, 0].set_xlabel('Bytes', fontweight='bold')
         axes[1, 0].set_title(f'Overhead Handshake (Trace TLS){sufijo_titulo}', fontweight='bold')
@@ -752,7 +759,10 @@ def graficar_bytes(df, output_dir):
     # Handshake Total real (resumen OpenSSL)
     df_ovh_total = resumir_bytes_metrica('handshake_total_overhead')
     if not df_ovh_total.empty:
-        axes[1, 1].barh(df_ovh_total['grupo'], df_ovh_total['mean'], xerr=df_ovh_total['iqr'],
+        err_left  = df_ovh_total['median'].to_numpy() - df_ovh_total['q1'].to_numpy()
+        err_right = df_ovh_total['q3'].to_numpy() - df_ovh_total['median'].to_numpy()
+        axes[1, 1].barh(df_ovh_total['grupo'], df_ovh_total['median'],
+                             xerr=np.vstack([err_left, err_right]),
                              color=[COLORES_GRUPOS.get(g, '#999999') for g in df_ovh_total['grupo']], alpha=0.7, capsize=5)
         axes[1, 1].set_xlabel('Bytes', fontweight='bold')
         axes[1, 1].set_title(f'Overhead Total del Handshake (OpenSSL){sufijo_titulo}', fontweight='bold')

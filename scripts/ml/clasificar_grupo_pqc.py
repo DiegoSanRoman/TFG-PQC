@@ -139,7 +139,6 @@ def cargar_datos(json_path: Path) -> pd.DataFrame:
             })
 
     df = pd.DataFrame(filas)
-    df = df.dropna(subset=list(EXPERIMENTOS["Exp 3\nTiming + bytes totales"]))
     df["grupo_label"] = df["grupo"].map(LABEL_MAP)
     logger.info(
         "Dataset: %d registros, %d grupos, %d hostnames únicos",
@@ -482,7 +481,8 @@ def main() -> None:
 
     for nombre_exp, features in EXPERIMENTOS.items():
         logger.info("--- %s ---", nombre_exp.replace("\n", " "))
-        res = evaluar_experimento(df_train, features, le=le, n_splits=args.n_splits)
+        df_train_exp = df_train.dropna(subset=features)
+        res = evaluar_experimento(df_train_exp, features, le=le, n_splits=args.n_splits)
         resultados_por_exp[nombre_exp] = {
             "RandomForest":     res["RandomForest"],
             "GradientBoosting": res["GradientBoosting"],
@@ -503,8 +503,9 @@ def main() -> None:
     graficar_comparativa_experimentos(resultados_por_exp, out_dir)
 
     # Matriz de confusión evaluada en el TEST SET (hostnames no vistos)
-    X_test    = df_test[mejor_features_global].values
-    y_test_enc = le.transform(df_test["grupo"].values)
+    df_test_best = df_test.dropna(subset=mejor_features_global)
+    X_test    = df_test_best[mejor_features_global].values
+    y_test_enc = le.transform(df_test_best["grupo"].values)
     graficar_confusion_matrix(
         mejor_modelo_global, le,
         X_test, y_test_enc,

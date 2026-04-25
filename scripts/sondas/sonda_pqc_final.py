@@ -632,8 +632,12 @@ def sonda_pqc(  # noqa: C901
         if cipher_suite and "(NONE)" in cipher_suite:
             handshake_failed = True
 
-        # Return code distinto de 0 suele indicar fallo o cierre anómalo
-        if return_code not in (0, None):
+        # Return code distinto de 0 con cierre anómalo del servidor (ej. sin GET).
+        # Solo se considera fallo si además no se negoció un cipher válido,
+        # porque openssl frecuentemente devuelve 1 tras un handshake exitoso
+        # cuando el servidor cierra la conexión sin datos de aplicación.
+        valid_cipher = cipher_suite and "(NONE)" not in cipher_suite
+        if return_code not in (0, None) and not valid_cipher:
             handshake_failed = True
 
         # Contexto TLS compartido por todos los returns de la fase post-subprocess
