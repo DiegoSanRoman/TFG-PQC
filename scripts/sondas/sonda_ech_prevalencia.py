@@ -31,7 +31,10 @@ import dns.asyncresolver
 import dns.exception
 import dns.resolver
 
-from sondas.tls_utils import decode_ech_base64
+try:
+    from sondas.tls_utils import decode_ech_base64
+except ModuleNotFoundError:
+    from tls_utils import decode_ech_base64
 
 # Configuración por defecto y constantes.
 DEFAULT_JSON_OUTPUT = "resultados/resultados_ech_prevalencia.json"
@@ -72,6 +75,14 @@ class DominioECHResultado:
     notes: Optional[str]
 
 # Funciones auxiliares para procesamiento de ECH, negociación TLS, y análisis de resultados.
+
+def _limpiar_valor_ech(value: str) -> str:
+    """Normaliza el valor textual de `ech=` eliminando comillas, escapes y espacios."""
+    cleaned = value.strip().strip('"').strip("'")
+    cleaned = cleaned.replace('\\"', "")
+    cleaned = cleaned.replace(" ", "")
+    return cleaned
+
 
 def _normalizar_target(value: str) -> str:
     """

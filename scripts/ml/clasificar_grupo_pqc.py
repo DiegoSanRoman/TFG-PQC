@@ -91,14 +91,14 @@ PALETTE = {
 # Definición de los 3 experimentos
 EXPERIMENTOS = {
     "Exp 1\nSolo timing": [
-        "dns_time_ms", "tcp_time_ms", "handshake_time_ms",
+        "dns_time_ms", "handshake_time_ms",
     ],
     "Exp 2\nTiming + bytes TLS": [
-        "dns_time_ms", "tcp_time_ms", "handshake_time_ms",
+        "dns_time_ms", "handshake_time_ms",
         "bytes_sent", "bytes_received",
     ],
     "Exp 3\nTiming + bytes totales": [
-        "dns_time_ms", "tcp_time_ms", "handshake_time_ms",
+        "dns_time_ms", "handshake_time_ms",
         "bytes_sent", "bytes_received",
         "handshake_total_bytes_sent", "handshake_total_bytes_received",
     ],
@@ -265,12 +265,14 @@ def graficar_distribucion_features(df: pd.DataFrame, out_dir: Path) -> None:
 
     for ax, (col, titulo) in zip(axes, features_plot):
         orden = [LABEL_MAP[g] for g in sorted(GRUPOS_VIABLES) if LABEL_MAP[g] in df["grupo_label"].unique()]
-        sns.boxplot(
-            data=df, x="grupo_label", y=col, hue="grupo_label",
-            order=orden, palette=PALETTE, legend=False,
-            flierprops={"marker": ".", "alpha": 0.3, "markersize": 3},
-            ax=ax,
-        )
+        grupos_presentes = [g for g in orden if g in df["grupo_label"].unique()]
+        data_por_grupo = [df[df["grupo_label"] == g][col].dropna().values for g in grupos_presentes]
+        bp = ax.boxplot(data_por_grupo, patch_artist=True,
+                        flierprops={"marker": ".", "markersize": 2, "alpha": 0.3})
+        for patch, g in zip(bp["boxes"], grupos_presentes):
+            patch.set_facecolor(PALETTE.get(g, "#999999"))
+        ax.set_xticks(range(1, len(grupos_presentes) + 1))
+        ax.set_xticklabels(grupos_presentes)
         ax.set_title(titulo)
         ax.set_xlabel("")
         ax.set_ylabel("")

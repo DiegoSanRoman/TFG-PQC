@@ -189,13 +189,20 @@ class TestCargarDatos:
         for col in ALL_FEATURES + ["hostname", "grupo", "grupo_label"]:
             assert col in df.columns, f"Columna ausente: {col}"
 
-    def test_dropna_elimina_filas_con_nulos(self):
+    def test_dropna_por_experimento_elimina_filas_con_nulos(self):
+        # cargar_datos ya no filtra globalmente: el dropna se aplica por experimento
+        # en el loop de main() para no sesgar experimentos menos restrictivos.
         datos = _json_minimo(n_hosts_por_grupo=2)
-        # Corromper handshake_time_ms del primer registro
         datos["datos"][0]["pruebas"][0]["handshake_time_ms"] = None
         path = self._escribir_json(datos)
         df = cargar_datos(path)
-        assert df["handshake_time_ms"].isna().sum() == 0
+        # La fila con NaN sigue presente en el df crudo
+        assert df["handshake_time_ms"].isna().sum() == 1
+        # Pero desaparece al filtrar con las columnas del experimento
+        from clasificar_grupo_pqc import EXPERIMENTOS
+        for features in EXPERIMENTOS.values():
+            df_exp = df.dropna(subset=features)
+            assert df_exp["handshake_time_ms"].isna().sum() == 0
 
     def test_grupo_label_mapeado(self):
         path = self._escribir_json(_json_minimo(n_hosts_por_grupo=2))

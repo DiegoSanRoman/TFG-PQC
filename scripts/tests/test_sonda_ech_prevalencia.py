@@ -24,13 +24,13 @@ for _p in (_SCRIPTS_DIR, _SONDAS_DIR):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
+from tls_utils import decode_ech_base64 as _decode_ech_base64
 from sonda_ech_prevalencia import (
     STATUS_CLIENTE_SIN_SOPORTE,
     STATUS_EXITO_OUTER_CH,
     STATUS_FALLBACK,
     STATUS_FALLO_NEGOCIACION,
     STATUS_NEGOCIACION_OK_SIN_CONFIRMAR,
-    _decode_ech_base64,
     _limpiar_valor_ech,
     _normalizar_target,
     _parse_ech_config_contents,
