@@ -530,7 +530,6 @@ La sonda prueba 14 grupos TLS, incluyendo el clásico de referencia, híbridos y
 | `kyber768` | PQC puro | OQS |
 | `frodo640aes` | PQC puro | OQS |
 | `bikel1` | PQC puro | OQS |
-| `Automático` | Negociación del cliente | — |
 
 ---
 
@@ -709,8 +708,14 @@ Se necesitan al menos 30 muestras aceptadas por grupo. Aumentar `--max-hostnames
 **Diagnóstico de un host concreto:**
 
 ```bash
-# Con openssl-oqs instalado localmente, probar un host específico:
-python3 scripts/sondas/sonda_pqc_final.py --max-hostnames 1 --input-csv data/majestic_million.csv
+# Probar un hostname concreto con el grupo por defecto (X25519MLKEM768):
+python3 scripts/sondas/hostname_conexion.py --hostname cloudflare.com
+
+# Probar con un grupo específico:
+python3 scripts/sondas/hostname_conexion.py --hostname pq.cloudflareresearch.com --grupo mlkem768
+
+# Probar todos los grupos de una vez:
+python3 scripts/sondas/hostname_conexion.py --hostname cloudflare.com --todos
 ```
 
 **La sonda de latencia ECH da TIMEOUT en todas las conexiones:**
