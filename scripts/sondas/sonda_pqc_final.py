@@ -712,9 +712,8 @@ def escanear_servidor_pqc(hostname: str, grupos: List[str], openssl_bin: str, pr
             resultado["repeticion"] = i + 1
             intentos.append(resultado)
         
-        # Calcular promedios de las métricas numéricas
-        resultado_promedio = calcular_promedio_repeticiones(intentos, label)
-        resultado_host["pruebas"].append(resultado_promedio)
+        # Guardar cada repetición individualmente para preservar variabilidad
+        resultado_host["pruebas"].extend(intentos)
     
     # Retornar resultados del host
     return resultado_host

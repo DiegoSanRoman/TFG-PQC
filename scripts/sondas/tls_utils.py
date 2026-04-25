@@ -10,6 +10,7 @@ sonda_latencia_ech, desacoplando los dos módulos.
 from __future__ import annotations
 
 import asyncio
+import base64
 import statistics
 from typing import List, Optional, Tuple
 
@@ -62,6 +63,14 @@ def extraer_error(stdout: str, stderr: str, rc: int) -> str:
     if relevant:
         return " | ".join(relevant[-3:])[:400]
     return " | ".join(lines[-3:])[:400] if lines else "HANDSHAKE_FALLIDO"
+
+
+def decode_ech_base64(value: str) -> bytes:
+    """Decodifica base64 estándar o URL-safe con padding flexible para valores ECH."""
+    payload = value.strip().strip('"').strip("'").replace('\\"', "").replace(" ", "")
+    payload = payload.replace("-", "+").replace("_", "/")
+    payload += "=" * ((4 - (len(payload) % 4)) % 4)
+    return base64.b64decode(payload)
 
 
 def agregar(latencias: List[float]) -> Tuple[Optional[float], Optional[float]]:

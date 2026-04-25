@@ -31,6 +31,8 @@ import dns.asyncresolver
 import dns.exception
 import dns.resolver
 
+from sondas.tls_utils import decode_ech_base64
+
 # Configuración por defecto y constantes.
 DEFAULT_JSON_OUTPUT = "resultados/resultados_ech_prevalencia.json"
 DEFAULT_CSV_OUTPUT = "resultados/resultados_ech_prevalencia.csv"
@@ -70,31 +72,6 @@ class DominioECHResultado:
     notes: Optional[str]
 
 # Funciones auxiliares para procesamiento de ECH, negociación TLS, y análisis de resultados.
-
-def _limpiar_valor_ech(value: str) -> str:
-    """
-    Normaliza el valor textual de `ech=` para poder decodificar base64.
-    Esto incluye eliminar espacios, comillas, y manejar escapes comunes.
-        Input: `ech="base64value=="` o `ech=base64value==` con posibles espacios.
-        Output: `base64value==` listo para decodificar.
-    """
-    cleaned = value.strip().strip('"').strip("'")
-    cleaned = cleaned.replace("\\\"", "")
-    cleaned = cleaned.replace(" ", "")
-    return cleaned
-
-
-def _decode_ech_base64(value: str) -> bytes:
-    """
-    Decodifica base64 estándar o URL-safe con padding flexible.
-        Input: valor de `ech` limpio, p.ej. `base64value==` o `base64value` (sin padding).
-        Output: bytes decodificados de la ECHConfigList.
-    """
-    payload = _limpiar_valor_ech(value)
-    payload = payload.replace("-", "+").replace("_", "/")
-    payload += "=" * ((4 - (len(payload) % 4)) % 4)
-    return base64.b64decode(payload)
-
 
 def _normalizar_target(value: str) -> str:
     """
@@ -501,7 +478,7 @@ async def descubrir_https_rr(
 
     # Si encontramos un valor `ech=`, intentamos decodificarlo y parsearlo. Si ocurre cualquier error en este proceso, lo capturamos para reportarlo, pero indicamos que el RR HTTPS existe y tiene un valor `ech` aunque no se pudo procesar correctamente.
     try:
-        raw_ech = _decode_ech_base64(ech_value)
+        raw_ech = decode_ech_base64(ech_value)
         parsed = parse_ech_config_list(raw_ech)
         return True, ech_value, parsed, None
     except Exception as exc:
@@ -629,7 +606,7 @@ async def simular_tls_ech(
     # Para BoringSSL
     if client_kind == "bssl" and ech_value:
         try:
-            raw_ech = _decode_ech_base64(ech_value)
+            raw_ech = decode_ech_base64(ech_value)
             temp_handle = tempfile.NamedTemporaryFile(prefix="ech_config_", suffix=".bin", delete=False)
             temp_handle.write(raw_ech)
             temp_handle.flush()
