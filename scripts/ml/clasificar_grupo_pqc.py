@@ -45,6 +45,7 @@ from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.metrics import (
     ConfusionMatrixDisplay,
     accuracy_score,
+    classification_report,
     confusion_matrix,
     f1_score,
 )
@@ -358,6 +359,32 @@ def graficar_confusion_matrix(
 
     acc  = accuracy_score(y_test_enc, y_pred)
     f1m  = f1_score(y_test_enc, y_pred, average="macro")
+
+    # Reporte por clase: precision, recall, F1 e support por cada grupo.
+    # El "support" muestra el desbalance real del test set, lo que permite
+    # interpretar correctamente un accuracy global alto con clases minoritarias mal clasificadas.
+    report_str = classification_report(
+        y_test_enc, y_pred,
+        target_names=le.classes_,
+        digits=3,
+    )
+    logger.info("Classification report (test set):\n%s", report_str)
+
+    report_path = out_dir / "clasificacion_informe_por_clase.txt"
+    report_path.write_text(
+        f"Modelo: {titulo}\nTest set: {n_test} registros\n\n{report_str}",
+        encoding="utf-8",
+    )
+    logger.info("Guardado: %s", report_path)
+
+    # También como CSV para facilitar análisis posterior
+    report_dict = classification_report(
+        y_test_enc, y_pred,
+        target_names=le.classes_,
+        output_dict=True,
+    )
+    pd.DataFrame(report_dict).T.to_csv(out_dir / "clasificacion_informe_por_clase.csv")
+    logger.info("Guardado: %s", out_dir / "clasificacion_informe_por_clase.csv")
 
     fig, ax = plt.subplots(figsize=(8, 7))
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels_short)
