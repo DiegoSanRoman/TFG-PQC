@@ -86,6 +86,9 @@ seaborn>=0.11.0
 dnspython>=2.4.0
 tqdm>=4.60.0
 pytest>=7.0.0
+scikit-learn>=1.0.0
+scipy>=1.9.0
+cryptography>=38.0.0
 ```
 
 ```bash
@@ -471,7 +474,9 @@ TFG-PQC/
 │   │   ├── sonda_latencia_ech.py     # Sonda de latencia ECH (overhead con/sin ECH)
 │   │   ├── sonda_latencia_pqc.py     # Sonda de latencia PQC (múltiples grupos, con/sin ECH)
 │   │   ├── graficar_latencia_ech.py  # Genera imagenes/latencia_ech_vs_sin_ech.png
-│   │   └── graficar_latencia_pqc.py  # Genera imagenes/latencia_pqc_ech_vs_sin_ech.png
+│   │   ├── graficar_latencia_pqc.py  # Genera imagenes/latencia_pqc_ech_vs_sin_ech.png
+│   │   ├── tls_utils.py              # Utilidades TLS compartidas (ECHConfig, bssl, decode)
+│   │   └── hostname_conexion.py      # Diagnóstico manual de un hostname concreto
 │   ├── ml/
 │   │   ├── analizar_resultados.py    # Análisis estadístico y visualización PQC
 │   │   └── clasificar_grupo_pqc.py   # Clasificación ML de grupo por side-channel
@@ -505,7 +510,10 @@ TFG-PQC/
     ├── bytes_limpia.png
     ├── latencia_ech_vs_sin_ech.png
     ├── latencia_pqc_ech_vs_sin_ech.png
-    ├── latencia_pqc_vs_clasico.png
+    ├── significancia_latencia.png
+    ├── significancia_latencia.csv
+    ├── tasas_resultado_por_grupo.png
+    ├── tasas_resultado_por_grupo.csv
     └── delta_*.csv
 ```
 
@@ -513,7 +521,7 @@ TFG-PQC/
 
 ## Grupos criptográficos probados
 
-La sonda prueba 14 grupos TLS, incluyendo el clásico de referencia, híbridos y algoritmos PQC puros:
+La sonda prueba 13 grupos TLS, incluyendo el clásico de referencia, híbridos y algoritmos PQC puros:
 
 | Grupo | Tipo | Estándar |
 | --- | --- | --- |
@@ -587,6 +595,10 @@ Cada resultado de sonda contiene ~54 campos. Los más relevantes:
 | `imagenes/delta_openssl_execution_time_vs_x25519.csv` | Deltas de tiempo de ejecución vs X25519 |
 | `imagenes/delta_openssl_tcp_tls_vs_x25519.csv` | Deltas de tiempo TCP+TLS vs X25519 |
 | `imagenes/ranking_justo_handshake.csv` | Ranking de grupos por velocidad de handshake |
+| `imagenes/significancia_latencia.png` | Test de Wilcoxon: significancia estadística de deltas de latencia |
+| `imagenes/significancia_latencia.csv` | Tabla de p-valores y estadísticos del test de Wilcoxon |
+| `imagenes/tasas_resultado_por_grupo.png` | Tasas de ACEPTADO/RECHAZADO/error por grupo |
+| `imagenes/tasas_resultado_por_grupo.csv` | Tabla de tasas de resultado por grupo |
 
 ### Artefactos de latencia ECH
 
