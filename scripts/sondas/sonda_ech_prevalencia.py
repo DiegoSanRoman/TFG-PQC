@@ -32,9 +32,9 @@ import dns.exception
 import dns.resolver
 
 try:
-    from sondas.tls_utils import decode_ech_base64
+    from sondas.tls_utils import decode_ech_base64, run_cmd as run_command
 except ModuleNotFoundError:
-    from tls_utils import decode_ech_base64
+    from tls_utils import decode_ech_base64, run_cmd as run_command
 
 # Configuración por defecto y constantes.
 DEFAULT_JSON_OUTPUT = "resultados/resultados_ech_prevalencia.json"
@@ -368,34 +368,6 @@ def clasificar_estado_negociacion(output: str, return_code: int, client_mode: st
         return STATUS_NEGOCIACION_OK_SIN_CONFIRMAR, True, handshake_completed
     return STATUS_FALLO_NEGOCIACION, False, handshake_completed
 
-
-async def run_command(command: List[str], timeout: float, input_data: bytes = b"") -> Tuple[int, str, str]:
-    """
-    Ejecuta comando asíncrono capturando stdout/stderr y timeout.
-        Input: lista de argumentos del comando, timeout en segundos, y datos opcionales para stdin.
-        Output: tupla con código de retorno, stdout decodificado, y stderr decodificado. Si ocurre un timeout, el código de retorno es 124 y stderr incluye "TIMEOUT". Esta función maneja la ejecución del proceso de forma segura, asegurándose de matar el proceso si excede el timeout, y captura cualquier salida generada hasta ese momento para reportarla adecuadamente.
-    """
-    # Ejecutamos el comando usando asyncio.create_subprocess_exec, lo que nos permite manejar la ejecución de forma asíncrona y capturar stdout y stderr. Usamos asyncio.wait_for para imponer un timeout, y si se excede, matamos el proceso y capturamos cualquier salida generada hasta ese momento para reportar un error de timeout de manera clara.
-    proc = await asyncio.create_subprocess_exec(
-        *command,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-    # Si se proporciona input_data, lo enviamos al proceso. Luego esperamos a que termine o a que se exceda el timeout. Si ocurre un timeout, matamos el proceso y capturamos cualquier salida generada hasta ese momento para reportar un error de timeout de manera clara.
-    try:
-        stdout, stderr = await asyncio.wait_for(proc.communicate(input_data), timeout=timeout)
-    except asyncio.TimeoutError:
-        proc.kill()
-        stdout, stderr = await proc.communicate()
-        stdout_text = stdout.decode(errors="replace")
-        stderr_text = stderr.decode(errors="replace")
-        if stderr_text:
-            stderr_text = f"{stderr_text}\nTIMEOUT"
-        else:
-            stderr_text = "TIMEOUT"
-        return 124, stdout_text, stderr_text
-
-    return proc.returncode, stdout.decode(errors="replace"), stderr.decode(errors="replace")
 
 
 async def resolver_ips_ipv4(domain: str, port: int) -> List[str]:
@@ -738,7 +710,6 @@ def cargar_dominios_csv(csv_path: Path, max_dominios: int) -> List[str]:
 
         # Si hay encabezado, buscamos la columna que mejor se ajuste a nombres relacionados con dominio. Si no hay encabezado, analizamos cada celda para encontrar la que parece un dominio, y nos detenemos al alcanzar el número máximo de dominios.
         if has_header:
-            assert isinstance(reader, csv.DictReader)
             fieldnames = [field.strip().lower() for field in (reader.fieldnames or [])]
             selected_col = None
             for col in fieldnames:
@@ -762,7 +733,6 @@ def cargar_dominios_csv(csv_path: Path, max_dominios: int) -> List[str]:
                     break
         # Si no hay encabezado, analizamos cada celda de cada fila para encontrar la que parece un dominio, y nos detenemos al alcanzar el número máximo de dominios.
         else:
-            assert not isinstance(reader, csv.DictReader)
             for row in reader:
                 if not row:
                     continue

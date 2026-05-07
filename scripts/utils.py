@@ -17,7 +17,6 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-import dns.resolver
 from cryptography import x509
 from cryptography.hazmat.primitives.asymmetric import dsa, ec, rsa
 
@@ -68,6 +67,7 @@ def resolver_dns(hostname: str) -> Tuple[Optional[str], Optional[float]]:
     :param hostname: Nombre del host a resolver
     :return: Tupla (ip, latencia_ms) o (None, None) si falla
     """
+    import dns.resolver  # importación diferida: solo las sondas que usan DNS necesitan dnspython
     try:
         inicio = time.perf_counter()
         respuesta = dns.resolver.resolve(hostname, 'A')

@@ -3,8 +3,8 @@ test_sonda_pqc.py
 -----------------
 Tests unitarios para scripts/sondas/sonda_pqc_final.py.
 Cubre funciones puras: es_cipher_debil, tiene_pfs (importadas desde sonda_base),
-parse_trace_bytes, _build_result, calcular_promedio_repeticiones,
-generar_estadisticas_por_grupo, exportar_estadisticas_csv, _flatten_stats_entry,
+parse_trace_bytes, _build_result, generar_estadisticas_por_grupo,
+exportar_estadisticas_csv, _flatten_stats_entry,
 TLSOutputParser, ProbeResults y PQCProbe.
 """
 
@@ -39,7 +39,6 @@ from sonda_pqc_final import (
     tiene_pfs,
     _build_result,
     _flatten_stats_entry,
-    calcular_promedio_repeticiones,
     exportar_estadisticas_csv,
     generar_estadisticas_por_grupo,
     leer_hostnames_csv,
@@ -214,10 +213,6 @@ class TestBuildResult:
         assert "openssl_connect_tls_time_ms" not in r
 
 
-# ============================================
-# calcular_promedio_repeticiones
-# ============================================
-
 def _intento(connection_result=CONNECTION_ACCEPTED, handshake_time_ms=100.0,
              dns_time_ms=10.0, grupo="X25519", **kwargs) -> Dict[str, Any]:
     base = dict(
@@ -254,52 +249,6 @@ def _intento(connection_result=CONNECTION_ACCEPTED, handshake_time_ms=100.0,
     )
     base.update(kwargs)
     return base
-
-
-class TestCalcularPromedioRepeticiones:
-    def test_lista_vacia_devuelve_dict_vacio(self):
-        assert calcular_promedio_repeticiones([], "X25519") == {}
-
-    def test_una_repeticion_devuelve_los_mismos_valores(self):
-        intentos = [_intento(handshake_time_ms=150.0)]
-        result = calcular_promedio_repeticiones(intentos, "X25519")
-        assert result["handshake_time_ms"] == 150.0
-
-    def test_promedio_de_tres_repeticiones(self):
-        intentos = [
-            _intento(handshake_time_ms=100.0),
-            _intento(handshake_time_ms=200.0),
-            _intento(handshake_time_ms=300.0),
-        ]
-        result = calcular_promedio_repeticiones(intentos, "X25519")
-        assert result["handshake_time_ms"] == 200.0
-
-    def test_connection_result_mayoritario_gana(self):
-        intentos = [
-            _intento(connection_result=CONNECTION_ACCEPTED),
-            _intento(connection_result=CONNECTION_ACCEPTED),
-            _intento(connection_result=CONNECTION_REJECTED),
-        ]
-        result = calcular_promedio_repeticiones(intentos, "X25519")
-        assert result["connection_result"] == CONNECTION_ACCEPTED
-
-    def test_grupo_se_preserva(self):
-        intentos = [_intento(grupo="mlkem768")]
-        result = calcular_promedio_repeticiones(intentos, "mlkem768")
-        assert result["grupo"] == "mlkem768"
-
-    def test_campo_none_ignorado_en_promedio(self):
-        intentos = [
-            _intento(dns_time_ms=None),
-            _intento(dns_time_ms=20.0),
-        ]
-        result = calcular_promedio_repeticiones(intentos, "X25519")
-        assert result["dns_time_ms"] == 20.0
-
-    def test_todos_none_devuelve_none(self):
-        intentos = [_intento(bytes_sent=None), _intento(bytes_sent=None)]
-        result = calcular_promedio_repeticiones(intentos, "X25519")
-        assert result["bytes_sent"] is None
 
 
 # ============================================

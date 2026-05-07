@@ -72,7 +72,7 @@ Modelos: RandomForest y GradientBoosting. Validación sin leakage: `GroupShuffle
 ## Requisitos
 
 - **Docker** 20.10+ (la imagen `openquantumsafe/openssl3` incluye OpenSSL con el proveedor OQS)
-- **Python** 3.7+
+- **Python** 3.9+
 - **Linux** / macOS / WSL2
 - **BoringSSL** (`bssl`) compilado localmente — requerido para la sonda de latencia ECH
 

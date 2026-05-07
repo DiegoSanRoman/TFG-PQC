@@ -8,8 +8,14 @@ set -e
 
 # Directorio base del proyecto
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Ruta al entorno virtual
-VENV_DIR="${PROJECT_DIR}/venv"
+# Si el proyecto está en un path de Windows montado (/mnt/...), los paquetes
+# con extensiones binarias (scipy, etc.) no funcionan en ese filesystem desde WSL.
+# En ese caso se usa un venv en la filesystem nativa de WSL.
+if [[ "$(uname -r)" == *microsoft* ]] && [[ "$PROJECT_DIR" == /mnt/* ]]; then
+    VENV_DIR="$HOME/.venv-tfg-pqc"
+else
+    VENV_DIR="${PROJECT_DIR}/venv"
+fi
 # Ruta al script de análisis
 SCRIPT_PATH="${PROJECT_DIR}/scripts/ml/analizar_resultados.py"
 
@@ -52,9 +58,9 @@ else
 
     # Instalar dependencias si no están presentes
     echo "--- Verificando dependencias..."
-    pip install -q pandas numpy matplotlib seaborn 2>/dev/null || {     # -q silencia la salida de pip, y 2>/dev/null redirige errores a null para evitar ruido
+    pip install -q pandas numpy matplotlib seaborn scipy dnspython cryptography 2>/dev/null || {     # -q silencia la salida de pip, y 2>/dev/null redirige errores a null para evitar ruido
         echo "   --- Instalando paquetes requeridos..."
-        pip install pandas numpy matplotlib seaborn
+        pip install pandas numpy matplotlib seaborn scipy dnspython cryptography
     }
 fi
 

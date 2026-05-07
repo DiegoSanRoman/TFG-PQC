@@ -63,6 +63,7 @@ BASE_DIR = Path(__file__).parent.parent.parent
 RESULTADOS_PATH = BASE_DIR / "resultados" / "resultados_sonda_pqc.json"
 OUTPUT_DIR = BASE_DIR / "imagenes"
 MIN_MUESTRAS_ANALISIS = 30
+# Mide el tiempo total de ejecución del proceso OpenSSL (TCP + TLS + cierre), no solo el handshake TLS.
 METRICA_CONNECT_TLS_MS = 'handshake_time_ms'
 
 
@@ -202,42 +203,20 @@ def resumen_delta_vs_clasico_restringido(
     Variante de delta vs clásico con filtros opcionales por grupos y cohorte de hosts.
     Permite aplicar la misma lógica de cohorte común/muestras mínimas en múltiples subgráficas.
     """
-    resumen = resumen_delta_vs_clasico(df, metrica_col, grupo_clasico=grupo_clasico)
+    df_filtrado = df
+    if hosts_permitidos is not None:
+        df_filtrado = df_filtrado[df_filtrado['hostname'].isin(hosts_permitidos)].copy()
+    if grupos_permitidos is not None:
+        # Include grupo_clasico so pivot subtraction inside resumen_delta_vs_clasico works correctly
+        grupos_para_calculo = set(grupos_permitidos) | {grupo_clasico}
+        df_filtrado = df_filtrado[df_filtrado['grupo'].isin(grupos_para_calculo)].copy()
+
+    resumen = resumen_delta_vs_clasico(df_filtrado, metrica_col, grupo_clasico=grupo_clasico)
     if resumen.empty:
         return resumen
 
     if grupos_permitidos is not None:
         resumen = resumen[resumen['grupo'].isin(grupos_permitidos)].copy()
-
-    if hosts_permitidos is not None:
-        host_group = _agregar_por_hostname_grupo(df, metrica_col)
-        if host_group.empty:
-            return pd.DataFrame()
-        host_group = host_group[host_group['hostname'].isin(hosts_permitidos)].copy()
-        if grupos_permitidos is not None:
-            host_group = host_group[host_group['grupo'].isin(grupos_permitidos)].copy()
-
-        pivot = host_group.pivot(index='hostname', columns='grupo', values=metrica_col)
-        if grupo_clasico not in pivot.columns:
-            return pd.DataFrame()
-
-        deltas = pivot.subtract(pivot[grupo_clasico], axis=0)
-        deltas_long = deltas.stack().reset_index(name='delta_ms')
-        deltas_long = deltas_long[deltas_long['delta_ms'].notna()].copy()
-        if deltas_long.empty:
-            return pd.DataFrame()
-
-        resumen = deltas_long.groupby('grupo').agg(
-            delta_mediana_ms=('delta_ms', 'median'),
-            delta_q1_ms=('delta_ms', lambda s: s.quantile(0.25)),
-            delta_q3_ms=('delta_ms', lambda s: s.quantile(0.75)),
-            delta_media_ms=('delta_ms', 'mean'),
-            delta_std_ms=('delta_ms', 'std'),
-            hostnames=('hostname', 'nunique')
-        ).reset_index()
-        resumen['delta_std_ms'] = resumen['delta_std_ms'].fillna(0.0)
-        resumen['delta_iqr_ms'] = resumen['delta_q3_ms'] - resumen['delta_q1_ms']
-
     if min_hostnames > 0:
         resumen = resumen[resumen['hostnames'] >= min_hostnames].copy()
 
@@ -984,7 +963,7 @@ def main(input_path: Path = RESULTADOS_PATH, output_dir: Path = OUTPUT_DIR):
 
     # Filtrar conexiones que necesitaron retry (latencia inflada por timeout acumulado)
     n_antes = len(df_exitos)
-    df_exitos = df_exitos[df_exitos['retry'] == False].copy()
+    df_exitos = df_exitos[~df_exitos['retry'].fillna(False)].copy()
     n_filtrados = n_antes - len(df_exitos)
     if n_filtrados > 0:
         logger.info(f"Filtrados {n_filtrados} registros con retry=True de la latencia")
@@ -992,7 +971,6 @@ def main(input_path: Path = RESULTADOS_PATH, output_dir: Path = OUTPUT_DIR):
     # Limpiar outliers de forma robusta por grupo (bytes + latencia sin DNS)
     logger.info("\n🧹 Limpiando outliers por grupo (latencia + bytes)...")
     columnas_outliers = [
-        'tcp_time_ms',
         METRICA_CONNECT_TLS_MS,
         'openssl_execution_time_ms',
         'tiempo_conexion_segundos',

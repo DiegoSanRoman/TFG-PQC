@@ -329,6 +329,9 @@ def sonda_pqc(  # noqa: C901
     # Comando base con -trace para capturar el tamaño real de los mensajes TLS
     # Activamos explícitamente el provider OQS para compatibilidad
     # Habilitamos -trace para todas las conexiones incluyendo localhost
+    # NOTA METODOLÓGICA: no se añade -verify_return_error ni se fuerza verificación
+    # de cadena PKI. El objetivo es medir compatibilidad y latencia de negociación,
+    # no validar certificados. En producción, la verificación añadiría tiempo adicional.
     cmd = [
         openssl_bin,                                # Ruta al binario de OpenSSL personalizado con soporte PQC
         "s_client",                                 # Modo cliente para probar conexiones TLS
@@ -637,8 +640,10 @@ def sonda_pqc(  # noqa: C901
                 negotiated_line = line.strip()
                 break
 
-        # Éxito real: hay Server Temp Key Y (hay certificado O cipher válido)
-        if return_code == 0 and negotiated_line and (cert_issuer or (cipher_suite and "(NONE)" not in cipher_suite)):
+        # Éxito real: hay Server Temp Key Y (hay certificado O cipher válido).
+        # openssl s_client devuelve 1 cuando cierra limpiamente sin datos HTTP; ambos
+        # son señal de handshake exitoso cuando hay cipher negociado.
+        if return_code in (0, 1) and negotiated_line and (cert_issuer or (cipher_suite and "(NONE)" not in cipher_suite)):
             logger.debug("Éxito: %s - %s - %s", hostname, group, negotiated_line)
             return _build_result(
                 error_category=None,
@@ -648,7 +653,7 @@ def sonda_pqc(  # noqa: C901
             )
 
         # Fallback: conexión exitosa si hay cipher válido Y certificado
-        if return_code == 0 and cipher_suite and "(NONE)" not in cipher_suite and cert_issuer:
+        if return_code in (0, 1) and cipher_suite and "(NONE)" not in cipher_suite and cert_issuer:
             logger.debug("Éxito: %s - %s - Conectado (TLS 1.3)", hostname, group)
             return _build_result(
                 error_category=None,
@@ -786,12 +791,11 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
                 if prueba.get("handshake_total_overhead") is not None:
                     handshake_total_overhead_list.append(prueba["handshake_total_overhead"])
         
-        # Calcular estadísticas
+        # Calcular estadísticas.
+        # La métrica primaria para comparaciones es la MEDIANA (robusta ante outliers
+        # de red). La media se exporta como referencia complementaria pero NO debe
+        # usarse como métrica principal al comparar grupos.
         def calc_stats(valores):
-            """
-            Calcula estadísticas básicas de una lista de valores numéricos.
-            Si la lista está vacía, devuelve un diccionario con valores None.
-            """
             if not valores:
                 return {"media": None, "mediana": None, "desv_std": None, "min": None, "max": None}
             return {
@@ -891,112 +895,6 @@ def exportar_estadisticas_csv(estadisticas_grupos: List[Dict[str, Any]], output_
         writer.writerows(filas)
 
     logger.info("Estadísticas por grupo exportadas a %s", output_path)
-
-
-def calcular_promedio_repeticiones(intentos: List[Dict[str, Any]], grupo: str) -> Dict[str, Any]:
-    '''
-    Calcula promedios de métricas numéricas a partir de múltiples repeticiones
-    :param intentos: Lista de resultados de repeticiones
-    :param grupo: Nombre del grupo
-    :return: Diccionario con valores promediados
-    '''
-    # Si no hay intentos, retornar un diccionario vacío
-    if not intentos:
-        return {}
-    
-    # Campos numéricos a promediar
-    campos_numericos = [
-        'tiempo_conexion_segundos',
-        'dns_time_ms',
-        'tcp_time_ms',
-        'handshake_time_ms',
-        'bytes_sent',
-        'bytes_received',
-        'handshake_overhead',
-        'handshake_total_bytes_sent',
-        'handshake_total_bytes_received',
-        'handshake_total_overhead'
-    ]
-    
-    # Determinar la categoría de error, resultado de conexión y método de medición más comunes
-    error_counts = {}
-    result_counts = {}
-    measurement_counts = {}
-    measurement_total_counts = {}
-    for intento in intentos:
-        error = intento.get('error_category')
-        result = intento.get('connection_result')
-        method = intento.get('measurement_method', 'unknown')
-        method_total = intento.get('measurement_method_total', 'unknown')
-        error_counts[error] = error_counts.get(error, 0) + 1
-        result_counts[result] = result_counts.get(result, 0) + 1
-        measurement_counts[method] = measurement_counts.get(method, 0) + 1
-        measurement_total_counts[method_total] = measurement_total_counts.get(method_total, 0) + 1
-    
-    error_category_promedio = max(error_counts, key=error_counts.get) if error_counts else None
-    connection_result_promedio = max(result_counts, key=result_counts.get) if result_counts else None
-    measurement_method_promedio = max(measurement_counts, key=measurement_counts.get) if measurement_counts else 'unknown'
-    measurement_method_total_promedio = max(measurement_total_counts, key=measurement_total_counts.get) if measurement_total_counts else 'unknown'
-    
-    # Para evitar sesgos, promediar métricas numéricas solo dentro del resultado agregado
-    if connection_result_promedio == CONNECTION_ACCEPTED:
-        intentos_metricas = [i for i in intentos if i.get('connection_result') == CONNECTION_ACCEPTED]
-    elif connection_result_promedio == CONNECTION_REJECTED:
-        intentos_metricas = [i for i in intentos if i.get('connection_result') == CONNECTION_REJECTED]
-    else:
-        intentos_metricas = [i for i in intentos if i.get('connection_result') is None]
-
-    # Fallback defensivo si no quedó nada en el subconjunto
-    if not intentos_metricas:
-        intentos_metricas = intentos
-
-    # Tomar referencia del mismo subconjunto para coherencia de campos no numéricos
-    if connection_result_promedio == CONNECTION_ACCEPTED:
-        referencia = next((i for i in intentos_metricas if i.get('connection_result') == CONNECTION_ACCEPTED), intentos_metricas[0])
-    else:
-        referencia = intentos_metricas[0]
-    
-    # Construir resultado promedio
-    resultado = {
-        'grupo': grupo,
-        'error_category': error_category_promedio,
-        'connection_result': connection_result_promedio,
-        'repeticiones': len(intentos),
-        'res': referencia.get('res'),
-        'tls_version': referencia.get('tls_version'),
-        'cipher_suite': referencia.get('cipher_suite'),
-        'alpn': referencia.get('alpn'),
-        'tls_alert': referencia.get('tls_alert'),
-        'ip': referencia.get('ip'),
-        'ip_familia': referencia.get('ip_familia'),
-        'cert_issuer': referencia.get('cert_issuer'),
-        'cert_not_before': referencia.get('cert_not_before'),
-        'cert_not_after': referencia.get('cert_not_after'),
-        'cert_san': referencia.get('cert_san'),
-        'cert_fingerprint_sha256': referencia.get('cert_fingerprint_sha256'),
-        'measurement_method': measurement_method_promedio,
-        'measurement_method_total': measurement_method_total_promedio,
-        'sni_usado': referencia.get('sni_usado'),
-        'sni_difiere': referencia.get('sni_difiere'),
-        'retry': referencia.get('retry')
-    }
-    
-    # Calcular promedios para campos numéricos (sin mezclar aceptados/rechazados)
-    for campo in campos_numericos:
-        valores = [intento.get(campo) for intento in intentos_metricas if intento.get(campo) is not None]
-        if valores:
-            promedio = sum(valores) / len(valores)
-            # Redondear según el tipo de métrica
-            if campo == 'tiempo_conexion_segundos':
-                resultado[campo] = round(promedio, 3)
-            elif campo in ['dns_time_ms', 'tcp_time_ms', 'handshake_time_ms']:
-                resultado[campo] = round(promedio, 2)
-            else:  # bytes
-                resultado[campo] = int(round(promedio))
-        else:
-            resultado[campo] = None
-    
-    return resultado
 
 
 
@@ -1161,9 +1059,9 @@ if __name__ == "__main__":
     grupos = [
         # --- Clásico ---
         "X25519",               # 1. Clásico (Control)
-        # --- Éxitos Casi Confirmados ---                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
-        "X25519MLKEM768",       # 3. Estándar NIST Híbrido 
-        "x25519_kyber768",      # 4. Estándar Previo Híbrido
+        # --- Híbridos con soporte real en producción ---
+        "X25519MLKEM768",       # 3. Estándar NIST (FIPS 203, ML-KEM-768). Codepoint 0x11ec, distinto de x25519_kyber768 (draft OQS, 0x6399)
+        "x25519_kyber768",      # 4. Draft experimental OQS (híbrido pre-estándar, nunca estandarizado)
         # --- Puros ---
         "mlkem768",             # 5. Puro Moderno
         "kyber768",             # 6. Puro Viejo
@@ -1173,8 +1071,8 @@ if __name__ == "__main__":
         # --- Variantes de Tamaño (Nivel 1 - Más rápidos) ---
         "x25519_mlkem512",      # 9. [NUEVO] Híbrido Nivel 1 Moderno
         "x25519_kyber512",      # 10. [NUEVO] Híbrido Nivel 1 Viejo (Cloudflare a veces usa este)
-        # --- Algoritmos Alternativos (Backups del NIST) ---
-        "frodo640aes",          # 11. Basado en retículos (Lento pero seguro)
+        # --- Algoritmos Alternativos (valor experimental; NO seleccionados por NIST) ---
+        "frodo640aes",          # 11. LWE genérico (FrodoKEM, muy conservador, extremadamente lento en TLS real)
         "bikel1",               # 12. Code-based Puro
         "x25519_bikel1",        # 13. [NUEVO] Híbrido BIKE (Más probable que conecte que el puro)
         "x25519_hqc128"         # 14. [NUEVO] Híbrido HQC (Code-based, muy robusto)

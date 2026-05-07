@@ -6,7 +6,7 @@ Pregunta de investigación: ¿puede un observador de red inferir qué grupo
 criptográfico negoció una conexión TLS *sin* leer el campo cipher_suite?
 
 Tres experimentos en cascada, con features crecientemente ricas:
-  Exp 1 - Solo timing:        dns_time_ms, tcp_time_ms, handshake_time_ms
+  Exp 1 - Solo timing:        handshake_time_ms
   Exp 2 - Timing + bytes TLS: + bytes_sent, bytes_received, handshake_overhead
   Exp 3 - Timing + bytes tot: + handshake_total_bytes_sent,
                                  handshake_total_bytes_received,
@@ -91,7 +91,7 @@ PALETTE = {
 # Definición de los 3 experimentos
 EXPERIMENTOS = {
     "Exp 1\nSolo timing": [
-        "dns_time_ms", "handshake_time_ms",
+        "handshake_time_ms",
     ],
     "Exp 2\nTiming + bytes TLS": [
         "dns_time_ms", "handshake_time_ms",
@@ -253,7 +253,7 @@ def graficar_distribucion_features(df: pd.DataFrame, out_dir: Path) -> None:
     """Boxplots de los features clave por grupo (sin cipher suite)."""
     features_plot = [
         ("handshake_time_ms",           "Handshake TLS (ms)"),
-        ("tcp_time_ms",                 "TCP (ms)"),
+        ("dns_time_ms",                 "DNS (ms)"),
         ("bytes_sent",                  "Bytes enviados (trace)"),
         ("bytes_received",              "Bytes recibidos (trace)"),
         ("handshake_total_bytes_sent",  "Bytes enviados (total)"),

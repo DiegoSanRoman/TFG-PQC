@@ -7,8 +7,7 @@ Para cada hostname con config ECH y para cada grupo PQC:
   1. Mide latencia DNS de la consulta HTTPS RR.
   2. Si el grupo lo soporta bssl (-curves): N mediciones con ECH + PQC.
   3. N mediciones sin ECH + PQC (bssl o OpenSSL OQS según el grupo).
-  4. N mediciones sin ECH + X25519 clásico (baseline con bssl).
-  5. Agrega media ± stddev y calcula deltas entre escenarios.
+  4. Agrega media ± stddev y calcula delta_ech_pqc_ms = media_sin_ech_pqc − media_ech_pqc.
 
 Genera una fila CSV por (hostname × grupo_pqc).
 
@@ -22,6 +21,7 @@ import argparse
 import asyncio
 import csv
 import logging
+import re
 import statistics
 import sys
 import tempfile
@@ -69,6 +69,10 @@ DEFAULT_REPETICIONES  = 3
 
 # Traducción de nombre de grupo → nombre de curva para bssl -curves.
 # Grupos NO presentes en este mapa se miden con OpenSSL OQS (sin ECH).
+# X25519Kyber768Draft00: codepoint 0x6399 (draft Cloudflare/OQS, nunca estandarizado).
+# X25519MLKEM768:        codepoint 0x11ec (NIST FIPS 203, ML-KEM-768, estándar vigente).
+# Ambos son incompatibles entre sí a nivel de TLS; un servidor que acepta uno
+# puede rechazar el otro aunque ambos se llamen "X25519+Kyber768".
 BSSL_CURVE_MAP: Dict[str, str] = {
     "X25519Kyber768Draft00": "X25519Kyber768Draft00",
     "X25519MLKEM768":        "X25519MLKEM768",
@@ -184,7 +188,6 @@ async def _una_medicion_oqs(
 
     # OQS openssl s_client: éxito si hay cipher negociado y return code 0 o 1
     # (s_client suele devolver 1 al cerrar el stdin; lo tratamos igual que 0)
-    import re
     cipher_match = re.search(r"^\s*Cipher\s*:\s*(.+)$", stdout, re.MULTILINE)
     cipher = cipher_match.group(1).strip() if cipher_match else None
     handshake_ok = cipher and "(NONE)" not in cipher and rc in (0, 1)

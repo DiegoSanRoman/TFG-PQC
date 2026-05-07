@@ -5,10 +5,24 @@ set -euo pipefail
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${PROJECT_DIR}"
 
-# Activar venv si existe y no está ya activado
-if [[ -z "${VIRTUAL_ENV:-}" && -f "${PROJECT_DIR}/venv/bin/activate" ]]; then
-    source "${PROJECT_DIR}/venv/bin/activate"
+# En WSL con proyecto en /mnt/ usar venv nativo para que los paquetes binarios funcionen
+if [[ "$(uname -r)" == *microsoft* ]] && [[ "$PROJECT_DIR" == /mnt/* ]]; then
+    VENV_DIR="$HOME/.venv-tfg-pqc"
+else
+    VENV_DIR="${PROJECT_DIR}/venv"
 fi
+
+if [[ ! -d "$VENV_DIR" ]]; then
+    echo "--- Creando entorno virtual en ${VENV_DIR}..."
+    python3 -m venv "$VENV_DIR"
+fi
+
+if [[ -z "${VIRTUAL_ENV:-}" ]]; then
+    source "${VENV_DIR}/bin/activate"
+fi
+
+"$VENV_DIR/bin/pip" install -q tqdm dnspython cryptography 2>/dev/null || \
+    "$VENV_DIR/bin/pip" install tqdm dnspython cryptography
 PYTHON_BIN="python3"
 
 INPUT_CSV="data/hostnames_ech.csv"
