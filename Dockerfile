@@ -28,14 +28,14 @@ ENV PATH="/opt/oqssa/bin:$PATH"
 # También desactivamos LD_LIBRARY_PATH para que pip use OpenSSL estándar
 RUN env -u LD_LIBRARY_PATH pip3 install --no-cache-dir --break-system-packages \
     tqdm \
-    requests \
     pandas \
     numpy \
     matplotlib \
     seaborn \
+    scipy \
     dnspython \
     cryptography \
-    scikit-learn 
+    scikit-learn
 
 # 5. Preparar el entorno de trabajo
 WORKDIR /app

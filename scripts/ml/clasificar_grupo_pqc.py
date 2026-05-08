@@ -7,7 +7,8 @@ criptográfico negoció una conexión TLS *sin* leer el campo cipher_suite?
 
 Tres experimentos en cascada, con features crecientemente ricas:
   Exp 1 - Solo timing:        handshake_time_ms
-  Exp 2 - Timing + bytes TLS: + bytes_sent, bytes_received, handshake_overhead
+  Exp 2 - Timing + bytes TLS: + bytes_sent, bytes_received,
+                                 handshake_overhead
   Exp 3 - Timing + bytes tot: + handshake_total_bytes_sent,
                                  handshake_total_bytes_received,
                                  handshake_total_overhead
@@ -89,18 +90,22 @@ PALETTE = {
 }
 
 # Definición de los 3 experimentos
+# Nota: dns_time_ms queda excluido deliberadamente — mide la latencia del resolver
+# DNS en el momento de la prueba, no una propiedad del grupo criptográfico, y
+# podría introducir correlaciones espurias en el clasificador.
 EXPERIMENTOS = {
     "Exp 1\nSolo timing": [
         "handshake_time_ms",
     ],
     "Exp 2\nTiming + bytes TLS": [
-        "dns_time_ms", "handshake_time_ms",
-        "bytes_sent", "bytes_received",
+        "handshake_time_ms",
+        "bytes_sent", "bytes_received", "handshake_overhead",
     ],
     "Exp 3\nTiming + bytes totales": [
-        "dns_time_ms", "handshake_time_ms",
-        "bytes_sent", "bytes_received",
+        "handshake_time_ms",
+        "bytes_sent", "bytes_received", "handshake_overhead",
         "handshake_total_bytes_sent", "handshake_total_bytes_received",
+        "handshake_total_overhead",
     ],
 }
 

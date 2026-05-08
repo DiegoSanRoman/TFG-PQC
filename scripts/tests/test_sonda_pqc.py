@@ -35,8 +35,6 @@ from exceptions import (
     PQCTLSAlertError,
 )
 from sonda_pqc_final import (
-    es_cipher_debil,
-    tiene_pfs,
     _build_result,
     _flatten_stats_entry,
     exportar_estadisticas_csv,
@@ -47,62 +45,6 @@ from sonda_pqc_final import (
     ProbeResults,
     PQCProbe,
 )
-
-
-# ============================================
-# es_cipher_debil
-# ============================================
-
-class TestEsCipherDebil:
-    def test_rc4_es_debil(self):
-        assert es_cipher_debil("RC4-SHA") is True
-
-    def test_des_es_debil(self):
-        assert es_cipher_debil("DES-CBC3-SHA") is True
-
-    def test_md5_es_debil(self):
-        assert es_cipher_debil("TLS_RSA_WITH_MD5") is True
-
-    def test_null_es_debil(self):
-        assert es_cipher_debil("TLS_NULL_WITH_NULL_NULL") is True
-
-    def test_export_es_debil(self):
-        assert es_cipher_debil("EXP-RC4-MD5") is True
-
-    def test_anon_es_debil(self):
-        assert es_cipher_debil("ADH-AES256-SHA") is True
-
-    def test_aes_gcm_no_es_debil(self):
-        assert es_cipher_debil("TLS_AES_256_GCM_SHA384") is False
-
-    def test_ecdhe_aes_no_es_debil(self):
-        assert es_cipher_debil("ECDHE-RSA-AES128-GCM-SHA256") is False
-
-    def test_chacha_no_es_debil(self):
-        assert es_cipher_debil("TLS_CHACHA20_POLY1305_SHA256") is False
-
-
-# ============================================
-# tiene_pfs
-# ============================================
-
-class TestTienePfs:
-    def test_ecdhe_tiene_pfs(self):
-        assert tiene_pfs("ECDHE-RSA-AES128-GCM-SHA256") is True
-
-    def test_dhe_tiene_pfs(self):
-        assert tiene_pfs("DHE-RSA-AES256-SHA256") is True
-
-    def test_rsa_sin_pfs(self):
-        assert tiene_pfs("RSA-AES128-SHA") is False
-
-    def test_tls13_tiene_pfs(self):
-        # TLS 1.3 tiene PFS inherente; el cifrado lleva ECDHE implícito
-        # Este test verifica la detección basada en nombre
-        assert tiene_pfs("TLS_AES_256_GCM_SHA384") is False  # No lleva ECDHE/DHE en el nombre
-
-    def test_cadena_vacia_sin_pfs(self):
-        assert tiene_pfs("") is False
 
 
 # ============================================
@@ -182,8 +124,6 @@ class TestBuildResult:
             connection_result=None,
             res="ok",
             sni_usado="example.com",
-            sni_difiere=False,
-            retry=False,
         )
         defaults.update(kwargs)
         return _build_result(**defaults)
@@ -191,7 +131,7 @@ class TestBuildResult:
     def test_contiene_todas_las_claves_obligatorias(self):
         r = self._base()
         for key in ("error_category", "connection_result", "res", "sni_usado",
-                    "sni_difiere", "retry", "ip", "tls_version", "cipher_suite"):
+                    "ip", "tls_version", "cipher_suite"):
             assert key in r
 
     def test_error_category_se_asigna(self):

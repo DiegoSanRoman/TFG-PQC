@@ -240,11 +240,14 @@ def _build_result_dict(
     connection_result: Optional[str],
     res: str,
     sni_usado: str,
-    sni_difiere: bool,
-    retry: bool,
     dns_time_ms: Optional[float] = None,
+    # tcp_time_ms es siempre None por diseño: no se abre una conexión TCP
+    # independiente para evitar consumir slots en servidores con rate-limiting.
+    # El tiempo TCP está incluido dentro de handshake_time_ms.
     tcp_time_ms: Optional[float] = None,
     tiempo_conexion_segundos: Optional[float] = None,
+    # handshake_time_ms mide el tiempo total del subproceso OpenSSL:
+    # TCP + handshake TLS + cierre. No es exclusivamente el handshake TLS.
     handshake_time_ms: Optional[float] = None,
     ip: Optional[str] = None,
     ip_familia: Optional[str] = None,
@@ -302,6 +305,4 @@ def _build_result_dict(
         "handshake_total_overhead": handshake_total_overhead,
         "measurement_method_total": measurement_method_total,
         "sni_usado": sni_usado,
-        "sni_difiere": sni_difiere,
-        "retry": retry,
     }

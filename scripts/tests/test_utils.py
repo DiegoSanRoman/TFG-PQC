@@ -140,8 +140,6 @@ class TestBuildResultDict:
             connection_result=None,
             res="ok",
             sni_usado="example.com",
-            sni_difiere=False,
-            retry=False,
         )
         defaults.update(kwargs)
         return _build_result_dict(**defaults)
@@ -149,10 +147,15 @@ class TestBuildResultDict:
     def test_contiene_todas_las_claves_obligatorias(self):
         r = self._base()
         for key in ("error_category", "connection_result", "res",
-                    "sni_usado", "sni_difiere", "retry",
+                    "sni_usado",
                     "ip", "tls_version", "cipher_suite",
                     "handshake_time_ms"):
             assert key in r, f"Clave ausente: {key}"
+
+    def test_sni_difiere_y_retry_eliminados(self):
+        r = self._base()
+        assert "sni_difiere" not in r
+        assert "retry" not in r
 
     def test_openssl_connect_tls_time_no_existe(self):
         r = self._base()
@@ -184,8 +187,6 @@ class TestBuildResultDict:
         assert r["tls_version"] == "TLSv1.3"
         assert r["bytes_sent"] == 500
 
-    def test_sni_y_retry_se_preservan(self):
-        r = self._base(sni_usado="sub.example.com", sni_difiere=True, retry=True)
+    def test_sni_usado_se_preserva(self):
+        r = self._base(sni_usado="sub.example.com")
         assert r["sni_usado"] == "sub.example.com"
-        assert r["sni_difiere"] is True
-        assert r["retry"] is True

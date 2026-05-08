@@ -13,12 +13,15 @@ import os                                                   # Para operaciones d
 import sys                                                  # Para manipular sys.path
 import time                                                 # Para medir tiempo de conexión
 import csv                                                  # Para leer y escribir archivos CSV
+import hashlib                                              # Para fingerprint SHA256 de certificados
 import statistics                                           # Para cálculos estadísticos
 import logging                                              # Para logging
 import argparse                                             # Para argumentos CLI
 import socket                                               # Para pre-check TCP
 import re                                                   # Para parseo de salida
 import threading                                            # Para semáforo de procesos
+from cryptography import x509 as _x509_lib                  # Para parseo de certificados sin subprocess
+from cryptography.hazmat.primitives import serialization as _serialization  # Para codificar cert a DER
 from datetime import datetime, timezone                     # Para timestamps y zona horaria
 from pathlib import Path                                    # Para rutas
 from concurrent.futures import ThreadPoolExecutor, as_completed  # Para concurrencia
@@ -52,6 +55,14 @@ logger = logging.getLogger(__name__)
 # ============================================
 # CONSTANTES DE RUTAS
 # ============================================
+# Timeouts para el subproceso OpenSSL.
+# 8 s es suficiente para X25519, ML-KEM y Kyber768 híbridos.
+# Algoritmos con intercambio de claves grande (FrodoKEM: ~15 KB; BIKE; HQC) pueden
+# agotar este límite en redes reales: un 0 % de aceptación con ERROR_TLS_TIMEOUT indica
+# overhead de red excesivo, NO rechazo activo del servidor.
+TIMEOUT_TLS_INTERNET_S = 8
+TIMEOUT_TLS_LOCALHOST_S = 30
+
 BASE_DIR = Path(__file__).parent.parent.parent         # Directorio raíz del proyecto
 DATA_DIR = BASE_DIR / "data"                    # Directorio de datos
 RESULTADOS_DIR = BASE_DIR / "resultados"        # Directorio de resultados
@@ -138,15 +149,6 @@ def leer_hostnames_csv(ruta_csv: Path, longitud_max: int, domain_column: Optiona
         logger.error("Error al leer el archivo CSV %s: %s", ruta_csv, e)
     
     return hostnames
-
-
-def es_cipher_debil(cipher_name: str) -> bool:
-    debiles = ['RC4', 'DES', 'MD5', 'NULL', 'EXPORT', 'anon', 'ADH']
-    return any(debil in cipher_name for debil in debiles)
-
-
-def tiene_pfs(cipher_name: str) -> bool:
-    return 'ECDHE' in cipher_name or 'DHE' in cipher_name
 
 
 def parse_trace_bytes(trace_output: str) -> Dict[str, Any]:  # noqa: C901
@@ -349,20 +351,16 @@ def sonda_pqc(  # noqa: C901
     
     logger.debug("Probando %s con grupo %s", hostname, group)
     
-    # Pre-check DNS/TCP para separar fallos de infraestructura de PQC
-    dns_time_ms = None
-    tcp_time_ms = None
-    ip_resuelta = None
-    ip_familia = None
-    sni_usado = base_hostname
-    sni_difiere = False
-    retried = False
-    skip_precheck = False
-
-    # Resolver DNS para obtener la IP antes de lanzar OpenSSL.
+    # Pre-check DNS para separar fallos de infraestructura de PQC.
     # No se abre una conexión TCP extra: evita consumir slots en servidores con
     # rate-limiting y garantiza que OpenSSL usa exactamente la misma IP (fijada
     # vía -connect más abajo), sin riesgo de rotación anycast entre resoluciones.
+    dns_time_ms = None
+    tcp_time_ms = None   # Siempre None: incluido en handshake_time_ms (ver _build_result_dict)
+    ip_resuelta = None
+    ip_familia = None
+    sni_usado = base_hostname
+
     try:
         dns_inicio = time.perf_counter()
         addrinfos = socket.getaddrinfo(base_hostname, int(puerto), type=socket.SOCK_STREAM)
@@ -374,10 +372,8 @@ def sonda_pqc(  # noqa: C901
         family, socktype, proto, canonname, sockaddr = addrinfos[0]
         ip_resuelta = sockaddr[0]
         ip_familia = "IPv6" if family == socket.AF_INET6 else "IPv4"
-        # tcp_time_ms no se mide en pre-check para no abrir una conexión extra
     except socket.gaierror as e:
         logger.debug("Pre-check DNS falló para %s (omitiendo, OpenSSL lo intentará): %s", hostname, e)
-        skip_precheck = True
 
     # Fijar destino de conexión para comparaciones justas entre grupos:
     # - Si tenemos IP resuelta en pre-check, conectar a esa IP.
@@ -400,59 +396,48 @@ def sonda_pqc(  # noqa: C901
         stdout_bytes = b""
         stderr_bytes = b""
         handshake_time_ms = None
-        tiempo_inicio = time.perf_counter()  # se resetea en cada intento dentro del bucle
-
-        max_attempts = 1
         return_code = None
-        for intento in range(1, max_attempts + 1):
-            if proc_semaphore:
-                proc_semaphore.acquire()
-            try:
-                tiempo_inicio = time.perf_counter()  # reset: excluye tiempo de timeouts previos
-                process = subprocess.Popen(
-                    cmd,
-                    stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    start_new_session=True
-                )
-                # Iniciamos el timer DESPUÉS de Popen para excluir el overhead de fork/exec
-                intento_inicio = time.perf_counter()
 
-                try:
-                    # Timeout más largo para localhost/calibración (30s) vs. Internet (8s)
-                    timeout_seconds = 30 if "localhost" in base_hostname or "127.0.0.1" in base_hostname else 8
-                    # Handshake puro: no enviamos tráfico de aplicación (sin GET)
-                    stdout_bytes, stderr_bytes = process.communicate(input=b"", timeout=timeout_seconds)
-                    # Medición por intento (no acumula reintentos previos)
-                    handshake_time_ms = round((time.perf_counter() - intento_inicio) * 1000, 2)
-                    return_code = process.returncode
-                    break
-                except subprocess.TimeoutExpired:
-                    process.kill()
-                    stdout_bytes, stderr_bytes = process.communicate()
-                    handshake_time_ms = round((time.perf_counter() - intento_inicio) * 1000, 2)
-                    return_code = process.returncode
-                    if intento < max_attempts:
-                        retried = True
-                        continue
-                    logger.warning("Timeout en %s con grupo %s", hostname, group)
-                    return _build_result(
-                        error_category=ERROR_TLS_TIMEOUT,
-                        connection_result=None,
-                        res="Timeout durante handshake TLS",
-                        dns_time_ms=dns_time_ms,
-                        tcp_time_ms=tcp_time_ms,
-                        ip=ip_resuelta,
-                        ip_familia=ip_familia,
-                        sni_usado=sni_usado,
-                        sni_difiere=sni_difiere,
-                        retry=retried,
-                    )
-            finally:
-                # Liberar el semáforo si se adquirió, para permitir que otros procesos continúen
-                if proc_semaphore:
-                    proc_semaphore.release()
+        if proc_semaphore:
+            proc_semaphore.acquire()
+        try:
+            tiempo_inicio = time.perf_counter()
+            process = subprocess.Popen(
+                cmd,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                start_new_session=True
+            )
+            # Iniciamos el timer DESPUÉS de Popen para excluir el overhead de fork/exec
+            intento_inicio = time.perf_counter()
+
+            try:
+                # Timeout más largo para localhost/calibración vs. Internet
+                timeout_seconds = TIMEOUT_TLS_LOCALHOST_S if "localhost" in base_hostname or "127.0.0.1" in base_hostname else TIMEOUT_TLS_INTERNET_S
+                # Handshake puro: no enviamos tráfico de aplicación (sin GET)
+                stdout_bytes, stderr_bytes = process.communicate(input=b"", timeout=timeout_seconds)
+                handshake_time_ms = round((time.perf_counter() - intento_inicio) * 1000, 2)
+                return_code = process.returncode
+            except subprocess.TimeoutExpired:
+                process.kill()
+                stdout_bytes, stderr_bytes = process.communicate()
+                handshake_time_ms = round((time.perf_counter() - intento_inicio) * 1000, 2)
+                return_code = process.returncode
+                logger.warning("Timeout en %s con grupo %s", hostname, group)
+                return _build_result(
+                    error_category=ERROR_TLS_TIMEOUT,
+                    connection_result=None,
+                    res="Timeout durante handshake TLS",
+                    dns_time_ms=dns_time_ms,
+                    tcp_time_ms=tcp_time_ms,
+                    ip=ip_resuelta,
+                    ip_familia=ip_familia,
+                    sni_usado=sni_usado,
+                )
+        finally:
+            if proc_semaphore:
+                proc_semaphore.release()
 
         # Medimos el tiempo final
         tiempo_fin = time.perf_counter()
@@ -541,27 +526,27 @@ def sonda_pqc(  # noqa: C901
         cert_fingerprint_sha256 = None
 
         if cert_pem:
-            # Usamos OpenSSL x509 para extraer información del certificado (emisor, fechas, SAN, fingerprint)
-            x509 = subprocess.run(
-                [openssl_bin, "x509", "-noout", "-issuer", "-dates", "-ext", "subjectAltName", "-fingerprint", "-sha256"],
-                input=cert_pem.encode(),
-                capture_output=True
-            )
-            x509_out = x509.stdout.decode(errors="ignore")
-            for line in x509_out.split("\n"):
-                if line.startswith("issuer="):
-                    cert_issuer = line.replace("issuer=", "").strip()
-                elif line.startswith("notBefore="):
-                    cert_not_before = line.replace("notBefore=", "").strip()
-                elif line.startswith("notAfter="):
-                    cert_not_after = line.replace("notAfter=", "").strip()
-                elif "Fingerprint=" in line or "fingerprint=" in line.lower():
-                    # Captura SHA256 Fingerprint=..., sha256 Fingerprint=..., Fingerprint=...
-                    cert_fingerprint_sha256 = re.sub(r"^.*[Ff]ingerprint\s*=\s*", "", line).strip()
-                elif "Subject Alternative Name" in line:
-                    continue
-                elif "DNS:" in line:
-                    cert_san = line.strip()
+            # Parseamos el certificado con la librería cryptography (ya dependencia del proyecto)
+            # en lugar de lanzar un segundo subproceso openssl x509, que escaparía al semáforo.
+            try:
+                _cert = _x509_lib.load_pem_x509_certificate(cert_pem.encode())
+                cert_issuer = _cert.issuer.rfc4514_string()
+                cert_not_before = _cert.not_valid_before_utc.isoformat()
+                cert_not_after = _cert.not_valid_after_utc.isoformat()
+                _der = _cert.public_bytes(_serialization.Encoding.DER)
+                _fp = hashlib.sha256(_der).hexdigest().upper()
+                cert_fingerprint_sha256 = ":".join(_fp[i:i + 2] for i in range(0, len(_fp), 2))
+                try:
+                    _san_ext = _cert.extensions.get_extension_for_class(
+                        _x509_lib.SubjectAlternativeName
+                    )
+                    _dns_names = [n.value for n in _san_ext.value
+                                  if isinstance(n, _x509_lib.DNSName)]
+                    cert_san = ", ".join(f"DNS:{n}" for n in _dns_names) if _dns_names else None
+                except _x509_lib.ExtensionNotFound:
+                    cert_san = None
+            except Exception as _cert_err:
+                logger.debug("No se pudo parsear certificado PEM para %s: %s", hostname, _cert_err)
 
         # Detectar fallos reales de handshake
         handshake_failed = False
@@ -619,8 +604,6 @@ def sonda_pqc(  # noqa: C901
             handshake_total_overhead=handshake_total_overhead,
             measurement_method_total=measurement_method_total,
             sni_usado=sni_usado,
-            sni_difiere=sni_difiere,
-            retry=retried,
         )
 
         # Si hay fallo de handshake confirmado, es RECHAZADO
@@ -683,8 +666,6 @@ def sonda_pqc(  # noqa: C901
             ip=ip_resuelta,
             ip_familia=ip_familia,
             sni_usado=sni_usado,
-            sni_difiere=sni_difiere,
-            retry=retried,
         )
 
 
@@ -768,7 +749,6 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
         # Creamos las listas para cada métrica que queremos analizar
         handshake_times = []
         dns_times = []
-        tcp_times = []
         bytes_sent_list = []
         bytes_received_list = []
         handshake_overhead_list = []
@@ -780,8 +760,6 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
                     handshake_times.append(prueba["handshake_time_ms"])
                 if prueba.get("dns_time_ms") is not None:
                     dns_times.append(prueba["dns_time_ms"])
-                if prueba.get("tcp_time_ms") is not None:
-                    tcp_times.append(prueba["tcp_time_ms"])
                 if prueba.get("bytes_sent") is not None:
                     bytes_sent_list.append(prueba["bytes_sent"])
                 if prueba.get("bytes_received") is not None:
@@ -808,7 +786,6 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
         
         stats_handshake = calc_stats(handshake_times)
         stats_dns = calc_stats(dns_times)
-        stats_tcp = calc_stats(tcp_times)
         stats_bytes_sent = calc_stats(bytes_sent_list)
         stats_bytes_received = calc_stats(bytes_received_list)
         stats_handshake_overhead = calc_stats(handshake_overhead_list)
@@ -834,7 +811,6 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
             "porcentaje_error": porcentaje_error,
             "handshake_time_ms": stats_handshake,
             "dns_time_ms": stats_dns,
-            "tcp_time_ms": stats_tcp,
             "bytes_sent": stats_bytes_sent,
             "bytes_received": stats_bytes_received,
             "handshake_overhead": stats_handshake_overhead,

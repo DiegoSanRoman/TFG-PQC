@@ -32,9 +32,9 @@ import dns.exception
 import dns.resolver
 
 try:
-    from sondas.tls_utils import decode_ech_base64, run_cmd as run_command
+    from sondas.tls_utils import decode_ech_base64, run_cmd as run_command, split_host_port
 except ModuleNotFoundError:
-    from tls_utils import decode_ech_base64, run_cmd as run_command
+    from tls_utils import decode_ech_base64, run_cmd as run_command, split_host_port
 
 # Configuración por defecto y constantes.
 DEFAULT_JSON_OUTPUT = "resultados/resultados_ech_prevalencia.json"
@@ -113,18 +113,8 @@ def _target_parece_dominio(value: str) -> bool:
     return bool(re.search(r"[A-Za-z]", value) and ("." in value or ":" in value or value == "localhost"))
 
 
-def _split_host_port(target: str) -> Tuple[str, int]:
-    """
-    Soporta entradas `host` o `host:puerto` (sin IPv6 bracket para simplicidad).
-    Si no se especifica puerto, asume 443 por defecto.
-        Input: `example.com` o `example.com:8443`
-        Output: (`example.com`, 443) o (`example.com`, 8443)
-    """
-    if ":" in target and target.count(":") == 1:
-        host, port_text = target.rsplit(":", 1)
-        if port_text.isdigit():
-            return host.strip(), int(port_text)
-    return target, 443
+# Alias de compatibilidad: la implementación canónica vive en tls_utils.split_host_port.
+_split_host_port = split_host_port
 
 
 def _parse_ech_config_contents(contents: bytes, version: int) -> Dict[str, Any]:

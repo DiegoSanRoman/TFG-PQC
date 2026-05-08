@@ -4,7 +4,7 @@
 # Uso: ./ejecutar_sonda.sh --input-csv ARCHIVO.csv [--max-hostnames N] [--repeticiones N] [--max-workers N]
 
 # Para asegurar que el script falle si algún comando falla y no haya resultados inconsistentes
-set -e
+set -euo pipefail
 
 # Directorio base del proyecto
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

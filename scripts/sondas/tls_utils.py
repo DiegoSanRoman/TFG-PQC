@@ -15,6 +15,20 @@ import statistics
 from typing import List, Optional, Tuple
 
 
+def split_host_port(target: str, default_port: int = 443) -> Tuple[str, int]:
+    """
+    Separa host y puerto de una cadena «host» o «host:puerto».
+    Devuelve (host, puerto). No maneja direcciones IPv6 entre corchetes.
+    """
+    if ":" in target:
+        host, port_str = target.rsplit(":", 1)
+        try:
+            return host, int(port_str)
+        except ValueError:
+            pass
+    return target, default_port
+
+
 async def run_cmd(
     command: List[str],
     timeout: float,

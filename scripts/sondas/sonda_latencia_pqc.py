@@ -40,7 +40,6 @@ if str(_SCRIPTS_DIR) not in sys.path:
 
 from utils import configurar_logging
 from sondas.sonda_ech_prevalencia import (
-    _split_host_port,
     cargar_dominios_csv,
     descubrir_https_rr,
     detectar_handshake_completo,
@@ -52,6 +51,7 @@ from sondas.tls_utils import (
     extraer_error as _extraer_error,
     agregar as _agregar,
     decode_ech_base64 as _decode_ech_base64,
+    split_host_port as _split_host_port,
 )
 
 logger = logging.getLogger(__name__)
