@@ -58,9 +58,9 @@ else
 
     # Instalar dependencias si no están presentes
     echo "--- Verificando dependencias..."
-    pip install -q pandas numpy matplotlib seaborn scipy dnspython cryptography 2>/dev/null || {     # -q silencia la salida de pip, y 2>/dev/null redirige errores a null para evitar ruido
+    pip install -q pandas numpy matplotlib seaborn scipy statsmodels dnspython cryptography 2>/dev/null || {     # -q silencia la salida de pip, y 2>/dev/null redirige errores a null para evitar ruido
         echo "   --- Instalando paquetes requeridos..."
-        pip install pandas numpy matplotlib seaborn scipy dnspython cryptography
+        pip install pandas numpy matplotlib seaborn scipy statsmodels dnspython cryptography
     }
 fi
 

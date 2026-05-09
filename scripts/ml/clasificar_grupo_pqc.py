@@ -6,7 +6,7 @@ Pregunta de investigación: ¿puede un observador de red inferir qué grupo
 criptográfico negoció una conexión TLS *sin* leer el campo cipher_suite?
 
 Tres experimentos en cascada, con features crecientemente ricas:
-  Exp 1 - Solo timing:        handshake_time_ms
+  Exp 1 - Solo timing:        openssl_execution_time_ms  (TCP+TLS+cierre del proceso)
   Exp 2 - Timing + bytes TLS: + bytes_sent, bytes_received,
                                  handshake_overhead
   Exp 3 - Timing + bytes tot: + handshake_total_bytes_sent,
@@ -89,20 +89,23 @@ PALETTE = {
     "SecP256r1MLKEM768\n(híbrido P-256)": "#2ca02c",
 }
 
-# Definición de los 3 experimentos
+# Definición de los 3 experimentos.
+# Se usa openssl_execution_time_ms (renombrado desde handshake_time_ms del JSON) para
+# reflejar que la métrica incluye TCP + TLS + cierre del proceso OpenSSL, no solo el
+# handshake TLS puro. Esto es consistente con la nomenclatura de analizar_resultados.py.
 # Nota: dns_time_ms queda excluido deliberadamente — mide la latencia del resolver
 # DNS en el momento de la prueba, no una propiedad del grupo criptográfico, y
 # podría introducir correlaciones espurias en el clasificador.
 EXPERIMENTOS = {
     "Exp 1\nSolo timing": [
-        "handshake_time_ms",
+        "openssl_execution_time_ms",
     ],
     "Exp 2\nTiming + bytes TLS": [
-        "handshake_time_ms",
+        "openssl_execution_time_ms",
         "bytes_sent", "bytes_received", "handshake_overhead",
     ],
     "Exp 3\nTiming + bytes totales": [
-        "handshake_time_ms",
+        "openssl_execution_time_ms",
         "bytes_sent", "bytes_received", "handshake_overhead",
         "handshake_total_bytes_sent", "handshake_total_bytes_received",
         "handshake_total_overhead",
@@ -129,17 +132,18 @@ def cargar_datos(json_path: Path) -> pd.DataFrame:
             if prueba["grupo"] not in GRUPOS_VIABLES:
                 continue
             filas.append({
-                "hostname":                    hostname,
-                "grupo":                       prueba["grupo"],
-                "dns_time_ms":                 prueba.get("dns_time_ms"),
-                "tcp_time_ms":                 prueba.get("tcp_time_ms"),
-                "handshake_time_ms":           prueba.get("handshake_time_ms"),
-                "bytes_sent":                  prueba.get("bytes_sent"),
-                "bytes_received":              prueba.get("bytes_received"),
-                "handshake_overhead":          prueba.get("handshake_overhead"),
-                "handshake_total_bytes_sent":  prueba.get("handshake_total_bytes_sent"),
+                "hostname":                       hostname,
+                "grupo":                          prueba["grupo"],
+                "dns_time_ms":                    prueba.get("dns_time_ms"),
+                # handshake_time_ms en el JSON mide TCP + TLS + cierre del proceso OpenSSL;
+                # se renombra aquí para ser consistente con analizar_resultados.py.
+                "openssl_execution_time_ms":      prueba.get("openssl_subprocess_time_ms", prueba.get("handshake_time_ms")),
+                "bytes_sent":                     prueba.get("bytes_sent"),
+                "bytes_received":                 prueba.get("bytes_received"),
+                "handshake_overhead":             prueba.get("handshake_overhead"),
+                "handshake_total_bytes_sent":     prueba.get("handshake_total_bytes_sent"),
                 "handshake_total_bytes_received": prueba.get("handshake_total_bytes_received"),
-                "handshake_total_overhead":    prueba.get("handshake_total_overhead"),
+                "handshake_total_overhead":       prueba.get("handshake_total_overhead"),
             })
 
     df = pd.DataFrame(filas)
@@ -150,6 +154,25 @@ def cargar_datos(json_path: Path) -> pd.DataFrame:
     )
     for g, n in df["grupo"].value_counts().items():
         logger.info("  %-28s  %d registros", g, n)
+
+    # Validar que cada grupo tiene muestras suficientes para clasificación significativa.
+    # Se advierte si algún grupo tiene pocas muestras (resultados ML pueden no ser fiables)
+    # pero no se filtran: sklearn maneja clases con pocas muestras con advertencias propias.
+    MIN_SAMPLES_WARN = 10
+    conteo = df["grupo"].value_counts()
+    grupos_escasos = [g for g in conteo.index if conteo[g] < MIN_SAMPLES_WARN]
+    if grupos_escasos:
+        logger.warning(
+            "Grupos con menos de %d muestras (resultados ML pueden no ser fiables): %s",
+            MIN_SAMPLES_WARN, grupos_escasos,
+        )
+
+    if df.empty:
+        raise ValueError(
+            "No hay grupos con datos ACEPTADO para clasificar. "
+            "Ejecuta primero sonda_pqc_final.py con suficientes hosts."
+        )
+
     return df
 
 
@@ -257,7 +280,7 @@ def evaluar_experimento(
 def graficar_distribucion_features(df: pd.DataFrame, out_dir: Path) -> None:
     """Boxplots de los features clave por grupo (sin cipher suite)."""
     features_plot = [
-        ("handshake_time_ms",           "Handshake TLS (ms)"),
+        ("openssl_execution_time_ms",   "OpenSSL TCP+TLS (ms)"),
         ("dns_time_ms",                 "DNS (ms)"),
         ("bytes_sent",                  "Bytes enviados (trace)"),
         ("bytes_received",              "Bytes recibidos (trace)"),

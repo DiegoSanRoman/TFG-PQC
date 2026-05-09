@@ -149,19 +149,17 @@ class TestBuildResult:
         assert r["bytes_sent"] is None
 
     def test_openssl_connect_tls_time_no_existe(self):
-        r = self._base(handshake_time_ms=42.5)
+        r = self._base(openssl_subprocess_time_ms=42.5)
         assert "openssl_connect_tls_time_ms" not in r
 
 
-def _intento(connection_result=CONNECTION_ACCEPTED, handshake_time_ms=100.0,
+def _intento(connection_result=CONNECTION_ACCEPTED, openssl_subprocess_time_ms=100.0,
              dns_time_ms=10.0, grupo="X25519", **kwargs) -> Dict[str, Any]:
     base = dict(
         error_category=None,
         connection_result=connection_result,
         res="ok",
         sni_usado="example.com",
-        sni_difiere=False,
-        retry=False,
         ip="1.2.3.4",
         ip_familia="IPv4",
         tls_version="TLSv1.3",
@@ -182,9 +180,8 @@ def _intento(connection_result=CONNECTION_ACCEPTED, handshake_time_ms=100.0,
         measurement_method="traced",
         measurement_method_total="openssl_summary",
         tiempo_conexion_segundos=0.5,
-        handshake_time_ms=handshake_time_ms,
+        openssl_subprocess_time_ms=openssl_subprocess_time_ms,
         dns_time_ms=dns_time_ms,
-        tcp_time_ms=5.0,
         grupo=grupo,
     )
     base.update(kwargs)
@@ -235,7 +232,7 @@ class TestGenerarEstadisticasPorGrupo:
     def test_stats_handshake_calculadas(self):
         lista = [self._resultado_host()]
         result = generar_estadisticas_por_grupo(lista, ["X25519"])
-        stats = result[0]["handshake_time_ms"]
+        stats = result[0]["openssl_subprocess_time_ms"]
         assert stats["media"] is not None
         assert stats["mediana"] is not None
 
@@ -250,7 +247,7 @@ class TestFlattenStatsEntry:
             "grupo": "X25519",
             "total_pruebas": 10,
             "aceptados": 8,
-            "handshake_time_ms": {"media": 50.0, "mediana": 48.0, "desv_std": 5.0, "min": 40.0, "max": 65.0},
+            "openssl_subprocess_time_ms": {"media": 50.0, "mediana": 48.0, "desv_std": 5.0, "min": 40.0, "max": 65.0},
             "categorias_error": {"ERROR_TLS_ALERT": 2},
         }
 
@@ -261,8 +258,8 @@ class TestFlattenStatsEntry:
 
     def test_sub_dict_se_expande(self):
         flat = _flatten_stats_entry(self._entry())
-        assert flat["handshake_time_ms_media"] == 50.0
-        assert flat["handshake_time_ms_mediana"] == 48.0
+        assert flat["openssl_subprocess_time_ms_media"] == 50.0
+        assert flat["openssl_subprocess_time_ms_mediana"] == 48.0
 
     def test_categorias_error_omitido(self):
         flat = _flatten_stats_entry(self._entry())
@@ -282,9 +279,8 @@ class TestExportarEstadisticasCsv:
             "porcentaje_aceptacion": 80.0,
             "porcentaje_rechazo": 20.0,
             "porcentaje_error": 0.0,
-            "handshake_time_ms": {"media": 100.0, "mediana": 95.0, "desv_std": 10.0, "min": 80.0, "max": 120.0},
+            "openssl_subprocess_time_ms": {"media": 100.0, "mediana": 95.0, "desv_std": 10.0, "min": 80.0, "max": 120.0},
             "dns_time_ms": {"media": 5.0, "mediana": 5.0, "desv_std": 1.0, "min": 4.0, "max": 6.0},
-            "tcp_time_ms": {"media": 3.0, "mediana": 3.0, "desv_std": 0.5, "min": 2.0, "max": 4.0},
             "bytes_sent": {"media": 200.0, "mediana": 200.0, "desv_std": 0.0, "min": 200.0, "max": 200.0},
             "bytes_received": {"media": 400.0, "mediana": 400.0, "desv_std": 0.0, "min": 400.0, "max": 400.0},
             "handshake_overhead": {"media": 600.0, "mediana": 600.0, "desv_std": 0.0, "min": 600.0, "max": 600.0},
@@ -310,7 +306,7 @@ class TestExportarEstadisticasCsv:
             headers = reader.fieldnames
         # Cabeceras dinámicas deben incluir expansiones del sub-dict
         assert "grupo" in headers
-        assert "handshake_time_ms_media" in headers
+        assert "openssl_subprocess_time_ms_media" in headers
         assert "dns_time_ms_mediana" in headers
         # categorias_error debe estar ausente
         assert "categorias_error" not in headers
@@ -445,8 +441,6 @@ class TestProbeResults:
             connection_result=CONNECTION_ACCEPTED,
             res="ok",
             sni_usado="example.com",
-            sni_difiere=False,
-            retry=False,
             ip="1.2.3.4",
             ip_familia="IPv4",
             tls_version="TLSv1.3",
@@ -467,9 +461,8 @@ class TestProbeResults:
             measurement_method="traced",
             measurement_method_total="openssl_summary",
             tiempo_conexion_segundos=0.5,
-            handshake_time_ms=80.0,
+            openssl_subprocess_time_ms=80.0,
             dns_time_ms=10.0,
-            tcp_time_ms=5.0,
         )
         base.update(kwargs)
         return ProbeResults(data=base)
@@ -491,7 +484,7 @@ class TestProbeResults:
         assert r.tls_version == "TLSv1.3"
 
     def test_handshake_time_ms_property(self):
-        r = self._make(handshake_time_ms=55.5)
+        r = self._make(openssl_subprocess_time_ms=55.5)
         assert r.handshake_time_ms == 55.5
 
     def test_acceso_por_clave(self):
@@ -545,8 +538,6 @@ class TestPQCProbe:
             connection_result=CONNECTION_ACCEPTED,
             res="ok",
             sni_usado="example.com",
-            sni_difiere=False,
-            retry=False,
             ip="1.2.3.4",
             ip_familia="IPv4",
             tls_version="TLSv1.3",
@@ -558,8 +549,8 @@ class TestPQCProbe:
             handshake_total_bytes_sent=100, handshake_total_bytes_received=200,
             handshake_total_overhead=300,
             measurement_method="traced", measurement_method_total="openssl_summary",
-            tiempo_conexion_segundos=0.5, handshake_time_ms=80.0,
-            dns_time_ms=10.0, tcp_time_ms=5.0,
+            tiempo_conexion_segundos=0.5, openssl_subprocess_time_ms=80.0,
+            dns_time_ms=10.0,
         )
         import sonda_pqc_final as _mod
         monkeypatch.setattr(_mod, "sonda_pqc", lambda *a, **kw: dummy)
@@ -574,7 +565,7 @@ class TestPQCProbe:
             llamadas.append(openssl_bin)
             return dict(
                 error_category=None, connection_result=CONNECTION_ACCEPTED,
-                res="ok", sni_usado=hostname, sni_difiere=False, retry=False,
+                res="ok", sni_usado=hostname,
                 ip=None, ip_familia=None, tls_version=None, cipher_suite=None,
                 alpn=None, tls_alert=None, cert_issuer=None, cert_not_before=None,
                 cert_not_after=None, cert_san=None, cert_fingerprint_sha256=None,
@@ -582,7 +573,7 @@ class TestPQCProbe:
                 handshake_total_bytes_sent=None, handshake_total_bytes_received=None,
                 handshake_total_overhead=None, measurement_method=None,
                 measurement_method_total=None, tiempo_conexion_segundos=None,
-                handshake_time_ms=None, dns_time_ms=None, tcp_time_ms=None,
+                openssl_subprocess_time_ms=None, dns_time_ms=None,
             )
         import sonda_pqc_final as _mod
         monkeypatch.setattr(_mod, "sonda_pqc", fake_sonda)

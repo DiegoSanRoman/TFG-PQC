@@ -149,7 +149,7 @@ class TestBuildResultDict:
         for key in ("error_category", "connection_result", "res",
                     "sni_usado",
                     "ip", "tls_version", "cipher_suite",
-                    "handshake_time_ms"):
+                    "openssl_subprocess_time_ms"):
             assert key in r, f"Clave ausente: {key}"
 
     def test_sni_difiere_y_retry_eliminados(self):
@@ -168,9 +168,9 @@ class TestBuildResultDict:
         assert r["bytes_sent"] is None
         assert r["dns_time_ms"] is None
 
-    def test_handshake_time_se_asigna(self):
-        r = self._base(handshake_time_ms=42.5)
-        assert r["handshake_time_ms"] == 42.5
+    def test_openssl_subprocess_time_se_asigna(self):
+        r = self._base(openssl_subprocess_time_ms=42.5)
+        assert r["openssl_subprocess_time_ms"] == 42.5
 
     def test_error_category_se_asigna(self):
         r = self._base(error_category="ERROR_DNS")

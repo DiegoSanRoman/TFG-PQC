@@ -159,8 +159,7 @@ def _parse_ech_config_contents(contents: bytes, version: int) -> Dict[str, Any]:
         index += 2
         hpke_suites.append(f"kdf=0x{kdf_id:04x}/aead=0x{aead_id:04x}")
 
-    _maximum_name_length = contents[index]
-    index += 1
+    index += 1  # skip maximum_name_length field
 
     public_name_len = contents[index]
     index += 1
@@ -303,7 +302,7 @@ def detectar_handshake_completo(output: str, return_code: int) -> bool:
         Output: True si hay indicadores claros de que el handshake TLS se completó, False en caso contrario. Esta función ayuda a mejorar la precisión de la clasificación de resultados de negociación ECH al considerar el resultado general del handshake TLS, evitando clasificaciones erróneas en casos donde el handshake falla por razones no relacionadas con ECH.
     """
     # Si el código de retorno indica un error general (no timeout), se asume que el handshake no se completó. Luego, se buscan indicadores comunes en la salida textual que sugieran que el handshake TLS se completó exitosamente, como mensajes de verificación, protocolo negociado, o confirmación de handshake completo. Si encontramos alguno de estos indicadores, consideramos que el handshake TLS se completó correctamente.
-    if return_code != 0:
+    if return_code not in (0, 1):
         return False
 
     # Buscamos indicadores comunes en la salida textual que sugieran que el handshake TLS se completó exitosamente, como mensajes de verificación, protocolo negociado, o confirmación de handshake completo. Si encontramos alguno de estos indicadores, consideramos que el handshake TLS se completó correctamente.
@@ -581,10 +580,10 @@ async def simular_tls_ech(
         try:
             raw_ech = decode_ech_base64(ech_value)
             temp_handle = tempfile.NamedTemporaryFile(prefix="ech_config_", suffix=".bin", delete=False)
+            ech_temp_file = temp_handle.name  # asignar antes de write para que finally limpie siempre
             temp_handle.write(raw_ech)
             temp_handle.flush()
             temp_handle.close()
-            ech_temp_file = temp_handle.name
         except Exception as exc:
             return STATUS_FALLO_NEGOCIACION, False, False, None, f"ECH_CONFIG_FILE_ERROR:{exc}", client_kind, note
 
@@ -595,9 +594,6 @@ async def simular_tls_ech(
         # Ejecutamos el cliente TLS con el host de conexión inicial (dominio) y analizamos la salida para clasificar el resultado de negociación ECH y medir longitud de ClientHello.
         cmd = construir_cmd(domain)
         return_code, stdout, stderr = await run_command(cmd, timeout=tls_timeout, input_data=input_data)
-        if return_code == 124:
-            retry_timeout = max(tls_timeout * 1.5, tls_timeout + 2)
-            return_code, stdout, stderr = await run_command(cmd, timeout=retry_timeout, input_data=input_data)
 
         combined_output = f"{stdout}\n{stderr}"
         client_hello_len = extraer_longitud_client_hello(combined_output)
@@ -881,7 +877,7 @@ def calcular_variabilidad_por_proveedor(resultados: List[DominioECHResultado]) -
             "min": min(lengths),
             "max": max(lengths),
             "mean": round(statistics.mean(lengths), 2),
-            "stddev": round(statistics.pstdev(lengths), 2) if len(lengths) > 1 else 0.0,
+            "stddev": round(statistics.stdev(lengths), 2) if len(lengths) > 1 else 0.0,
             "range": max(lengths) - min(lengths),
         }
     return stats

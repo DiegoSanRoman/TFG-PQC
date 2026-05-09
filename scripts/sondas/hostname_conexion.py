@@ -66,7 +66,7 @@ def main() -> None:
         resultado = sonda_pqc(args.hostname, grupo)
         estado = resultado.get("connection_result", "?")
         error = resultado.get("error_category") or resultado.get("tls_alert") or ""
-        hs_ms = resultado.get("handshake_time_ms")
+        hs_ms = resultado.get("openssl_subprocess_time_ms")
         cipher = resultado.get("cipher_suite", "?")
         ip = resultado.get("ip", "?")
 

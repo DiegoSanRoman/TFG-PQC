@@ -37,7 +37,7 @@ from clasificar_grupo_pqc import (
 # ---------------------------------------------------------------------------
 
 ALL_FEATURES = [
-    "dns_time_ms", "tcp_time_ms", "handshake_time_ms",
+    "dns_time_ms", "openssl_execution_time_ms",
     "bytes_sent", "bytes_received", "handshake_overhead",
     "handshake_total_bytes_sent", "handshake_total_bytes_received",
     "handshake_total_overhead",
@@ -54,8 +54,7 @@ def _fila(hostname: str, grupo: str, seed: int = 0) -> dict:
         "hostname":                       hostname,
         "grupo":                          grupo,
         "dns_time_ms":                    float(rng.integers(5, 50)),
-        "tcp_time_ms":                    float(rng.integers(10, 80)),
-        "handshake_time_ms":              float(rng.integers(30, 200)),
+        "openssl_execution_time_ms":      float(rng.integers(30, 200)),
         "bytes_sent":                     base_bytes + int(rng.integers(0, 50)),
         "bytes_received":                 base_bytes // 3 + int(rng.integers(0, 30)),
         "handshake_overhead":             base_bytes + base_bytes // 3 + int(rng.integers(0, 80)),
@@ -196,13 +195,13 @@ class TestCargarDatos:
         datos["datos"][0]["pruebas"][0]["handshake_time_ms"] = None
         path = self._escribir_json(datos)
         df = cargar_datos(path)
-        # La fila con NaN sigue presente en el df crudo
-        assert df["handshake_time_ms"].isna().sum() == 1
+        # La fila con NaN sigue presente en el df crudo (campo JSON se carga como openssl_execution_time_ms)
+        assert df["openssl_execution_time_ms"].isna().sum() == 1
         # Pero desaparece al filtrar con las columnas del experimento
         from clasificar_grupo_pqc import EXPERIMENTOS
         for features in EXPERIMENTOS.values():
             df_exp = df.dropna(subset=features)
-            assert df_exp["handshake_time_ms"].isna().sum() == 0
+            assert df_exp["openssl_execution_time_ms"].isna().sum() == 0
 
     def test_grupo_label_mapeado(self):
         path = self._escribir_json(_json_minimo(n_hosts_por_grupo=2))

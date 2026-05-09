@@ -333,8 +333,14 @@ class TestExtraerLongitudClientHello:
 # ============================================
 
 class TestDetectarHandshakeCompleto:
-    def test_codigo_no_cero_devuelve_false(self):
-        assert detectar_handshake_completo("Verify return code: 0 (ok)", 1) is False
+    def test_codigo_1_con_marcadores_de_exito_devuelve_true(self):
+        # openssl s_client devuelve 1 cuando el servidor cierra limpiamente sin datos HTTP:
+        # comportamiento normal y esperable, debe considerarse handshake exitoso.
+        assert detectar_handshake_completo("Verify return code: 0 (ok)", 1) is True
+
+    def test_codigo_distinto_de_0_y_1_devuelve_false(self):
+        # Códigos distintos de 0 y 1 sí indican error real
+        assert detectar_handshake_completo("Verify return code: 0 (ok)", 2) is False
 
     def test_verification_ok(self):
         assert detectar_handshake_completo("Verification: OK\nSome other stuff", 0) is True

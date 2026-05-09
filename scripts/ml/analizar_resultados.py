@@ -22,6 +22,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from statsmodels.stats.multitest import multipletests
 
 # Importar constantes compartidas desde scripts/
 _SCRIPTS_DIR = Path(__file__).parent.parent
@@ -64,7 +65,7 @@ RESULTADOS_PATH = BASE_DIR / "resultados" / "resultados_sonda_pqc.json"
 OUTPUT_DIR = BASE_DIR / "imagenes"
 MIN_MUESTRAS_ANALISIS = 30
 # Mide el tiempo total de ejecución del proceso OpenSSL (TCP + TLS + cierre), no solo el handshake TLS.
-METRICA_CONNECT_TLS_MS = 'handshake_time_ms'
+METRICA_CONNECT_TLS_MS = 'openssl_subprocess_time_ms'
 
 
 def construir_dataset_justo(df, grupo_clasico='X25519'):
@@ -269,7 +270,7 @@ def cargar_y_procesar(input_path: Path = RESULTADOS_PATH):
         - Filtra el DataFrame para obtener solo las conexiones exitosas (connection_result == "ACEPTADO").
         - Muestra estadísticas básicas de los datos cargados.
     """
-    logger.info(f"Cargando datos desde {input_path}")
+    logger.info("Cargando datos desde %s", input_path)
 
     # Cargar JSON
     with input_path.open('r', encoding='utf-8') as f:
@@ -292,8 +293,7 @@ def cargar_y_procesar(input_path: Path = RESULTADOS_PATH):
                 'error_category': prueba.get('error_category'),
                 'dns_time_ms': prueba.get('dns_time_ms'),
                 'tcp_time_ms': prueba.get('tcp_time_ms'),
-                'handshake_time_ms': prueba.get('handshake_time_ms'),
-                METRICA_CONNECT_TLS_MS: prueba.get(METRICA_CONNECT_TLS_MS, prueba.get('handshake_time_ms')),
+                METRICA_CONNECT_TLS_MS: prueba.get('openssl_subprocess_time_ms', prueba.get('handshake_time_ms')),
                 'tiempo_conexion_segundos': prueba.get('tiempo_conexion_segundos'),
                 'bytes_sent': prueba.get('bytes_sent'),
                 'bytes_received': prueba.get('bytes_received'),
@@ -308,22 +308,16 @@ def cargar_y_procesar(input_path: Path = RESULTADOS_PATH):
     df = pd.DataFrame(registros)
     
     # Convertir a numérico
-    for col in ['dns_time_ms', 'tcp_time_ms', 'handshake_time_ms', METRICA_CONNECT_TLS_MS, 'tiempo_conexion_segundos',
+    for col in ['dns_time_ms', 'tcp_time_ms', METRICA_CONNECT_TLS_MS, 'tiempo_conexion_segundos',
             'bytes_sent', 'bytes_received', 'handshake_overhead',
             'handshake_total_bytes_sent', 'handshake_total_bytes_received', 'handshake_total_overhead']:
         df[col] = pd.to_numeric(df[col], errors='coerce') # coerce convierte errores a NaN
-
-    # Compatibilidad: asegurar que ambas columnas estén sincronizadas
-    df[METRICA_CONNECT_TLS_MS] = df[METRICA_CONNECT_TLS_MS].fillna(df['handshake_time_ms'])
-    df['handshake_time_ms'] = df['handshake_time_ms'].fillna(df[METRICA_CONNECT_TLS_MS])
 
     # Métricas derivadas para análisis de conexión/TLS
     # Nota: tiempo_conexion_segundos se mide alrededor de la ejecución de OpenSSL,
     # por lo que ya excluye el pre-check DNS en la ruta normal.
     df['tiempo_total_ms'] = df['tiempo_conexion_segundos'] * 1000
-    # Nombre explícito para evitar la interpretación errónea de "total - dns"
-    df['openssl_execution_time_ms'] = df['tiempo_total_ms']
-    # Alias legacy (compatibilidad temporal con artefactos/scripts antiguos)
+    df['openssl_execution_time_ms'] = df[METRICA_CONNECT_TLS_MS]
     df['tiempo_conexion_sin_dns_ms'] = df['openssl_execution_time_ms']
     # Referencia opcional: aproximación end-to-end incluyendo DNS cuando exista.
     df['tiempo_total_con_dns_ms'] = df['tiempo_total_ms'] + df['dns_time_ms']
@@ -331,8 +325,8 @@ def cargar_y_procesar(input_path: Path = RESULTADOS_PATH):
     # Filtrar solo exitosas
     df_exitos = df[df['connection_result'] == CONNECTION_ACCEPTED].copy()
     
-    logger.info(f"Total de pruebas: {len(df)}")
-    logger.info(f"Pruebas exitosas: {len(df_exitos)}")
+    logger.info("Total de pruebas: %d", len(df))
+    logger.info("Pruebas exitosas: %d", len(df_exitos))
     
     return df, df_exitos
 
@@ -377,10 +371,10 @@ def remover_outliers_por_grupo(df, columnas, grupo_col='grupo', metodo='iqr', um
             removidos = int(mask_outlier.sum())
             if removidos > 0:
                 outliers_removidos += removidos
-                logger.info(f"  {grupo} - {col}: removidos {removidos} outliers")
+                logger.info("  %s - %s: removidos %d outliers", grupo, col, removidos)
                 df_limpio = df_limpio.loc[~mask_outlier].copy()
 
-    logger.info(f"Total de outliers removidos (por grupo): {outliers_removidos}")
+    logger.info("Total de outliers removidos (por grupo): %d", outliers_removidos)
     return df_limpio
 
 def filtrar_por_muestras_minimas(df, min_muestras=20):
@@ -397,20 +391,20 @@ def filtrar_por_muestras_minimas(df, min_muestras=20):
     grupos_counts = df['grupo'].value_counts()
     grupos_validos = grupos_counts[grupos_counts >= min_muestras].index.tolist()
     
-    logger.info(f"\nFiltro de muestras mínimas (>={min_muestras}):")
-    logger.info(f"  Grupos validos: {len(grupos_validos)}")
+    logger.info("\nFiltro de muestras mínimas (>=%d):", min_muestras)
+    logger.info("  Grupos validos: %d", len(grupos_validos))
     # Mostrar conteo de muestras por grupo válido
     for grupo in grupos_validos:
         count = grupos_counts[grupo]
-        logger.info(f"    - {grupo}: {count} muestras")
-    
+        logger.info("    - %s: %d muestras", grupo, count)
+
     # Mostrar grupos excluidos
     grupos_excluidos = grupos_counts[grupos_counts < min_muestras].index.tolist()
     if grupos_excluidos:
-        logger.info(f"  Grupos excluidos: {len(grupos_excluidos)}")
+        logger.info("  Grupos excluidos: %d", len(grupos_excluidos))
         for grupo in grupos_excluidos:
             count = grupos_counts[grupo]
-            logger.info(f"    - {grupo}: {count} muestras (insuficientes)")
+            logger.info("    - %s: %d muestras (insuficientes)", grupo, count)
     
     return df[df['grupo'].isin(grupos_validos)].copy()
 
@@ -494,14 +488,14 @@ def graficar_latencia(df, output_dir, df_ranking=None):
         # Exportar ranking justo para auditoría (concluyente y no concluyente)
         ranking_concluyente_path = output_dir / 'ranking_justo_handshake.csv'
         ranking_concluyente.to_csv(ranking_concluyente_path, index=False)
-        logger.info(f"✓ Guardado: {ranking_concluyente_path}")
+        logger.info("✓ Guardado: %s", ranking_concluyente_path)
 
         if not ranking_no_concluyente.empty:
             ranking_no_concluyente = ranking_no_concluyente.sort_values('hostnames', ascending=False).copy()
             ranking_no_concluyente['motivo'] = f'Muestra insuficiente (<{min_hostnames_concluyente} hostnames comparables)'
             ranking_no_concluyente_path = output_dir / 'ranking_justo_handshake_no_concluyente.csv'
             ranking_no_concluyente.to_csv(ranking_no_concluyente_path, index=False)
-            logger.info(f"✓ Guardado: {ranking_no_concluyente_path}")
+            logger.info("✓ Guardado: %s", ranking_no_concluyente_path)
     else:
         df_hs = df.groupby('grupo')[METRICA_CONNECT_TLS_MS].agg(['median', 'mean', 'std']).sort_values('median', ascending=False)
         axes[0].barh(df_hs.index, df_hs['median'], xerr=df_hs['std'],
@@ -540,7 +534,7 @@ def graficar_latencia(df, output_dir, df_ranking=None):
 
         delta_sin_dns_path = output_dir / 'delta_openssl_execution_time_vs_x25519.csv'
         delta_sin_dns.to_csv(delta_sin_dns_path, index=False)
-        logger.info(f"✓ Guardado: {delta_sin_dns_path}")
+        logger.info("✓ Guardado: %s", delta_sin_dns_path)
     else:
         axes[1].text(0.5, 0.5, 'Sin datos comparables para delta vs X25519', ha='center', va='center', transform=axes[1].transAxes)
         axes[1].set_title('OpenSSL execution time (vs X25519)', fontweight='bold')
@@ -575,7 +569,7 @@ def graficar_latencia(df, output_dir, df_ranking=None):
 
         delta_connect_tls_path = output_dir / 'delta_openssl_tcp_tls_vs_x25519.csv'
         delta_connect_tls.to_csv(delta_connect_tls_path, index=False)
-        logger.info(f"✓ Guardado: {delta_connect_tls_path}")
+        logger.info("✓ Guardado: %s", delta_connect_tls_path)
     else:
         axes[2].text(0.5, 0.5, 'Sin datos comparables para delta vs X25519', ha='center', va='center', transform=axes[2].transAxes)
         axes[2].set_title('OpenSSL TCP+TLS (vs X25519)', fontweight='bold')
@@ -585,7 +579,7 @@ def graficar_latencia(df, output_dir, df_ranking=None):
     plt.tight_layout()
     output_path = output_dir / 'latencia_limpia.png'
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    logger.info(f"✓ Guardado: {output_path}")
+    logger.info("✓ Guardado: %s", output_path)
     plt.close()
 
     return grupos_concluyentes, hosts_comunes_concluyentes
@@ -733,22 +727,9 @@ def graficar_bytes(df, output_dir, grupos_latencia=None, hosts_latencia=None):
     plt.tight_layout()
     output_path = output_dir / 'bytes_limpia.png'
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    logger.info(f"✓ Guardado: {output_path}")
+    logger.info("✓ Guardado: %s", output_path)
     plt.close()
 
-def _bh_correction(pvalues):
-    """Corrección Benjamini-Hochberg (FDR) sobre una lista de p-values."""
-    n = len(pvalues)
-    if n == 0:
-        return []
-    orden = sorted(range(n), key=lambda i: pvalues[i])
-    corr = [min(pvalues[orden[j]] * n / (j + 1), 1.0) for j in range(n)]
-    for j in range(n - 2, -1, -1):
-        corr[j] = min(corr[j], corr[j + 1])
-    resultado = [0.0] * n
-    for rank, idx in enumerate(orden):
-        resultado[idx] = corr[rank]
-    return resultado
 
 
 def calcular_significancia(df, metrica_col, grupo_clasico='X25519', alpha=0.05, min_pares=20):
@@ -790,7 +771,7 @@ def calcular_significancia(df, metrica_col, grupo_clasico='X25519', alpha=0.05, 
             p_val = 1.0
         else:
             try:
-                _, p_val = wilcoxon(deltas, zero_method='zsplit', alternative='two-sided')
+                _, p_val = wilcoxon(deltas, zero_method='pratt', alternative='two-sided')
             except ValueError:
                 p_val = 1.0
 
@@ -806,7 +787,8 @@ def calcular_significancia(df, metrica_col, grupo_clasico='X25519', alpha=0.05, 
         return pd.DataFrame()
 
     res = pd.DataFrame(filas)
-    res['p_valor_bh'] = _bh_correction(res['p_valor'].tolist())
+    _, pvals_bh, _, _ = multipletests(res['p_valor'].tolist(), method='fdr_bh')
+    res['p_valor_bh'] = pvals_bh
     res['significativo'] = res['p_valor_bh'] < alpha
 
     def _etiqueta(p):
@@ -873,7 +855,7 @@ def graficar_significancia(df_sig, output_dir):
 
     output_path = output_dir / 'significancia_latencia.png'
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    logger.info(f"✓ Guardado: {output_path}")
+    logger.info("✓ Guardado: %s", output_path)
     plt.close()
 
 
@@ -921,7 +903,7 @@ def graficar_tasas_resultado(df_total, output_dir):
     # CSV de auditoría
     csv_path = output_dir / 'tasas_resultado_por_grupo.csv'
     pivot.reset_index().to_csv(csv_path, index=False)
-    logger.info(f"✓ Guardado: {csv_path}")
+    logger.info("✓ Guardado: %s", csv_path)
 
     # Gráfica
     colores = ['#2ca02c', '#ff7f0e', '#d62728', '#aec7e8']
@@ -946,7 +928,7 @@ def graficar_tasas_resultado(df_total, output_dir):
     plt.tight_layout()
     output_path = output_dir / 'tasas_resultado_por_grupo.png'
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    logger.info(f"✓ Guardado: {output_path}")
+    logger.info("✓ Guardado: %s", output_path)
     plt.close()
 
 
@@ -986,7 +968,7 @@ def main(input_path: Path = RESULTADOS_PATH, output_dir: Path = OUTPUT_DIR):
     if not df_sig.empty:
         sig_csv = output_dir / 'significancia_latencia.csv'
         df_sig.to_csv(sig_csv, index=False)
-        logger.info(f"✓ Guardado: {sig_csv}")
+        logger.info("✓ Guardado: %s", sig_csv)
         graficar_significancia(df_sig, output_dir)
         logger.info("\nResultados de significancia:")
         for _, row in df_sig.iterrows():
@@ -1001,14 +983,15 @@ def main(input_path: Path = RESULTADOS_PATH, output_dir: Path = OUTPUT_DIR):
     # Aplicar filtro de muestras mínimas
     logger.info("\n📊 Aplicando filtro de muestras mínimas...")
     df_filtrado = filtrar_por_muestras_minimas(df_exitos, min_muestras=MIN_MUESTRAS_ANALISIS)
-    logger.info(f"\nDatos finales para gráficas: {len(df_filtrado)} registros de {df_filtrado['grupo'].nunique()} grupos")
+    logger.info("\nDatos finales para gráficas: %d registros de %d grupos",
+                len(df_filtrado), df_filtrado['grupo'].nunique())
     
     # Generar gráficas
     logger.info("\n📈 Generando gráficas...")
     grupos_lat, hosts_lat = graficar_latencia(df_filtrado, output_dir, df_ranking=df_exitos_ranking)
     graficar_bytes(df_filtrado, output_dir, grupos_latencia=grupos_lat, hosts_latencia=hosts_lat)
 
-    logger.info(f"\n✅ ¡Análisis completado! Gráficas guardadas en {output_dir}")
+    logger.info("\n✅ ¡Análisis completado! Gráficas guardadas en %s", output_dir)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Analiza resultados de sonda PQC y genera gráficas")

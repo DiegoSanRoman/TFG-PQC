@@ -241,14 +241,10 @@ def _build_result_dict(
     res: str,
     sni_usado: str,
     dns_time_ms: Optional[float] = None,
-    # tcp_time_ms es siempre None por diseño: no se abre una conexión TCP
-    # independiente para evitar consumir slots en servidores con rate-limiting.
-    # El tiempo TCP está incluido dentro de handshake_time_ms.
-    tcp_time_ms: Optional[float] = None,
     tiempo_conexion_segundos: Optional[float] = None,
-    # handshake_time_ms mide el tiempo total del subproceso OpenSSL:
+    # openssl_subprocess_time_ms mide el tiempo total del subproceso OpenSSL:
     # TCP + handshake TLS + cierre. No es exclusivamente el handshake TLS.
-    handshake_time_ms: Optional[float] = None,
+    openssl_subprocess_time_ms: Optional[float] = None,
     ip: Optional[str] = None,
     ip_familia: Optional[str] = None,
     tls_version: Optional[str] = None,
@@ -283,8 +279,7 @@ def _build_result_dict(
         "res": res,
         "tiempo_conexion_segundos": tiempo_conexion_segundos,
         "dns_time_ms": dns_time_ms,
-        "tcp_time_ms": tcp_time_ms,
-        "handshake_time_ms": handshake_time_ms,
+        "openssl_subprocess_time_ms": openssl_subprocess_time_ms,
         "ip": ip,
         "ip_familia": ip_familia,
         "tls_version": tls_version,

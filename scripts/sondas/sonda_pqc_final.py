@@ -19,6 +19,7 @@ import logging                                              # Para logging
 import argparse                                             # Para argumentos CLI
 import socket                                               # Para pre-check TCP
 import re                                                   # Para parseo de salida
+import random                                               # Para aleatorizar orden de grupos
 import threading                                            # Para semáforo de procesos
 from cryptography import x509 as _x509_lib                  # Para parseo de certificados sin subprocess
 from cryptography.hazmat.primitives import serialization as _serialization  # Para codificar cert a DER
@@ -62,6 +63,8 @@ logger = logging.getLogger(__name__)
 # overhead de red excesivo, NO rechazo activo del servidor.
 TIMEOUT_TLS_INTERNET_S = 8
 TIMEOUT_TLS_LOCALHOST_S = 30
+TIMEOUT_TLS_INTERNET_LENTO_S = 30
+GRUPOS_LENTOS = frozenset({"frodo640aes", "bikel1", "x25519_bikel1", "x25519_hqc128"})
 
 BASE_DIR = Path(__file__).parent.parent.parent         # Directorio raíz del proyecto
 DATA_DIR = BASE_DIR / "data"                    # Directorio de datos
@@ -300,6 +303,14 @@ class TLSOutputParser:
 # La implementación canónica vive en utils._build_result_dict.
 _build_result = _build_result_dict
 
+# Regex para detectar alertas TLS reales en la salida de OpenSSL.
+# Evita falsos positivos en líneas que mencionen "alert" en otro contexto
+# (e.g. cabeceras HTTP, logs de aplicación, etc.).
+_TLS_ALERT_RE = re.compile(
+    r"\b(?:SSL|TLS)\b.*\balert\b|\balert\b.*\b(?:write|read|fatal|warning)\b",
+    re.IGNORECASE,
+)
+
 
 def sonda_pqc(  # noqa: C901
     hostname: str,
@@ -356,7 +367,6 @@ def sonda_pqc(  # noqa: C901
     # rate-limiting y garantiza que OpenSSL usa exactamente la misma IP (fijada
     # vía -connect más abajo), sin riesgo de rotación anycast entre resoluciones.
     dns_time_ms = None
-    tcp_time_ms = None   # Siempre None: incluido en handshake_time_ms (ver _build_result_dict)
     ip_resuelta = None
     ip_familia = None
     sni_usado = base_hostname
@@ -373,7 +383,16 @@ def sonda_pqc(  # noqa: C901
         ip_resuelta = sockaddr[0]
         ip_familia = "IPv6" if family == socket.AF_INET6 else "IPv4"
     except socket.gaierror as e:
-        logger.debug("Pre-check DNS falló para %s (omitiendo, OpenSSL lo intentará): %s", hostname, e)
+        logger.debug("Pre-check DNS falló para %s: %s", hostname, e)
+        return _build_result(
+            error_category=ERROR_DNS,
+            connection_result=None,
+            res=str(e),
+            dns_time_ms=dns_time_ms,
+            ip=None,
+            ip_familia=None,
+            sni_usado=sni_usado,
+        )
 
     # Fijar destino de conexión para comparaciones justas entre grupos:
     # - Si tenemos IP resuelta en pre-check, conectar a esa IP.
@@ -389,13 +408,12 @@ def sonda_pqc(  # noqa: C901
     except (ValueError, IndexError):
         pass
 
-    # Si el pre-check TCP fue exitoso, procedemos a ejecutar OpenSSL para probar el handshake TLS/PQC
-    # Ejecutamos el comando y capturamos la salida
+    # Ejecutamos OpenSSL para probar el handshake TLS/PQC y capturamos la salida
     try:
         # Ejecutamos con Popen (Process open) para controlar mejor timeouts y limpieza
         stdout_bytes = b""
         stderr_bytes = b""
-        handshake_time_ms = None
+        openssl_subprocess_time_ms = None
         return_code = None
 
         if proc_semaphore:
@@ -413,16 +431,20 @@ def sonda_pqc(  # noqa: C901
             intento_inicio = time.perf_counter()
 
             try:
-                # Timeout más largo para localhost/calibración vs. Internet
-                timeout_seconds = TIMEOUT_TLS_LOCALHOST_S if "localhost" in base_hostname or "127.0.0.1" in base_hostname else TIMEOUT_TLS_INTERNET_S
+                if "localhost" in base_hostname or "127.0.0.1" in base_hostname:
+                    timeout_seconds = TIMEOUT_TLS_LOCALHOST_S
+                elif group in GRUPOS_LENTOS:
+                    timeout_seconds = TIMEOUT_TLS_INTERNET_LENTO_S
+                else:
+                    timeout_seconds = TIMEOUT_TLS_INTERNET_S
                 # Handshake puro: no enviamos tráfico de aplicación (sin GET)
                 stdout_bytes, stderr_bytes = process.communicate(input=b"", timeout=timeout_seconds)
-                handshake_time_ms = round((time.perf_counter() - intento_inicio) * 1000, 2)
+                openssl_subprocess_time_ms = round((time.perf_counter() - intento_inicio) * 1000, 2)
                 return_code = process.returncode
             except subprocess.TimeoutExpired:
                 process.kill()
                 stdout_bytes, stderr_bytes = process.communicate()
-                handshake_time_ms = round((time.perf_counter() - intento_inicio) * 1000, 2)
+                openssl_subprocess_time_ms = round((time.perf_counter() - intento_inicio) * 1000, 2)
                 return_code = process.returncode
                 logger.warning("Timeout en %s con grupo %s", hostname, group)
                 return _build_result(
@@ -430,7 +452,6 @@ def sonda_pqc(  # noqa: C901
                     connection_result=None,
                     res="Timeout durante handshake TLS",
                     dns_time_ms=dns_time_ms,
-                    tcp_time_ms=tcp_time_ms,
                     ip=ip_resuelta,
                     ip_familia=ip_familia,
                     sni_usado=sni_usado,
@@ -446,7 +467,30 @@ def sonda_pqc(  # noqa: C901
         # Decodificamos la salida
         stdout = stdout_bytes.decode(errors='ignore') if stdout_bytes else ""
         stderr = stderr_bytes.decode(errors='ignore') if stderr_bytes else ""
-        
+
+        # Detectar errores de conexión TCP en la salida de OpenSSL.
+        # Estos ocurren cuando DNS resuelve pero el servidor rechaza o no responde a TCP.
+        _combined = stderr + " " + stdout
+        _tcp_refused_markers = ("Connection refused", "connect: ECONNREFUSED", "Connection reset by peer")
+        _tcp_timeout_markers = ("Connection timed out", "connect: ETIMEDOUT", "Operation timed out",
+                                "connect: Connection timed out")
+        _tcp_ctx = dict(dns_time_ms=dns_time_ms, openssl_subprocess_time_ms=openssl_subprocess_time_ms,
+                        ip=ip_resuelta, ip_familia=ip_familia, sni_usado=sni_usado)
+        if any(m in _combined for m in _tcp_refused_markers):
+            return _build_result(
+                error_category=ERROR_TCP_REFUSED,
+                connection_result=None,
+                res="TCP: conexión rechazada por el servidor",
+                **_tcp_ctx,
+            )
+        if any(m in _combined for m in _tcp_timeout_markers):
+            return _build_result(
+                error_category=ERROR_TCP_TIMEOUT,
+                connection_result=None,
+                res="TCP: timeout de conexión",
+                **_tcp_ctx,
+            )
+
         # Parsear los bytes reales del handshake TLS desde la salida de -trace
         trace_metrics = TLSOutputParser.from_subprocess(stdout, stderr).parse()
         
@@ -493,7 +537,7 @@ def sonda_pqc(  # noqa: C901
         # TLS alert específico (si aparece)
         tls_alert = None
         for line in (stderr + "\n" + stdout).split("\n"):
-            if "alert" in line.lower():
+            if _TLS_ALERT_RE.search(line):
                 tls_alert = line.strip()
                 break
 
@@ -582,8 +626,7 @@ def sonda_pqc(  # noqa: C901
         _tls_ctx: Dict[str, Any] = dict(
             tiempo_conexion_segundos=tiempo_conexion_segundos,
             dns_time_ms=dns_time_ms,
-            tcp_time_ms=tcp_time_ms,
-            handshake_time_ms=handshake_time_ms,
+            openssl_subprocess_time_ms=openssl_subprocess_time_ms,
             ip=ip_resuelta,
             ip_familia=ip_familia,
             tls_version=tls_version,
@@ -662,7 +705,6 @@ def sonda_pqc(  # noqa: C901
             connection_result=None,
             res=str(e),
             dns_time_ms=dns_time_ms,
-            tcp_time_ms=tcp_time_ms,
             ip=ip_resuelta,
             ip_familia=ip_familia,
             sni_usado=sni_usado,
@@ -686,8 +728,12 @@ def escanear_servidor_pqc(hostname: str, grupos: List[str], openssl_bin: str, pr
         "pruebas": []
     }
     
+    # Aleatorizar el orden de grupos para evitar sesgos por rate-limiting o caché del servidor
+    grupos_aleatorios = list(grupos)
+    random.shuffle(grupos_aleatorios)
+
     # Probar cada grupo
-    for g in grupos:
+    for g in grupos_aleatorios:
         label = g
 
         # Realizar múltiples repeticiones
@@ -756,8 +802,8 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
         
         for prueba in pruebas_grupo:
             if prueba.get("connection_result") == CONNECTION_ACCEPTED:
-                if prueba.get("handshake_time_ms") is not None:
-                    handshake_times.append(prueba["handshake_time_ms"])
+                if prueba.get("openssl_subprocess_time_ms") is not None:
+                    handshake_times.append(prueba["openssl_subprocess_time_ms"])
                 if prueba.get("dns_time_ms") is not None:
                     dns_times.append(prueba["dns_time_ms"])
                 if prueba.get("bytes_sent") is not None:
@@ -809,7 +855,7 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
             "porcentaje_rechazo": porcentaje_rechazo,
             "porcentaje_timeout": porcentaje_timeout,
             "porcentaje_error": porcentaje_error,
-            "handshake_time_ms": stats_handshake,
+            "openssl_subprocess_time_ms": stats_handshake,
             "dns_time_ms": stats_dns,
             "bytes_sent": stats_bytes_sent,
             "bytes_received": stats_bytes_received,
@@ -826,7 +872,7 @@ def _flatten_stats_entry(entry: Dict[str, Any]) -> Dict[str, Any]:
     Aplana una entrada de estadísticas en un dict plano apto para CSV.
 
     Los campos escalares se copian directamente. Los campos que son dicts
-    de sub-métricas (p.ej. handshake_time_ms → {media, mediana, ...}) se
+    de sub-métricas (p.ej. openssl_subprocess_time_ms → {media, mediana, ...}) se
     expanden como ``campo_submetrica``. El campo ``categorias_error`` se omite
     porque su estructura es variable (un dict de claves dinámicas) y no encaja
     en una fila tabular fija.
@@ -914,8 +960,7 @@ class ProbeResults:
     @property
     def is_accepted(self) -> bool:
         """True si el handshake TLS/PQC fue aceptado por el servidor."""
-        from constants import CONNECTION_ACCEPTED as _CA
-        return self.connection_result == _CA
+        return self.connection_result == CONNECTION_ACCEPTED
 
     @property
     def tls_version(self) -> Optional[str]:
@@ -927,7 +972,7 @@ class ProbeResults:
 
     @property
     def handshake_time_ms(self) -> Optional[float]:
-        return self.data.get("handshake_time_ms")
+        return self.data.get("openssl_subprocess_time_ms")
 
     # ------------------------------------------------------------------
     # Compatibilidad con acceso por clave (dict-like)
