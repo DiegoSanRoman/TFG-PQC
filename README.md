@@ -8,7 +8,7 @@ Herramienta de investigación para medir la adopción de algoritmos post-cuánti
 
 - [Objetivo](#objetivo)
 - [Requisitos](#requisitos)
-- [Quick Start](#quick-start)
+- [Reproducción completa del experimento](#reproducción-completa-del-experimento)
 - [Uso detallado](#uso-detallado)
 - [Arquitectura](#arquitectura)
 - [Estructura del repositorio](#estructura-del-repositorio)
@@ -17,8 +17,6 @@ Herramienta de investigación para medir la adopción de algoritmos post-cuánti
 - [Artefactos de salida](#artefactos-de-salida)
 - [Tests](#tests)
 - [Troubleshooting](#troubleshooting)
-
----
 
 ---
 
@@ -88,6 +86,7 @@ tqdm>=4.60.0
 pytest>=7.0.0
 scikit-learn>=1.0.0
 scipy>=1.9.0
+statsmodels>=0.13.0
 cryptography>=38.0.0
 ```
 
@@ -95,110 +94,66 @@ cryptography>=38.0.0
 pip install -r requirements.txt
 ```
 
-Verificar entorno:
-
-```bash
-docker --version && docker ps
-python3 --version
-```
-
 ---
 
-## Quick Start
+## Reproducción completa del experimento
 
-### Sonda PQC
+> **Antes de empezar:** instala las dependencias Python y verifica el entorno:
+>
+> ```bash
+> pip install -r requirements.txt
+> docker --version && docker ps
+> python3 --version
+> ```
+>
+> Para las sondas de latencia ECH y PQC también necesitas `bssl` compilado (ver [Troubleshooting](#troubleshooting)).
 
-**1. Escanear dominios reales:**
+Los cinco pasos son independientes entre sí, salvo que el paso 2 (clasificador) necesita el JSON generado por el paso 1.
+
+**Paso 1 — Sonda PQC + análisis** *(requiere Docker)*
 
 ```bash
-# Test rápido (7 dominios de prueba)
-./ejecutar_sonda.sh --input-csv prueba.csv --max-hostnames 10 --repeticiones 1 --max-workers 5
+# Pipeline completo en un solo comando (recomendado):
+./test_pipeline.sh --input-csv majestic_million.csv --max-hostnames 500 --repeticiones 3
 
-# Escaneo representativo
-./ejecutar_sonda.sh --input-csv majestic_million.csv --max-hostnames 100 --repeticiones 3 --max-workers 20
-```
-
-**2. Analizar resultados y generar gráficas:**
-
-```bash
+# O por separado:
+./ejecutar_sonda.sh --input-csv majestic_million.csv --max-hostnames 500 --repeticiones 3
 ./ejecutar_analisis.sh
 ```
 
-**3. Pipeline completo (sonda + análisis en un paso):**
+Genera: `resultados/resultados_sonda_pqc.json`, `resultados/resumen_por_grupo.csv`, gráficas en `imagenes/`.
 
-```bash
-./test_pipeline.sh --input-csv prueba.csv --max-hostnames 10 --repeticiones 1 --max-workers 5
-```
-
-### Sonda de latencia ECH
-
-**1. Medir overhead de ECH con los dominios de referencia incluidos:**
-
-```bash
-./ejecutar_sonda_latencia_ech.sh
-```
-
-**2. Con más repeticiones para mayor precisión estadística:**
-
-```bash
-./ejecutar_sonda_latencia_ech.sh --repeticiones 10
-```
-
-**3. Con un CSV propio:**
-
-```bash
-./ejecutar_sonda_latencia_ech.sh --input-csv data/mis_dominios.csv --repeticiones 5
-```
-
-### Sonda de prevalencia ECH (a gran escala)
-
-```bash
-./ejecutar_sonda_ech.sh --input-csv data/majestic_million.csv --max-dominios 5000
-```
-
-### Sonda de latencia PQC (múltiples grupos)
-
-**1. Ejecutar con los dominios de referencia incluidos (30 repeticiones por defecto):**
-
-```bash
-./ejecutar_sonda_latencia_pqc.sh
-```
-
-**2. Con más repeticiones para mayor precisión estadística:**
-
-```bash
-./ejecutar_sonda_latencia_pqc.sh --repeticiones 50
-```
-
-**3. Solo grupos bssl (sin necesidad de OpenSSL OQS):**
-
-```bash
-./ejecutar_sonda_latencia_pqc.sh --grupos-pqc X25519Kyber768Draft00 X25519MLKEM768
-```
-
-Al finalizar, genera automáticamente la gráfica comparativa en `imagenes/latencia_pqc_ech_vs_sin_ech.png`.
-
-### Clasificación PQC por side-channel (ML)
-
-**1. Ejecutar con el JSON de resultados de la sonda PQC:**
+**Paso 2 — Clasificación PQC por side-channel (ML)** *(necesita el JSON del paso 1)*
 
 ```bash
 ./ejecutar_clasificacion_pqc.sh
 ```
 
-**2. Con más folds de validación cruzada:**
+Genera: `imagenes/clasificacion_*.png`.
+
+**Paso 3 — Sonda de prevalencia ECH** *(independiente, sin Docker)*
 
 ```bash
-./ejecutar_clasificacion_pqc.sh --n-splits 10
+./ejecutar_sonda_ech.sh --input-csv data/majestic_million.csv --max-dominios 5000
 ```
 
-**3. Con un JSON alternativo:**
+Genera: `resultados/resultados_ech_prevalencia.csv` y `.json`.
+
+**Paso 4 — Sonda de latencia ECH** *(requiere `bssl` compilado)*
 
 ```bash
-./ejecutar_clasificacion_pqc.sh --input-json resultados/mi_sonda.json
+./ejecutar_sonda_latencia_ech.sh --repeticiones 30
 ```
 
-Al finalizar, genera automáticamente las gráficas en `imagenes/clasificacion_*.png`.
+Genera: `resultados/resultados_latencia_ech.csv`, `imagenes/latencia_ech_vs_sin_ech.png`.
+
+**Paso 5 — Sonda de latencia PQC** *(requiere `bssl` y OpenSSL OQS)*
+
+```bash
+./ejecutar_sonda_latencia_pqc.sh --repeticiones 30
+```
+
+Genera: `resultados/resultados_latencia_pqc.csv`, `imagenes/latencia_pqc_ech_vs_sin_ech.png`.
 
 ---
 
@@ -553,9 +508,8 @@ Cada resultado de sonda contiene ~54 campos. Los más relevantes:
 **Latencia (ms):**
 
 - `dns_time_ms` — Resolución DNS
-- `tcp_time_ms` — Establecimiento de conexión TCP
-- `handshake_time_ms` — Handshake TLS completo
-- `openssl_execution_time_ms` — Tiempo total de ejecución de OpenSSL
+- `handshake_time_ms` — Handshake TLS completo (TCP + TLS)
+- `openssl_execution_time_ms` — Tiempo total de ejecución del proceso OpenSSL
 
 **Bytes del handshake** (extraídos del output `-trace`):
 
@@ -577,7 +531,7 @@ Cada resultado de sonda contiene ~54 campos. Los más relevantes:
 - `cert_san` — Subject Alternative Names
 - `cert_fingerprint_sha256`
 
-**El CSV `resumen_por_grupo.csv`** agrega por grupo: `total_pruebas`, `aceptados`, `rechazados`, `errores`, `porcentaje_aceptacion`, y estadísticas (media, mediana, desv. std., mín., máx.) de todas las métricas numéricas.
+**El CSV `resumen_por_grupo.csv`** agrega por grupo: `total_pruebas`, `aceptados`, `rechazados`, `errores`, `porcentaje_aceptacion`, estadísticas (media, mediana, desv. std., mín., máx.) de todas las métricas numéricas, y `categorias_error` serializado como JSON compacto con el desglose de tipos de error.
 
 ---
 

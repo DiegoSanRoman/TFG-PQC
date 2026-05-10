@@ -9,19 +9,10 @@ TLSOutputParser, ProbeResults y PQCProbe.
 """
 
 import csv
-import sys
 import tempfile
-from pathlib import Path
 from typing import Any, Dict
 
 import pytest
-
-# Añadir scripts/ y scripts/sondas/ al path
-_SCRIPTS_DIR = Path(__file__).parent.parent
-_SONDAS_DIR = _SCRIPTS_DIR / "sondas"
-for _p in (_SCRIPTS_DIR, _SONDAS_DIR):
-    if str(_p) not in sys.path:
-        sys.path.insert(0, str(_p))
 
 from constants import CONNECTION_ACCEPTED, CONNECTION_REJECTED, ERROR_DNS, ERROR_TLS_ALERT
 from exceptions import (
@@ -261,11 +252,13 @@ class TestFlattenStatsEntry:
         assert flat["openssl_subprocess_time_ms_media"] == 50.0
         assert flat["openssl_subprocess_time_ms_mediana"] == 48.0
 
-    def test_categorias_error_omitido(self):
+    def test_categorias_error_serializado_como_json(self):
         flat = _flatten_stats_entry(self._entry())
-        assert "categorias_error" not in flat
-        # No deben aparecer claves expandidas de categorias_error
-        assert not any("categorias_error" in k for k in flat)
+        # categorias_error debe estar presente como JSON compacto, no expandido
+        assert "categorias_error" in flat
+        assert flat["categorias_error"] == '{"ERROR_TLS_ALERT": 2}'
+        # No deben aparecer claves expandidas tipo "categorias_error_ERROR_TLS_ALERT"
+        assert not any(k.startswith("categorias_error_") for k in flat)
 
 
 class TestExportarEstadisticasCsv:
@@ -308,8 +301,9 @@ class TestExportarEstadisticasCsv:
         assert "grupo" in headers
         assert "openssl_subprocess_time_ms_media" in headers
         assert "dns_time_ms_mediana" in headers
-        # categorias_error debe estar ausente
-        assert "categorias_error" not in headers
+        # categorias_error debe estar presente como columna JSON compacta (no expandida)
+        assert "categorias_error" in headers
+        assert not any(h.startswith("categorias_error_") for h in headers)
 
     def test_datos_correctos_en_fila(self, tmp_path):
         out = tmp_path / "stats.csv"

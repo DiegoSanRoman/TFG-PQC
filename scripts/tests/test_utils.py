@@ -6,16 +6,9 @@ Cubre es_hostname_valido y configurar_logging.
 """
 
 import logging
-import sys
 import tempfile
-from pathlib import Path
 
 import pytest
-
-# Añadir scripts/ al path para importar utils directamente
-_SCRIPTS_DIR = Path(__file__).parent.parent
-if str(_SCRIPTS_DIR) not in sys.path:
-    sys.path.insert(0, str(_SCRIPTS_DIR))
 
 from utils import configurar_logging, es_hostname_valido, _build_result_dict
 

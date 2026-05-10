@@ -10,7 +10,6 @@ Cubre funciones puras y comportamiento observable sin I/O de red ni ficheros rea
 """
 
 import json
-import sys
 import tempfile
 from pathlib import Path
 
@@ -18,10 +17,6 @@ import numpy as np
 import pandas as pd
 import pytest
 from sklearn.preprocessing import LabelEncoder
-
-_ML_DIR = Path(__file__).parent.parent / "ml"
-if str(_ML_DIR) not in sys.path:
-    sys.path.insert(0, str(_ML_DIR))
 
 from clasificar_grupo_pqc import (
     EXPERIMENTOS,

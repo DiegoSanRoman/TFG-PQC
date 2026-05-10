@@ -10,6 +10,7 @@ NOTA METODOLÓGICA:
   Esto es robusto ante outliers (valores extremos de red).
 - Media y Desv.Est. serían más sensibles a outliers, especialmente en latencias de red.
 """
+from __future__ import annotations
 
 # Importar librerías
 import argparse
@@ -411,9 +412,9 @@ def filtrar_por_muestras_minimas(df, min_muestras=20):
 def graficar_latencia(df, output_dir, df_ranking=None):
     """
     Gráfica de latencia por grupo.
-    Crea una figura con 4 subplots para DNS, TCP, Handshake y Tiempo Total.
-    Cada subplot muestra una barra horizontal con el tiempo promedio por grupo, con barras de error para
-    la desviación estándar. Los grupos se ordenan de mayor a menor latencia promedio. Se aplican colores personalizados por grupo. Se guardan las gráficas en la carpeta de salida.
+    Crea una figura con 3 subplots: latencia TCP+TLS justa (cohorte común), delta de
+    tiempo de ejecución OpenSSL vs X25519, y delta TCP+TLS vs X25519.
+    Los grupos se ordenan por mediana de latencia. Se aplican colores personalizados por grupo.
     Input: DataFrame con resultados de conexiones exitosas, carpeta de salida para las gráficas.
     Output: Gráficas guardadas en la carpeta de salida.
     """
@@ -488,14 +489,14 @@ def graficar_latencia(df, output_dir, df_ranking=None):
         # Exportar ranking justo para auditoría (concluyente y no concluyente)
         ranking_concluyente_path = output_dir / 'ranking_justo_handshake.csv'
         ranking_concluyente.to_csv(ranking_concluyente_path, index=False)
-        logger.info("✓ Guardado: %s", ranking_concluyente_path)
+        logger.info("Guardado: %s",ranking_concluyente_path)
 
         if not ranking_no_concluyente.empty:
             ranking_no_concluyente = ranking_no_concluyente.sort_values('hostnames', ascending=False).copy()
             ranking_no_concluyente['motivo'] = f'Muestra insuficiente (<{min_hostnames_concluyente} hostnames comparables)'
             ranking_no_concluyente_path = output_dir / 'ranking_justo_handshake_no_concluyente.csv'
             ranking_no_concluyente.to_csv(ranking_no_concluyente_path, index=False)
-            logger.info("✓ Guardado: %s", ranking_no_concluyente_path)
+            logger.info("Guardado: %s",ranking_no_concluyente_path)
     else:
         df_hs = df.groupby('grupo')[METRICA_CONNECT_TLS_MS].agg(['median', 'mean', 'std']).sort_values('median', ascending=False)
         axes[0].barh(df_hs.index, df_hs['median'], xerr=df_hs['std'],
@@ -534,7 +535,7 @@ def graficar_latencia(df, output_dir, df_ranking=None):
 
         delta_sin_dns_path = output_dir / 'delta_openssl_execution_time_vs_x25519.csv'
         delta_sin_dns.to_csv(delta_sin_dns_path, index=False)
-        logger.info("✓ Guardado: %s", delta_sin_dns_path)
+        logger.info("Guardado: %s",delta_sin_dns_path)
     else:
         axes[1].text(0.5, 0.5, 'Sin datos comparables para delta vs X25519', ha='center', va='center', transform=axes[1].transAxes)
         axes[1].set_title('OpenSSL execution time (vs X25519)', fontweight='bold')
@@ -569,7 +570,7 @@ def graficar_latencia(df, output_dir, df_ranking=None):
 
         delta_connect_tls_path = output_dir / 'delta_openssl_tcp_tls_vs_x25519.csv'
         delta_connect_tls.to_csv(delta_connect_tls_path, index=False)
-        logger.info("✓ Guardado: %s", delta_connect_tls_path)
+        logger.info("Guardado: %s",delta_connect_tls_path)
     else:
         axes[2].text(0.5, 0.5, 'Sin datos comparables para delta vs X25519', ha='center', va='center', transform=axes[2].transAxes)
         axes[2].set_title('OpenSSL TCP+TLS (vs X25519)', fontweight='bold')
@@ -579,7 +580,7 @@ def graficar_latencia(df, output_dir, df_ranking=None):
     plt.tight_layout()
     output_path = output_dir / 'latencia_limpia.png'
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    logger.info("✓ Guardado: %s", output_path)
+    logger.info("Guardado: %s",output_path)
     plt.close()
 
     return grupos_concluyentes, hosts_comunes_concluyentes
@@ -727,7 +728,7 @@ def graficar_bytes(df, output_dir, grupos_latencia=None, hosts_latencia=None):
     plt.tight_layout()
     output_path = output_dir / 'bytes_limpia.png'
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    logger.info("✓ Guardado: %s", output_path)
+    logger.info("Guardado: %s",output_path)
     plt.close()
 
 
@@ -855,7 +856,7 @@ def graficar_significancia(df_sig, output_dir):
 
     output_path = output_dir / 'significancia_latencia.png'
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    logger.info("✓ Guardado: %s", output_path)
+    logger.info("Guardado: %s",output_path)
     plt.close()
 
 
@@ -903,7 +904,7 @@ def graficar_tasas_resultado(df_total, output_dir):
     # CSV de auditoría
     csv_path = output_dir / 'tasas_resultado_por_grupo.csv'
     pivot.reset_index().to_csv(csv_path, index=False)
-    logger.info("✓ Guardado: %s", csv_path)
+    logger.info("Guardado: %s",csv_path)
 
     # Gráfica
     colores = ['#2ca02c', '#ff7f0e', '#d62728', '#aec7e8']
@@ -928,7 +929,7 @@ def graficar_tasas_resultado(df_total, output_dir):
     plt.tight_layout()
     output_path = output_dir / 'tasas_resultado_por_grupo.png'
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    logger.info("✓ Guardado: %s", output_path)
+    logger.info("Guardado: %s",output_path)
     plt.close()
 
 
@@ -943,7 +944,7 @@ def main(input_path: Path = RESULTADOS_PATH, output_dir: Path = OUTPUT_DIR):
     graficar_tasas_resultado(df_total, output_dir)
 
     # Limpiar outliers de forma robusta por grupo (bytes + latencia sin DNS)
-    logger.info("\n🧹 Limpiando outliers por grupo (latencia + bytes)...")
+    logger.info("Limpiando outliers por grupo (latencia + bytes)...")
     columnas_outliers = [
         METRICA_CONNECT_TLS_MS,
         'openssl_execution_time_ms',
@@ -963,12 +964,12 @@ def main(input_path: Path = RESULTADOS_PATH, output_dir: Path = OUTPUT_DIR):
     df_exitos_ranking = df_exitos.copy()
 
     # Tests de significancia estadística (Wilcoxon + BH) sobre la cohorte limpia
-    logger.info("\n📐 Calculando tests de significancia estadística...")
+    logger.info("Calculando tests de significancia estadistica...")
     df_sig = calcular_significancia(df_exitos_ranking, METRICA_CONNECT_TLS_MS)
     if not df_sig.empty:
         sig_csv = output_dir / 'significancia_latencia.csv'
         df_sig.to_csv(sig_csv, index=False)
-        logger.info("✓ Guardado: %s", sig_csv)
+        logger.info("Guardado: %s",sig_csv)
         graficar_significancia(df_sig, output_dir)
         logger.info("\nResultados de significancia:")
         for _, row in df_sig.iterrows():
@@ -981,17 +982,17 @@ def main(input_path: Path = RESULTADOS_PATH, output_dir: Path = OUTPUT_DIR):
         logger.warning("Sin pares suficientes para tests de significancia")
 
     # Aplicar filtro de muestras mínimas
-    logger.info("\n📊 Aplicando filtro de muestras mínimas...")
+    logger.info("Aplicando filtro de muestras minimas...")
     df_filtrado = filtrar_por_muestras_minimas(df_exitos, min_muestras=MIN_MUESTRAS_ANALISIS)
     logger.info("\nDatos finales para gráficas: %d registros de %d grupos",
                 len(df_filtrado), df_filtrado['grupo'].nunique())
     
     # Generar gráficas
-    logger.info("\n📈 Generando gráficas...")
+    logger.info("Generando graficas...")
     grupos_lat, hosts_lat = graficar_latencia(df_filtrado, output_dir, df_ranking=df_exitos_ranking)
     graficar_bytes(df_filtrado, output_dir, grupos_latencia=grupos_lat, hosts_latencia=hosts_lat)
 
-    logger.info("\n✅ ¡Análisis completado! Gráficas guardadas en %s", output_dir)
+    logger.info("Analisis completado. Graficas guardadas en %s", output_dir)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Analiza resultados de sonda PQC y genera gráficas")

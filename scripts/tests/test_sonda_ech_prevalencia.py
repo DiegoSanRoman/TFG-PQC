@@ -12,17 +12,9 @@ Cubre únicamente las funciones puras (sin I/O de red ni subprocesos):
 """
 
 import base64
-import sys
 from pathlib import Path
 
 import pytest
-
-# Añadir scripts/ y scripts/sondas/ al path
-_SCRIPTS_DIR = Path(__file__).parent.parent
-_SONDAS_DIR = _SCRIPTS_DIR / "sondas"
-for _p in (_SCRIPTS_DIR, _SONDAS_DIR):
-    if str(_p) not in sys.path:
-        sys.path.insert(0, str(_p))
 
 from tls_utils import decode_ech_base64 as _decode_ech_base64
 from sonda_ech_prevalencia import (

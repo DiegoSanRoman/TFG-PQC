@@ -39,6 +39,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
+from matplotlib.patches import Patch
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -460,7 +461,6 @@ def graficar_importancia_features(
         "Rojo = bytes, Azul = timing"
     )
 
-    from matplotlib.patches import Patch
     ax.legend(handles=[
         Patch(color="#d62728", alpha=0.85, label="Bytes (tamaño de paquete)"),
         Patch(color="#1f77b4", alpha=0.85, label="Timing (latencia)"),

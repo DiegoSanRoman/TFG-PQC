@@ -5,6 +5,7 @@ Sonda para pruebas de conectividad con algoritmos post-cuánticos (PQC).
 Utiliza OpenSSL con soporte PQC para probar diferentes grupos de cifrado
 híbridos y puros contra servidores HTTPS.
 """
+from __future__ import annotations
 
 # Importaciones necesarias
 import subprocess                                           # Para ejecutar comandos del sistema
@@ -18,6 +19,8 @@ import statistics                                           # Para cálculos est
 import logging                                              # Para logging
 import argparse                                             # Para argumentos CLI
 import socket                                               # Para pre-check TCP
+import dns.resolver                                         # Para pre-check DNS con dnspython
+import dns.exception                                        # Para capturar excepciones de dnspython
 import re                                                   # Para parseo de salida
 import random                                               # Para aleatorizar orden de grupos
 import threading                                            # Para semáforo de procesos
@@ -139,15 +142,16 @@ def leer_hostnames_csv(ruta_csv: Path, longitud_max: int, domain_column: Optiona
 
             # Leer el resto de filas
             for fila in lector:
+                # Comprobar límite antes de procesar para evitar off-by-one cuando
+                # la primera fila ya aportó un hostname (formato Tranco/default).
+                if len(hostnames) >= longitud_max:
+                    break
                 if len(fila) > domain_column and fila[domain_column]:
                     _h = fila[domain_column].strip()
                     if es_hostname_valido(_h):
                         hostnames.append(_h)
                     else:
                         logger.debug("Hostname ignorado (inválido): %s", fila[domain_column])
-                    # Detener si alcanzamos el límite
-                    if len(hostnames) >= longitud_max:
-                        break
     except Exception as e:
         logger.error("Error al leer el archivo CSV %s: %s", ruta_csv, e)
     
@@ -373,16 +377,19 @@ def sonda_pqc(  # noqa: C901
 
     try:
         dns_inicio = time.perf_counter()
-        addrinfos = socket.getaddrinfo(base_hostname, int(puerto), type=socket.SOCK_STREAM)
+        # Usar dnspython (mismo resolver que las sondas ECH) para coherencia metodológica.
+        # Evita la caché del SO y el resolver síncrono bloqueante de socket.getaddrinfo.
+        _res = dns.resolver.Resolver()
+        try:
+            _ans = _res.resolve(base_hostname, 'A')
+            ip_resuelta = str(_ans[0])
+            ip_familia = "IPv4"
+        except dns.resolver.NoAnswer:
+            _ans = _res.resolve(base_hostname, 'AAAA')
+            ip_resuelta = str(_ans[0])
+            ip_familia = "IPv6"
         dns_time_ms = round((time.perf_counter() - dns_inicio) * 1000, 2)
-
-        if not addrinfos:
-            raise socket.gaierror("Sin resultados de DNS")
-
-        family, socktype, proto, canonname, sockaddr = addrinfos[0]
-        ip_resuelta = sockaddr[0]
-        ip_familia = "IPv6" if family == socket.AF_INET6 else "IPv4"
-    except socket.gaierror as e:
+    except dns.exception.DNSException as e:
         logger.debug("Pre-check DNS falló para %s: %s", hostname, e)
         return _build_result(
             error_category=ERROR_DNS,
@@ -883,6 +890,8 @@ def _flatten_stats_entry(entry: Dict[str, Any]) -> Dict[str, Any]:
     flat: Dict[str, Any] = {}
     for key, value in entry.items():
         if key == "categorias_error":
+            # Serializar como JSON compacto para preservar la información en el CSV.
+            flat[key] = json.dumps(value, ensure_ascii=False) if value else ""
             continue
         if isinstance(value, dict):
             for sub_key, sub_val in value.items():
@@ -1065,6 +1074,13 @@ if __name__ == "__main__":
         default=3,
         help="Número de repeticiones por grupo para promediar métricas (default: 3)"
     )
+    parser.add_argument(
+        "--timeout-total",
+        type=float,
+        default=None,
+        metavar="SEGUNDOS",
+        help="Tiempo máximo total de escaneo en segundos. Cancela hosts pendientes al agotarse (default: sin límite)"
+    )
     args = parser.parse_args()
 
     # Configurar logging
@@ -1076,12 +1092,17 @@ if __name__ == "__main__":
     logger.info("Límite de procesos OpenSSL: %s", args.max_openssl_procs)
     logger.info("Repeticiones por grupo: %s", args.repeticiones)
 
+    # Verificar que el binario OpenSSL existe antes de iniciar el escaneo
+    if not os.path.exists(args.openssl_bin):
+        logger.error("El binario OpenSSL no se encontro: %s", args.openssl_bin)
+        raise SystemExit(1)
+
     # Probamos diferentes protocolos, desde automático (None) hasta algunos híbridos y algunos puros PQC
     grupos = [
         # --- Clásico ---
         "X25519",               # 1. Clásico (Control)
         # --- Híbridos con soporte real en producción ---
-        "X25519MLKEM768",       # 3. Estándar NIST (FIPS 203, ML-KEM-768). Codepoint 0x11ec, distinto de x25519_kyber768 (draft OQS, 0x6399)
+        "X25519MLKEM768",       # 2. Estándar NIST (FIPS 203, ML-KEM-768). Codepoint 0x11ec, distinto de x25519_kyber768 (draft OQS, 0x6399)
         "x25519_kyber768",      # 4. Draft experimental OQS (híbrido pre-estándar, nunca estandarizado)
         # --- Puros ---
         "mlkem768",             # 5. Puro Moderno
@@ -1121,7 +1142,8 @@ if __name__ == "__main__":
     
     # Tiempo de inicio
     tiempo_inicio_total = time.time()
-    
+    deadline = tiempo_inicio_total + args.timeout_total if args.timeout_total is not None else None
+
     # Semáforo para limitar procesos OpenSSL concurrentes
     proc_semaphore = threading.BoundedSemaphore(args.max_openssl_procs)
 
@@ -1129,10 +1151,19 @@ if __name__ == "__main__":
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         # Lanzamos todas las tareas
         futuros = {executor.submit(escanear_servidor_pqc, host, grupos, args.openssl_bin, proc_semaphore, args.repeticiones): host for host in hostnames}
-        
+
         # Conforme vayan terminando, recogemos los resultados con barra de progreso
         with tqdm(total=len(hostnames), desc="Escaneo PQC", unit="host") as pbar:
             for futuro in as_completed(futuros):
+                if deadline is not None and time.time() > deadline:
+                    pendientes = sum(1 for f in futuros if not f.done())
+                    logger.warning(
+                        "Timeout total de %.0f s alcanzado. Cancelando %d hosts pendientes.",
+                        args.timeout_total, pendientes
+                    )
+                    for f in futuros:
+                        f.cancel()
+                    break
                 host = futuros[futuro]
                 try:
                     datos_host = futuro.result()

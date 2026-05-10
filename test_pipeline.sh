@@ -11,7 +11,7 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Valores por defecto
 INPUT_CSV="majestic_million.csv"
-MAX_HOSTNAMES=1000 
+MAX_HOSTNAMES=1000
 
 REPETICIONES=1
 MAX_WORKERS=20

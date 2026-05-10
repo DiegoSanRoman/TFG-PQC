@@ -12,19 +12,12 @@ Cubre funciones puras y comportamiento observable sin I/O de red real:
 
 import asyncio
 import csv
-import sys
 import tempfile
 from dataclasses import asdict
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
-_SCRIPTS_DIR = Path(__file__).parent.parent
-_SONDAS_DIR = _SCRIPTS_DIR / "sondas"
-for _p in (_SCRIPTS_DIR, _SONDAS_DIR):
-    if str(_p) not in sys.path:
-        sys.path.insert(0, str(_p))
 
 from sonda_latencia_pqc import (
     BSSL_CURVE_MAP,

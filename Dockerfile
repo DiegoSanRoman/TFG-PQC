@@ -1,4 +1,4 @@
-# 1. Usamos la imagen base con criptografía cuántica (latest para que siempre tenga las últimas mejoras)
+# 1. Imagen base con criptografía cuántica
 FROM openquantumsafe/openssl3:latest
 
 # Etiquetas para el contenedor
@@ -33,6 +33,7 @@ RUN env -u LD_LIBRARY_PATH pip3 install --no-cache-dir --break-system-packages \
     matplotlib \
     seaborn \
     scipy \
+    statsmodels \
     dnspython \
     cryptography \
     scikit-learn
