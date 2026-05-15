@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import csv
+import json
 import logging
 import random
 import socket
@@ -357,6 +358,43 @@ def exportar_csv(resultados: List[ResultadoLatenciaECH], output_path: Path) -> N
             writer.writerow(asdict(r))
 
 
+def _cargar_progreso_latencia_ech(progress_path: Path):
+    """Carga resultados previos del .jsonl de progreso; retorna (lista, set_hostnames)."""
+    resultados: List[ResultadoLatenciaECH] = []
+    completados: set = set()
+    if not progress_path.exists():
+        return resultados, completados
+    with progress_path.open('r', encoding='utf-8') as fh:
+        for linea in fh:
+            linea = linea.strip()
+            if not linea:
+                continue
+            try:
+                d = json.loads(linea)
+                h = d.get('hostname')
+                if h and h not in completados:
+                    resultados.append(ResultadoLatenciaECH(**d))
+                    completados.add(h)
+            except (json.JSONDecodeError, TypeError):
+                pass
+    return resultados, completados
+
+
+def _append_progress_latencia_ech(resultado: ResultadoLatenciaECH, progress_path: Path) -> None:
+    """Añade un resultado al .jsonl de progreso (una línea por hostname)."""
+    progress_path.parent.mkdir(parents=True, exist_ok=True)
+    with progress_path.open('a', encoding='utf-8') as fh:
+        fh.write(json.dumps(asdict(resultado), ensure_ascii=False) + '\n')
+
+
+def _exportar_csv_atomico_ech(resultados: List[ResultadoLatenciaECH], output_path: Path) -> None:
+    """Escribe el CSV de forma atómica (tmp + rename)."""
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = output_path.with_suffix('.tmp')
+    exportar_csv(resultados, tmp)
+    tmp.replace(output_path)
+
+
 def imprimir_resumen(resultados: List[ResultadoLatenciaECH]) -> None:
     total     = len(resultados)
     con_ech   = sum(1 for r in resultados if r.ech_config_disponible)
@@ -419,12 +457,33 @@ async def ejecutar(args: argparse.Namespace) -> int:
         print(f"  Ruta buscada: {Path(__file__).resolve().parents[2] / 'tools' / 'boringssl' / 'build' / 'bssl'}")
         return 1
 
-    hostnames = cargar_dominios_csv(Path(args.input_csv), max_dominios=args.max_hostnames)
-    if not hostnames:
+    output_path = Path(args.output_csv)
+    progress_path = output_path.with_name(output_path.stem + '_progress.jsonl')
+
+    # Cargar progreso previo y filtrar hostnames ya completados
+    resultados_prev: List[ResultadoLatenciaECH] = []
+    ya_completados: set = set()
+    if not getattr(args, 'no_resume', False):
+        resultados_prev, ya_completados = _cargar_progreso_latencia_ech(progress_path)
+        if ya_completados:
+            print(f"Reanudando: {len(ya_completados)} hostnames ya completados, se omiten.")
+
+    hostnames_all = cargar_dominios_csv(Path(args.input_csv), max_dominios=args.max_hostnames)
+    if not hostnames_all:
         print("No se encontraron hostnames válidos en el CSV de entrada.")
         return 1
 
-    logger.info("Cargados %d hostnames desde %s (repeticiones=%d)", len(hostnames), args.input_csv, args.repeticiones)
+    hostnames = [h for h in hostnames_all if h not in ya_completados]
+    resultados: List[ResultadoLatenciaECH] = list(resultados_prev)
+
+    if not hostnames:
+        print("Todos los hostnames ya han sido procesados.")
+        _exportar_csv_atomico_ech(resultados, output_path)
+        imprimir_resumen(resultados)
+        return 0
+
+    logger.info("Cargados %d hostnames desde %s (repeticiones=%d, pendientes=%d)",
+                len(hostnames_all), args.input_csv, args.repeticiones, len(hostnames))
 
     resolver = dns.asyncresolver.Resolver()
     semaphore = asyncio.Semaphore(args.concurrency)
@@ -441,18 +500,27 @@ async def ejecutar(args: argparse.Namespace) -> int:
         for h in hostnames
     ]
 
-    resultados: List[ResultadoLatenciaECH] = []
+    checkpoint_interval = getattr(args, 'checkpoint_interval', 50)
+    nuevos_procesados = 0
+
     with tqdm(total=len(tasks), desc="Latencia ECH", unit="host") as pbar:
         for coro in asyncio.as_completed(tasks):
             r = await coro
             resultados.append(r)
+            _append_progress_latencia_ech(r, progress_path)
+            nuevos_procesados += 1
+
+            if nuevos_procesados % checkpoint_interval == 0:
+                _exportar_csv_atomico_ech(resultados, output_path)
+
             estado = "ECH ✓" if r.ech_aceptado else ("ECH OK" if r.conexion_ech_exitosa else "sin ECH")
             pbar.set_postfix(host=r.hostname[:26], estado=estado)
             pbar.update(1)
 
-    exportar_csv(resultados, Path(args.output_csv))
+    _exportar_csv_atomico_ech(resultados, output_path)
     imprimir_resumen(resultados)
     print(f"\nCSV guardado en: {args.output_csv}")
+    print(f"Progreso incremental en: {progress_path}")
     logger.info("Sonda finalizada. CSV: %s", args.output_csv)
     return 0
 
@@ -471,6 +539,10 @@ def construir_parser() -> argparse.ArgumentParser:
                    help="Número de mediciones por hostname para calcular media/stddev (default: 3)")
     p.add_argument("--seed",           type=int,   default=None,
                    help="Semilla para random (reproducibilidad del orden ECH/noECH; None = no determinista)")
+    p.add_argument("--no-resume",      action="store_true",
+                   help="Ignora el progreso previo y comienza desde cero")
+    p.add_argument("--checkpoint-interval", type=int, default=50, metavar="N",
+                   help="Cada cuántos hostnames nuevos se reescribe el CSV de resultados (default: 50)")
     return p
 
 

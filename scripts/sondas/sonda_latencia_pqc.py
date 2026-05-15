@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import csv
+import json
 import logging
 import re
 import statistics
@@ -418,6 +419,48 @@ def exportar_csv(resultados: List[ResultadoLatenciaPQC], output_path: Path) -> N
             writer.writerow(asdict(r))
 
 
+def _cargar_progreso_latencia_pqc(progress_path: Path):
+    """
+    Carga filas previas del .jsonl de progreso.
+    La unidad de reanudación es el hostname: si aparece en el fichero, se omite entero.
+    Retorna (lista_ResultadoLatenciaPQC, set_hostnames_completados).
+    """
+    resultados: List[ResultadoLatenciaPQC] = []
+    completados: set = set()
+    if not progress_path.exists():
+        return resultados, completados
+    with progress_path.open('r', encoding='utf-8') as fh:
+        for linea in fh:
+            linea = linea.strip()
+            if not linea:
+                continue
+            try:
+                d = json.loads(linea)
+                h = d.get('hostname')
+                if h:
+                    resultados.append(ResultadoLatenciaPQC(**d))
+                    completados.add(h)
+            except (json.JSONDecodeError, TypeError):
+                pass
+    return resultados, completados
+
+
+def _append_progress_latencia_pqc(filas: List[ResultadoLatenciaPQC], progress_path: Path) -> None:
+    """Añade todas las filas de un hostname al .jsonl de progreso."""
+    progress_path.parent.mkdir(parents=True, exist_ok=True)
+    with progress_path.open('a', encoding='utf-8') as fh:
+        for r in filas:
+            fh.write(json.dumps(asdict(r), ensure_ascii=False) + '\n')
+
+
+def _exportar_csv_atomico_pqc(resultados: List[ResultadoLatenciaPQC], output_path: Path) -> None:
+    """Escribe el CSV de forma atómica (tmp + rename)."""
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = output_path.with_suffix('.tmp')
+    exportar_csv(resultados, tmp)
+    tmp.replace(output_path)
+
+
 def imprimir_resumen(resultados: List[ResultadoLatenciaPQC], grupos: List[str]) -> None:
     total = len(resultados)
     print(f"\n--- Resultados latencia PQC ({total} filas, {total // max(len(grupos), 1)} hosts) ---")
@@ -469,10 +512,24 @@ async def ejecutar(args: argparse.Namespace) -> int:
         print(f"  Ruta buscada: {Path(__file__).resolve().parents[2] / 'tools' / 'boringssl' / 'build' / 'bssl'}")
         return 1
 
-    hostnames = cargar_dominios_csv(Path(args.input_csv), max_dominios=args.max_hostnames)
-    if not hostnames:
+    output_path = Path(args.output_csv)
+    progress_path = output_path.with_name(output_path.stem + '_progress.jsonl')
+
+    # Cargar progreso previo y filtrar hostnames ya completados
+    todos_prev: List[ResultadoLatenciaPQC] = []
+    ya_completados: set = set()
+    if not getattr(args, 'no_resume', False):
+        todos_prev, ya_completados = _cargar_progreso_latencia_pqc(progress_path)
+        if ya_completados:
+            print(f"Reanudando: {len(ya_completados)} hostnames ya completados, se omiten.")
+
+    hostnames_all = cargar_dominios_csv(Path(args.input_csv), max_dominios=args.max_hostnames)
+    if not hostnames_all:
         print("No se encontraron hostnames válidos en el CSV de entrada.")
         return 1
+
+    hostnames = [h for h in hostnames_all if h not in ya_completados]
+    todos: List[ResultadoLatenciaPQC] = list(todos_prev)
 
     oqs_disponible = Path(args.oqs_bin).is_file()
     grupos_bssl = [g for g in grupos_pqc if g in BSSL_CURVE_MAP]
@@ -489,9 +546,16 @@ async def ejecutar(args: argparse.Namespace) -> int:
         print("ERROR: no hay grupos a probar (ni bssl ni OQS disponibles).")
         return 1
 
+    if not hostnames:
+        print("Todos los hostnames ya han sido procesados.")
+        _exportar_csv_atomico_pqc(todos, output_path)
+        imprimir_resumen(todos, grupos_pqc)
+        return 0
+
     logger.info(
-        "Cargados %d hostnames, %d grupos (%d bssl, %d OQS), repeticiones=%d",
-        len(hostnames), len(grupos_pqc), len(grupos_bssl), len(grupos_oqs), args.repeticiones,
+        "Cargados %d hostnames, %d grupos (%d bssl, %d OQS), repeticiones=%d, pendientes=%d",
+        len(hostnames_all), len(grupos_pqc), len(grupos_bssl), len(grupos_oqs),
+        args.repeticiones, len(hostnames),
     )
     logger.info("Grupos bssl (con ECH): %s", grupos_bssl)
     if oqs_disponible:
@@ -517,20 +581,29 @@ async def ejecutar(args: argparse.Namespace) -> int:
         for h in hostnames
     ]
 
-    todos: List[ResultadoLatenciaPQC] = []
+    checkpoint_interval = getattr(args, 'checkpoint_interval', 50)
+    nuevos_procesados = 0
+
     with tqdm(total=len(tasks), desc="Latencia PQC", unit="host") as pbar:
         for coro in asyncio.as_completed(tasks):
             filas = await coro
             todos.extend(filas)
+            _append_progress_latencia_pqc(filas, progress_path)
+            nuevos_procesados += 1
+
+            if nuevos_procesados % checkpoint_interval == 0:
+                _exportar_csv_atomico_pqc(todos, output_path)
+
             if filas:
                 r0 = filas[0]
                 exitos = sum(1 for r in filas if r.conexion_sin_ech_pqc_exitosa)
                 pbar.set_postfix(host=r0.hostname[:22], pqc_ok=f"{exitos}/{len(filas)}")
             pbar.update(1)
 
-    exportar_csv(todos, Path(args.output_csv))
+    _exportar_csv_atomico_pqc(todos, output_path)
     imprimir_resumen(todos, grupos_pqc)
     print(f"\nCSV guardado en: {args.output_csv}  ({len(todos)} filas)")
+    print(f"Progreso incremental en: {progress_path}")
     logger.info("Sonda finalizada. CSV: %s  (%d filas)", args.output_csv, len(todos))
     return 0
 
@@ -553,6 +626,10 @@ def construir_parser() -> argparse.ArgumentParser:
                    help=f"Ruta al binario OpenSSL con soporte OQS (default: {DEFAULT_OQS_BIN})")
     p.add_argument("--grupos-pqc",    nargs="+", default=None, metavar="GRUPO",
                    help="Grupos PQC a probar (default: lista completa predefinida)")
+    p.add_argument("--no-resume",     action="store_true",
+                   help="Ignora el progreso previo y comienza desde cero")
+    p.add_argument("--checkpoint-interval", type=int, default=50, metavar="N",
+                   help="Cada cuántos hostnames nuevos se reescribe el CSV de resultados (default: 50)")
     return p
 
 
