@@ -928,6 +928,83 @@ def exportar_estadisticas_csv(estadisticas_grupos: List[Dict[str, Any]], output_
     logger.info("Estadísticas por grupo exportadas a %s", output_path)
 
 
+def cargar_progreso_pqc(progress_path: Path):
+    """Carga resultados previos del .jsonl de progreso; retorna (lista, set_hostnames)."""
+    resultados: List[Dict[str, Any]] = []
+    completados: set = set()
+    if not progress_path.exists():
+        return resultados, completados
+    with progress_path.open('r', encoding='utf-8') as fh:
+        for linea in fh:
+            linea = linea.strip()
+            if not linea:
+                continue
+            try:
+                entry = json.loads(linea)
+                h = entry.get('hostname')
+                if h and h not in completados:
+                    resultados.append(entry)
+                    completados.add(h)
+            except json.JSONDecodeError:
+                logger.debug("Línea de progreso corrupta ignorada en %s", progress_path)
+    return resultados, completados
+
+
+def _append_progress_jsonl(resultado: Dict[str, Any], progress_path: Path) -> None:
+    """Añade un resultado de host al .jsonl de progreso (una línea por host)."""
+    progress_path.parent.mkdir(parents=True, exist_ok=True)
+    with progress_path.open('a', encoding='utf-8') as fh:
+        fh.write(json.dumps(resultado, ensure_ascii=False) + '\n')
+
+
+def _escribir_resultados_atomico(
+    lista_resultados: List[Dict[str, Any]],
+    grupos: List[str],
+    resultados_path: Path,
+    csv_path: Path,
+    tiempo_inicio_total: float,
+) -> Dict[str, Any]:
+    """Regenera JSON y CSV de resultados de forma atómica (tmp + rename); retorna resumen."""
+    tiempo_total = time.time() - tiempo_inicio_total
+    total_hosts = len(lista_resultados)
+    hosts_con_exito = total_pruebas = pruebas_exitosas = 0
+
+    for res in lista_resultados:
+        pruebas = res.get("pruebas", [])
+        total_pruebas += len(pruebas)
+        n = sum(1 for p in pruebas if p.get("connection_result") == CONNECTION_ACCEPTED)
+        pruebas_exitosas += n
+        if n > 0:
+            hosts_con_exito += 1
+
+    resumen = {
+        "timestamp_finalizacion": datetime.now(timezone.utc).isoformat(),
+        "tiempo_total_segundos": round(tiempo_total, 2),
+        "total_hostnames": total_hosts,
+        "hosts_con_al_menos_un_exito": hosts_con_exito,
+        "total_pruebas": total_pruebas,
+        "pruebas_exitosas": pruebas_exitosas,
+        "tasa_exito_hosts_percent": round((hosts_con_exito / total_hosts * 100) if total_hosts else 0, 2),
+        "tasa_exito_pruebas_percent": round((pruebas_exitosas / total_pruebas * 100) if total_pruebas else 0, 2),
+        "grupos_probados": grupos,
+    }
+
+    estadisticas_grupos = generar_estadisticas_por_grupo(lista_resultados, grupos)
+    datos_finales = {"resumen": resumen, "datos": lista_resultados}
+
+    resultados_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_json = resultados_path.with_suffix('.tmp')
+    with tmp_json.open('w', encoding='utf-8') as fh:
+        json.dump(datos_finales, fh, indent=4, ensure_ascii=False)
+    tmp_json.replace(resultados_path)
+
+    if estadisticas_grupos:
+        tmp_csv = csv_path.with_suffix('.tmp')
+        exportar_estadisticas_csv(estadisticas_grupos, tmp_csv)
+        tmp_csv.replace(csv_path)
+
+    return resumen
+
 
 # ============================================
 # CLASES DE ALTO NIVEL: ProbeResults / PQCProbe
@@ -1081,11 +1158,29 @@ if __name__ == "__main__":
         metavar="SEGUNDOS",
         help="Tiempo máximo total de escaneo en segundos. Cancela hosts pendientes al agotarse (default: sin límite)"
     )
+    parser.add_argument(
+        "--no-resume",
+        action="store_true",
+        help="Ignora el progreso previo y comienza desde cero (el fichero .jsonl se sigue usando para nuevos resultados)"
+    )
+    parser.add_argument(
+        "--checkpoint-interval",
+        type=int,
+        default=50,
+        metavar="N",
+        help="Cada cuántos hosts nuevos se regeneran JSON+CSV de resultados (default: 50)"
+    )
     args = parser.parse_args()
 
     # Configurar logging
     configurar_logging(args.log_file, args.log_level)
-    
+
+    # Definir rutas de salida (necesarias antes de cargar progreso)
+    RESULTADOS_DIR.mkdir(parents=True, exist_ok=True)
+    resultados_path = RESULTADOS_DIR / "resultados_sonda_pqc.json"
+    csv_path = RESULTADOS_DIR / "resumen_por_grupo.csv"
+    progress_path = resultados_path.with_name("sonda_pqc_progress.jsonl")
+
     # Loguear configuración inicial
     logger.info("Iniciando sonda PQC con OpenSSL personalizado")
     logger.info("Binario OpenSSL: %s", args.openssl_bin)
@@ -1128,12 +1223,30 @@ if __name__ == "__main__":
     if not hostnames:
         logger.error("No se encontraron hostnames en %s", ruta_csv)
         raise SystemExit(1)
-    
+
     logger.info("Se han cargado %s hostnames desde %s", len(hostnames), ruta_csv)
     logger.info("Grupos PQC a probar: %s", ", ".join(grupos))
-    
-    # Lista para almacenar todos los resultados
-    lista_resultados = []
+
+    # Cargar progreso previo y filtrar hostnames ya completados
+    lista_resultados_prev: List[Dict[str, Any]] = []
+    ya_completados: set = set()
+    if not args.no_resume:
+        lista_resultados_prev, ya_completados = cargar_progreso_pqc(progress_path)
+        if ya_completados:
+            logger.info("Reanudando escaneo: %d hosts ya completados, se omiten.", len(ya_completados))
+
+    hostnames = [h for h in hostnames if h not in ya_completados]
+    logger.info("Hosts pendientes: %d (completados previamente: %d)", len(hostnames), len(ya_completados))
+
+    if not hostnames:
+        logger.info("Todos los hostnames solicitados ya han sido procesados.")
+        if lista_resultados_prev:
+            resumen = _escribir_resultados_atomico(lista_resultados_prev, grupos, resultados_path, csv_path, time.time())
+            logger.info("Resultados previos exportados: %s", resultados_path)
+        raise SystemExit(0)
+
+    # Lista para almacenar todos los resultados (previos + nuevos)
+    lista_resultados: List[Dict[str, Any]] = list(lista_resultados_prev)
 
     # Definimos el número de hilos (trabajadores en paralelo)
     MAX_WORKERS = args.max_workers
@@ -1146,6 +1259,8 @@ if __name__ == "__main__":
 
     # Semáforo para limitar procesos OpenSSL concurrentes
     proc_semaphore = threading.BoundedSemaphore(args.max_openssl_procs)
+
+    hosts_nuevos = 0  # Contador de hosts procesados en esta ejecución
 
     # Usamos ThreadPoolExecutor para concurrencia
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
@@ -1168,80 +1283,39 @@ if __name__ == "__main__":
                 try:
                     datos_host = futuro.result()
                     lista_resultados.append(datos_host)
-                    
+                    _append_progress_jsonl(datos_host, progress_path)
+                    hosts_nuevos += 1
+
                     # Contar cuántas pruebas fueron exitosas
                     exitosos = sum(1 for prueba in datos_host["pruebas"] if prueba.get("connection_result") == CONNECTION_ACCEPTED)
-                    total_pruebas = len(datos_host["pruebas"])
-                    
+                    total_pruebas_host = len(datos_host["pruebas"])
+
                     # Loguear el resultado del host
                     if exitosos > 0:
-                        logger.debug("Escaneo completado: %s (%d/%d pruebas exitosas)", host, exitosos, total_pruebas)
+                        logger.debug("Escaneo completado: %s (%d/%d pruebas exitosas)", host, exitosos, total_pruebas_host)
                     else:
-                        logger.warning("Escaneo sin éxitos para %s (0/%d pruebas exitosas)", host, total_pruebas)
+                        logger.warning("Escaneo sin éxitos para %s (0/%d pruebas exitosas)", host, total_pruebas_host)
+
+                    # Checkpoint periódico: regenerar JSON+CSV cada N hosts nuevos
+                    if hosts_nuevos % args.checkpoint_interval == 0:
+                        _escribir_resultados_atomico(lista_resultados, grupos, resultados_path, csv_path, tiempo_inicio_total)
+                        logger.debug("Checkpoint: %d hosts totales guardados.", len(lista_resultados))
                 except Exception as e:
                     logger.error("Error inesperado procesando %s: %s", host, e)
                 finally:
                     pbar.update(1)  # Actualizar barra de progreso
 
-    # Calcular tiempo total
-    tiempo_total = time.time() - tiempo_inicio_total
-
-    # Calcular estadísticas
-    total_hosts = len(lista_resultados)
-    hosts_con_exito = 0
-    total_pruebas = 0
-    pruebas_exitosas = 0
-    
-    # Recorrer resultados para estadísticas
-    for resultado in lista_resultados:
-        pruebas = resultado.get("pruebas", [])
-        total_pruebas += len(pruebas)
-        exitosos_host = sum(1 for p in pruebas if p.get("connection_result") == CONNECTION_ACCEPTED)
-        pruebas_exitosas += exitosos_host
-        if exitosos_host > 0:
-            hosts_con_exito += 1
-    
-    # Generar resumen
-    resumen = {
-        "estadisticas": {
-            "timestamp_finalizacion": datetime.now(timezone.utc).isoformat(),
-            "tiempo_total_segundos": round(tiempo_total, 2),
-            "total_hostnames": total_hosts,
-            "hosts_con_al_menos_un_exito": hosts_con_exito,
-            "total_pruebas": total_pruebas,
-            "pruebas_exitosas": pruebas_exitosas,
-            "tasa_exito_hosts_percent": round((hosts_con_exito / total_hosts * 100) if total_hosts else 0, 2),
-            "tasa_exito_pruebas_percent": round((pruebas_exitosas / total_pruebas * 100) if total_pruebas else 0, 2),
-            "grupos_probados": grupos
-        }
-    }
-
-    # Calcular estadísticas agregadas por grupo
-    estadisticas_grupos = generar_estadisticas_por_grupo(lista_resultados, grupos)
-    
-    # Guardar resultados
-    RESULTADOS_DIR.mkdir(parents=True, exist_ok=True)
-    resultados_path = RESULTADOS_DIR / "resultados_sonda_pqc.json"
-    csv_path = RESULTADOS_DIR / "resumen_por_grupo.csv"
-    
-    datos_finales = {
-        "resumen": resumen["estadisticas"],
-        "datos": lista_resultados
-    }
-    
-    with resultados_path.open("w", encoding="utf-8") as f:
-        json.dump(datos_finales, f, indent=4, ensure_ascii=False)
-    
-    # Exportar estadísticas por grupo a CSV
-    exportar_estadisticas_csv(estadisticas_grupos, csv_path)
+    # Escritura final de resultados (siempre se ejecuta)
+    resumen = _escribir_resultados_atomico(lista_resultados, grupos, resultados_path, csv_path, tiempo_inicio_total)
 
     logger.info("="*70)
     logger.info("Escaneo PQC completado")
-    logger.info("Tiempo total: %.2f segundos", tiempo_total)
-    logger.info("Hosts con al menos un éxito: %d/%d (%.2f%%)", 
-                hosts_con_exito, total_hosts, resumen["estadisticas"]["tasa_exito_hosts_percent"])
-    logger.info("Pruebas exitosas: %d/%d (%.2f%%)", 
-                pruebas_exitosas, total_pruebas, resumen["estadisticas"]["tasa_exito_pruebas_percent"])
+    logger.info("Tiempo total: %.2f segundos", resumen["tiempo_total_segundos"])
+    logger.info("Hosts con al menos un éxito: %d/%d (%.2f%%)",
+                resumen["hosts_con_al_menos_un_exito"], resumen["total_hostnames"], resumen["tasa_exito_hosts_percent"])
+    logger.info("Pruebas exitosas: %d/%d (%.2f%%)",
+                resumen["pruebas_exitosas"], resumen["total_pruebas"], resumen["tasa_exito_pruebas_percent"])
     logger.info("Resultados guardados en %s", resultados_path)
     logger.info("Resumen CSV guardado en %s", csv_path)
+    logger.info("Progreso incremental en %s", progress_path)
     logger.info("="*70)

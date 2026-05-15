@@ -667,6 +667,55 @@ async def simular_tls_ech(
     return status, tls_connected, handshake_completed, client_hello_len, tls_error, client_kind, note
 
 
+def _cargar_progreso_ech(progress_path: Path):
+    """Carga resultados previos del .jsonl de progreso ECH; retorna (lista, set_dominios)."""
+    resultados: List[DominioECHResultado] = []
+    completados: set = set()
+    if not progress_path.exists():
+        return resultados, completados
+    with progress_path.open('r', encoding='utf-8') as fh:
+        for linea in fh:
+            linea = linea.strip()
+            if not linea:
+                continue
+            try:
+                d = json.loads(linea)
+                domain = d.get('domain')
+                if domain and domain not in completados:
+                    resultados.append(DominioECHResultado(**d))
+                    completados.add(domain)
+            except (json.JSONDecodeError, TypeError):
+                pass
+    return resultados, completados
+
+
+def _append_progress_ech_jsonl(resultado: DominioECHResultado, progress_path: Path) -> None:
+    """Añade un resultado de dominio al .jsonl de progreso (una línea por dominio)."""
+    progress_path.parent.mkdir(parents=True, exist_ok=True)
+    with progress_path.open('a', encoding='utf-8') as fh:
+        fh.write(json.dumps(asdict(resultado), ensure_ascii=False) + '\n')
+
+
+def _exportar_atomico_ech(
+    resultados: List[DominioECHResultado],
+    args: argparse.Namespace,
+    json_path: Path,
+    csv_path: Path,
+) -> None:
+    """Escribe JSON y CSV de resultados ECH de forma atómica (tmp + rename)."""
+    provider_variability = calcular_variabilidad_por_proveedor(resultados)
+
+    json_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_json = json_path.with_suffix('.tmp')
+    exportar_json(resultados, provider_variability, tmp_json, args)
+    tmp_json.replace(json_path)
+
+    csv_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_csv = csv_path.with_suffix('.tmp')
+    exportar_csv(resultados, tmp_csv)
+    tmp_csv.replace(csv_path)
+
+
 def cargar_dominios_csv(csv_path: Path, max_dominios: int) -> List[str]:
     """
     Carga dominios desde CSV con autodetección simple de columna.
@@ -1011,24 +1060,46 @@ async def ejecutar_estudio(args: argparse.Namespace) -> int:
     """
     Coordina el estudio completo y exporta artefactos de salida.
         - Carga dominios desde CSV con validación.
+        - Reanuda desde progreso previo si existe (salvo --no-resume).
         - Ejecuta tareas asíncronas para cada dominio con control de concurrencia.
-        - Agrega manejo robusto de excepciones para evitar fallos globales.
-        - Calcula estadísticas de variabilidad por proveedor.
-        - Exporta resultados a CSV y JSON con estructura detallada.
+        - Escribe resultados de forma incremental (append a .jsonl + checkpoint periódico de JSON/CSV).
+        - Exporta resultados finales a CSV y JSON con estructura detallada.
         Input: argumentos de configuración desde CLI.
         Output: archivos CSV y JSON con resultados, y resumen en consola.
     """
-    # Paso 1: Cargar dominios desde CSV con validación
-    domains = cargar_dominios_csv(Path(args.input_csv), max_dominios=args.max_dominios)
-    if not domains:
+    # Paso 1: Cargar dominios desde CSV
+    domains_all = cargar_dominios_csv(Path(args.input_csv), max_dominios=args.max_dominios)
+    if not domains_all:
         print("No se encontraron dominios válidos en el CSV de entrada.")
         return 1
 
-    # Paso 2: Configurar resolver DNS asíncrono y semáforo para control de concurrencia
+    json_path = Path(args.output_json)
+    csv_path = Path(args.output_csv)
+    progress_path = json_path.with_name(json_path.stem + '_progress.jsonl')
+
+    # Paso 2: Cargar progreso previo y filtrar dominios ya completados
+    resultados_previos: List[DominioECHResultado] = []
+    ya_completados: set = set()
+    if not getattr(args, 'no_resume', False):
+        resultados_previos, ya_completados = _cargar_progreso_ech(progress_path)
+        if ya_completados:
+            print(f"Reanudando: {len(ya_completados)} dominios ya completados, se omiten.")
+
+    domains = [d for d in domains_all if d not in ya_completados]
+    resultados: List[DominioECHResultado] = list(resultados_previos)
+    total_global = len(domains_all)
+
+    if not domains:
+        print("Todos los dominios solicitados ya han sido procesados.")
+        _exportar_atomico_ech(resultados, args, json_path, csv_path)
+        imprimir_resumen_consola(resultados)
+        return 0
+
+    # Paso 3: Configurar resolver DNS asíncrono y semáforo
     resolver = dns.asyncresolver.Resolver()
     semaphore = asyncio.Semaphore(args.max_concurrency)
 
-    # Paso 3: Ejecutar tareas asíncronas para cada dominio
+    # Paso 4: Lanzar tareas asíncronas solo para dominios pendientes
     tasks = [
         procesar_dominio(
             domain=domain,
@@ -1042,50 +1113,60 @@ async def ejecutar_estudio(args: argparse.Namespace) -> int:
         for domain in domains
     ]
 
-    # Paso 4: Recopilar resultados con manejo robusto de excepciones para evitar fallos globales
-    resultados: List[DominioECHResultado] = []
+    # Paso 5: Recopilar resultados con escritura incremental
+    checkpoint_interval = getattr(args, 'checkpoint_interval', 200)
+    nuevos_procesados = 0
+    total_tasks = len(tasks)
+
     for i, task in enumerate(asyncio.as_completed(tasks), start=1):
         try:
-            resultados.append(await task)
+            resultado = await task
+            resultados.append(resultado)
+            _append_progress_ech_jsonl(resultado, progress_path)
+            nuevos_procesados += 1
         except Exception as exc:
-            resultados.append(
-                DominioECHResultado(
-                    domain=f"<error_{i}>",
-                    https_rr_present=False,
-                    has_ech_param=False,
-                    outer_sni=None,
-                    provider="DESCONOCIDO",
-                    tls_client_used="none",
-                    ech_negotiation_status=STATUS_FALLO_NEGOCIACION,
-                    handshake_completed=False,
-                    tls_connected=False,
-                    client_hello_length=None,
-                    padding_detected=False,
-                    padding_profile=None,
-                    ech_version=None,
-                    kem_id=None,
-                    hpke_suites=[],
-                    ech_config_id=None,
-                    public_key_length=None,
-                    dns_error=None,
-                    tls_error=str(exc),
-                    notes="Excepción no controlada durante procesamiento",
-                )
+            resultado_error = DominioECHResultado(
+                domain=f"<error_{i}>",
+                https_rr_present=False,
+                has_ech_param=False,
+                outer_sni=None,
+                provider="DESCONOCIDO",
+                tls_client_used="none",
+                ech_negotiation_status=STATUS_FALLO_NEGOCIACION,
+                handshake_completed=False,
+                tls_connected=False,
+                client_hello_length=None,
+                padding_detected=False,
+                padding_profile=None,
+                ech_version=None,
+                kem_id=None,
+                hpke_suites=[],
+                ech_config_id=None,
+                public_key_length=None,
+                dns_error=None,
+                tls_error=str(exc),
+                notes="Excepción no controlada durante procesamiento",
             )
+            resultados.append(resultado_error)
+            _append_progress_ech_jsonl(resultado_error, progress_path)
+            nuevos_procesados += 1
 
-        if i % 100 == 0 or i == len(tasks):
-            print(f"Progreso: {i}/{len(tasks)} dominios procesados")
+        procesados_global = len(ya_completados) + i
+        if i % 100 == 0 or i == total_tasks:
+            print(f"Progreso: {procesados_global}/{total_global} dominios procesados")
 
-    # Paso 5: Calcular estadísticas de variabilidad por proveedor
-    provider_variability = calcular_variabilidad_por_proveedor(resultados)
-    exportar_csv(resultados, Path(args.output_csv))
-    exportar_json(resultados, provider_variability, Path(args.output_json), args)
+        # Checkpoint periódico: regenerar JSON+CSV cada N dominios nuevos
+        if nuevos_procesados % checkpoint_interval == 0:
+            _exportar_atomico_ech(resultados, args, json_path, csv_path)
+
+    # Paso 6: Exportación final (siempre se ejecuta)
+    _exportar_atomico_ech(resultados, args, json_path, csv_path)
     imprimir_resumen_consola(resultados)
 
-    # Paso 6: Imprimir resumen en consola y finalizar
     print("\nEstudio ECH completado")
     print(f"- JSON: {args.output_json}")
     print(f"- CSV:  {args.output_csv}")
+    print(f"- Progreso incremental: {progress_path}")
     return 0
 
 
@@ -1113,6 +1194,18 @@ def construir_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--output-json", default=DEFAULT_JSON_OUTPUT, help="Ruta de salida JSON")
     parser.add_argument("--output-csv", default=DEFAULT_CSV_OUTPUT, help="Ruta de salida CSV")
+    parser.add_argument(
+        "--no-resume",
+        action="store_true",
+        help="Ignora el progreso previo y comienza desde cero (el fichero _progress.jsonl sigue acumulando nuevos resultados)",
+    )
+    parser.add_argument(
+        "--checkpoint-interval",
+        type=int,
+        default=200,
+        metavar="N",
+        help="Cada cuántos dominios nuevos se regeneran JSON+CSV de resultados (default: 200)",
+    )
     return parser
 
 
