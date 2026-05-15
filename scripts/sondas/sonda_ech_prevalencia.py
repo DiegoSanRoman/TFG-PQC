@@ -667,6 +667,34 @@ async def simular_tls_ech(
     return status, tls_connected, handshake_completed, client_hello_len, tls_error, client_kind, note
 
 
+def _cargar_hostnames_ech_existentes(hostnames_ech_path: Path) -> set:
+    """Lee el CSV de hostnames ECH y retorna el set de hostnames ya presentes."""
+    existentes: set = set()
+    if not hostnames_ech_path.exists():
+        return existentes
+    with hostnames_ech_path.open('r', encoding='utf-8', newline='') as fh:
+        reader = csv.reader(fh)
+        for i, row in enumerate(reader):
+            if i == 0:
+                continue  # saltar encabezado
+            if row and row[0].strip():
+                existentes.add(row[0].strip())
+    return existentes
+
+
+def _añadir_hostname_ech_csv(domain: str, hostnames_ech_path: Path, existentes: set) -> None:
+    """Añade domain al CSV de hostnames ECH y al set en memoria si no está ya presente."""
+    if domain in existentes:
+        return
+    hostnames_ech_path.parent.mkdir(parents=True, exist_ok=True)
+    if not hostnames_ech_path.exists():
+        with hostnames_ech_path.open('w', encoding='utf-8', newline='') as fh:
+            csv.writer(fh).writerow(['hostname'])
+    with hostnames_ech_path.open('a', encoding='utf-8', newline='') as fh:
+        csv.writer(fh).writerow([domain])
+    existentes.add(domain)
+
+
 def _cargar_progreso_ech(progress_path: Path):
     """Carga resultados previos del .jsonl de progreso ECH; retorna (lista, set_dominios)."""
     resultados: List[DominioECHResultado] = []
@@ -1076,6 +1104,10 @@ async def ejecutar_estudio(args: argparse.Namespace) -> int:
     json_path = Path(args.output_json)
     csv_path = Path(args.output_csv)
     progress_path = json_path.with_name(json_path.stem + '_progress.jsonl')
+    hostnames_ech_path = Path(getattr(args, 'hostnames_ech_csv', 'data/hostnames_ech.csv'))
+
+    # Cargar hostnames ECH existentes en memoria para dedup eficiente durante el escaneo
+    hostnames_ech_existentes = _cargar_hostnames_ech_existentes(hostnames_ech_path)
 
     # Paso 2: Cargar progreso previo y filtrar dominios ya completados
     resultados_previos: List[DominioECHResultado] = []
@@ -1124,6 +1156,12 @@ async def ejecutar_estudio(args: argparse.Namespace) -> int:
             resultados.append(resultado)
             _append_progress_ech_jsonl(resultado, progress_path)
             nuevos_procesados += 1
+
+            # Si el dominio anuncia ECH en DNS, añadirlo al CSV de hostnames ECH
+            if resultado.has_ech_param:
+                lookup_domain, _ = _split_host_port(resultado.domain)
+                if lookup_domain and lookup_domain not in hostnames_ech_existentes:
+                    _añadir_hostname_ech_csv(lookup_domain, hostnames_ech_path, hostnames_ech_existentes)
         except Exception as exc:
             resultado_error = DominioECHResultado(
                 domain=f"<error_{i}>",
@@ -1194,6 +1232,11 @@ def construir_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--output-json", default=DEFAULT_JSON_OUTPUT, help="Ruta de salida JSON")
     parser.add_argument("--output-csv", default=DEFAULT_CSV_OUTPUT, help="Ruta de salida CSV")
+    parser.add_argument(
+        "--hostnames-ech-csv",
+        default="data/hostnames_ech.csv",
+        help="CSV donde se acumulan los hostnames con ECH activo (default: data/hostnames_ech.csv)",
+    )
     parser.add_argument(
         "--no-resume",
         action="store_true",
