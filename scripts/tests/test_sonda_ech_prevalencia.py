@@ -16,6 +16,8 @@ from pathlib import Path
 
 import pytest
 
+import json
+
 from tls_utils import decode_ech_base64 as _decode_ech_base64
 from sonda_ech_prevalencia import (
     STATUS_CLIENTE_SIN_SOPORTE,
@@ -23,6 +25,7 @@ from sonda_ech_prevalencia import (
     STATUS_FALLBACK,
     STATUS_FALLO_NEGOCIACION,
     STATUS_NEGOCIACION_OK_SIN_CONFIRMAR,
+    DominioECHResultado,
     _limpiar_valor_ech,
     _normalizar_target,
     _parse_ech_config_contents,
@@ -34,6 +37,10 @@ from sonda_ech_prevalencia import (
     detectar_padding,
     extraer_longitud_client_hello,
     parse_ech_config_list,
+    _cargar_hostnames_ech_existentes,
+    _añadir_hostname_ech_csv,
+    _cargar_progreso_ech,
+    _append_progress_ech_jsonl,
 )
 
 
@@ -511,3 +518,202 @@ class TestParseEchConfigList:
         assert len(result) == 2
         public_names = {r["public_name"] for r in result}
         assert public_names == {"a.com", "b.com"}
+
+
+# ============================================
+# Helper
+# ============================================
+
+def _hacer_dominio_resultado(**kwargs) -> DominioECHResultado:
+    defaults = dict(
+        domain="example.com",
+        https_rr_present=True,
+        has_ech_param=True,
+        outer_sni="cloudflare.com",
+        provider="Cloudflare",
+        tls_client_used="boringssl",
+        ech_negotiation_status="EXITO_OUTER_CLIENT_HELLO",
+        handshake_completed=True,
+        tls_connected=True,
+        client_hello_length=512,
+        padding_detected=False,
+        padding_profile=None,
+        ech_version="0xfe0d",
+        kem_id=32,
+        hpke_suites=["kdf=1,aead=1"],
+        ech_config_id=0x42,
+        public_key_length=32,
+        dns_error=None,
+        tls_error=None,
+        notes=None,
+    )
+    defaults.update(kwargs)
+    return DominioECHResultado(**defaults)
+
+
+# ============================================
+# _cargar_hostnames_ech_existentes
+# ============================================
+
+class TestCargarHostnamesEchExistentes:
+    def test_archivo_inexistente_devuelve_set_vacio(self, tmp_path):
+        resultado = _cargar_hostnames_ech_existentes(tmp_path / "noexiste.csv")
+        assert resultado == set()
+
+    def test_carga_hostnames_del_csv(self, tmp_path):
+        p = tmp_path / "hostnames_ech.csv"
+        p.write_text("hostname\nkali.org\ncloudflare.com\n", encoding="utf-8")
+        resultado = _cargar_hostnames_ech_existentes(p)
+        assert "kali.org" in resultado
+        assert "cloudflare.com" in resultado
+
+    def test_saltea_fila_de_encabezado(self, tmp_path):
+        p = tmp_path / "hostnames_ech.csv"
+        p.write_text("hostname\nexample.com\n", encoding="utf-8")
+        resultado = _cargar_hostnames_ech_existentes(p)
+        assert "hostname" not in resultado
+        assert "example.com" in resultado
+
+    def test_archivo_solo_con_encabezado_devuelve_vacio(self, tmp_path):
+        p = tmp_path / "hostnames_ech.csv"
+        p.write_text("hostname\n", encoding="utf-8")
+        resultado = _cargar_hostnames_ech_existentes(p)
+        assert resultado == set()
+
+    def test_elimina_espacios_en_blanco(self, tmp_path):
+        p = tmp_path / "hostnames_ech.csv"
+        p.write_text("hostname\n  example.com  \n", encoding="utf-8")
+        resultado = _cargar_hostnames_ech_existentes(p)
+        assert "example.com" in resultado
+        assert "  example.com  " not in resultado
+
+
+# ============================================
+# _añadir_hostname_ech_csv
+# ============================================
+
+class TestAñadirHostnameEchCsv:
+    def test_crea_archivo_con_encabezado_si_no_existe(self, tmp_path):
+        p = tmp_path / "hostnames_ech.csv"
+        existentes: set = set()
+        _añadir_hostname_ech_csv("kali.org", p, existentes)
+        assert p.exists()
+        lineas = p.read_text(encoding="utf-8").splitlines()
+        assert lineas[0] == "hostname"
+        assert "kali.org" in lineas
+
+    def test_añade_hostname_al_set_en_memoria(self, tmp_path):
+        p = tmp_path / "hostnames_ech.csv"
+        existentes: set = set()
+        _añadir_hostname_ech_csv("kali.org", p, existentes)
+        assert "kali.org" in existentes
+
+    def test_idempotente_no_duplica(self, tmp_path):
+        p = tmp_path / "hostnames_ech.csv"
+        existentes: set = set()
+        _añadir_hostname_ech_csv("kali.org", p, existentes)
+        _añadir_hostname_ech_csv("kali.org", p, existentes)
+        lineas = [l for l in p.read_text(encoding="utf-8").splitlines() if l.strip()]
+        assert lineas.count("kali.org") == 1
+
+    def test_no_elimina_entradas_existentes(self, tmp_path):
+        p = tmp_path / "hostnames_ech.csv"
+        p.write_text("hostname\nexistente.com\n", encoding="utf-8")
+        existentes = {"existente.com"}
+        _añadir_hostname_ech_csv("nuevo.com", p, existentes)
+        contenido = p.read_text(encoding="utf-8")
+        assert "existente.com" in contenido
+        assert "nuevo.com" in contenido
+
+    def test_crea_directorio_padre_si_no_existe(self, tmp_path):
+        p = tmp_path / "subdir" / "hostnames_ech.csv"
+        existentes: set = set()
+        _añadir_hostname_ech_csv("x.com", p, existentes)
+        assert p.exists()
+
+
+# ============================================
+# _cargar_progreso_ech
+# ============================================
+
+class TestCargarProgresoEch:
+    def test_archivo_inexistente_devuelve_vacios(self, tmp_path):
+        lista, completados = _cargar_progreso_ech(tmp_path / "noexiste.jsonl")
+        assert lista == []
+        assert completados == set()
+
+    def test_carga_una_entrada(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        r = _hacer_dominio_resultado(domain="kali.org")
+        from dataclasses import asdict
+        p.write_text(json.dumps(asdict(r)) + "\n", encoding="utf-8")
+        lista, completados = _cargar_progreso_ech(p)
+        assert len(lista) == 1
+        assert "kali.org" in completados
+
+    def test_dedup_mismo_dominio(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        from dataclasses import asdict
+        r = _hacer_dominio_resultado(domain="kali.org")
+        linea = json.dumps(asdict(r)) + "\n"
+        p.write_text(linea + linea, encoding="utf-8")
+        lista, completados = _cargar_progreso_ech(p)
+        assert len(lista) == 1
+
+    def test_linea_corrupta_ignorada(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        from dataclasses import asdict
+        r = _hacer_dominio_resultado(domain="a.com")
+        p.write_text(
+            json.dumps(asdict(r)) + "\n"
+            "ESTO_NO_ES_JSON\n"
+            + json.dumps(asdict(_hacer_dominio_resultado(domain="b.com"))) + "\n",
+            encoding="utf-8",
+        )
+        lista, completados = _cargar_progreso_ech(p)
+        assert len(lista) == 2
+        assert completados == {"a.com", "b.com"}
+
+    def test_reconstruye_dataclass(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        from dataclasses import asdict
+        r = _hacer_dominio_resultado(domain="test.org", has_ech_param=True)
+        p.write_text(json.dumps(asdict(r)) + "\n", encoding="utf-8")
+        lista, _ = _cargar_progreso_ech(p)
+        assert isinstance(lista[0], DominioECHResultado)
+        assert lista[0].domain == "test.org"
+        assert lista[0].has_ech_param is True
+
+
+# ============================================
+# _append_progress_ech_jsonl
+# ============================================
+
+class TestAppendProgressEchJsonl:
+    def test_crea_archivo_si_no_existe(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        r = _hacer_dominio_resultado()
+        _append_progress_ech_jsonl(r, p)
+        assert p.exists()
+
+    def test_contenido_es_json_valido(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        r = _hacer_dominio_resultado(domain="kali.org")
+        _append_progress_ech_jsonl(r, p)
+        linea = p.read_text(encoding="utf-8").strip()
+        d = json.loads(linea)
+        assert d["domain"] == "kali.org"
+
+    def test_acumula_multiples_entradas(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        _append_progress_ech_jsonl(_hacer_dominio_resultado(domain="a.com"), p)
+        _append_progress_ech_jsonl(_hacer_dominio_resultado(domain="b.com"), p)
+        lineas = [l for l in p.read_text(encoding="utf-8").splitlines() if l.strip()]
+        assert len(lineas) == 2
+        dominios = {json.loads(l)["domain"] for l in lineas}
+        assert dominios == {"a.com", "b.com"}
+
+    def test_crea_directorio_padre_si_no_existe(self, tmp_path):
+        p = tmp_path / "subdir" / "progress.jsonl"
+        _append_progress_ech_jsonl(_hacer_dominio_resultado(), p)
+        assert p.exists()

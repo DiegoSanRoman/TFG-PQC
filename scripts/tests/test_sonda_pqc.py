@@ -35,6 +35,9 @@ from sonda_pqc_final import (
     TLSOutputParser,
     ProbeResults,
     PQCProbe,
+    cargar_progreso_pqc,
+    _append_progress_jsonl,
+    _escribir_resultados_atomico,
 )
 
 
@@ -602,3 +605,160 @@ class TestExceptions:
 
     def test_PQCValidationError_no_es_PQCDNSError(self):
         assert not issubclass(PQCValidationError, PQCDNSError)
+
+
+# ============================================
+# cargar_progreso_pqc
+# ============================================
+
+class TestCargarProgresoPqc:
+    def test_archivo_inexistente_devuelve_vacios(self, tmp_path):
+        lista, completados = cargar_progreso_pqc(tmp_path / "noexiste.jsonl")
+        assert lista == []
+        assert completados == set()
+
+    def test_carga_una_entrada(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        p.write_text('{"hostname": "a.com", "pruebas": []}\n', encoding="utf-8")
+        lista, completados = cargar_progreso_pqc(p)
+        assert len(lista) == 1
+        assert "a.com" in completados
+
+    def test_dedup_mismo_hostname(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        p.write_text(
+            '{"hostname": "a.com", "pruebas": []}\n'
+            '{"hostname": "a.com", "pruebas": []}\n',
+            encoding="utf-8",
+        )
+        lista, completados = cargar_progreso_pqc(p)
+        assert len(lista) == 1
+        assert len(completados) == 1
+
+    def test_linea_corrupta_ignorada(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        p.write_text(
+            '{"hostname": "a.com", "pruebas": []}\n'
+            'ESTO_NO_ES_JSON\n'
+            '{"hostname": "b.com", "pruebas": []}\n',
+            encoding="utf-8",
+        )
+        lista, completados = cargar_progreso_pqc(p)
+        assert len(lista) == 2
+        assert completados == {"a.com", "b.com"}
+
+    def test_linea_sin_hostname_ignorada(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        p.write_text('{"pruebas": []}\n', encoding="utf-8")
+        lista, completados = cargar_progreso_pqc(p)
+        assert lista == []
+        assert completados == set()
+
+    def test_multiples_hostnames(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        lineas = "\n".join(f'{{"hostname": "host{i}.com", "pruebas": []}}' for i in range(5))
+        p.write_text(lineas + "\n", encoding="utf-8")
+        lista, completados = cargar_progreso_pqc(p)
+        assert len(lista) == 5
+        assert len(completados) == 5
+
+
+# ============================================
+# _append_progress_jsonl
+# ============================================
+
+class TestAppendProgressJsonl:
+    def test_crea_archivo_si_no_existe(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        _append_progress_jsonl({"hostname": "a.com"}, p)
+        assert p.exists()
+
+    def test_contenido_es_json_valido(self, tmp_path):
+        import json as _json
+        p = tmp_path / "progress.jsonl"
+        _append_progress_jsonl({"hostname": "a.com", "pruebas": []}, p)
+        linea = p.read_text(encoding="utf-8").strip()
+        d = _json.loads(linea)
+        assert d["hostname"] == "a.com"
+
+    def test_acumula_multiples_entradas(self, tmp_path):
+        import json as _json
+        p = tmp_path / "progress.jsonl"
+        _append_progress_jsonl({"hostname": "a.com"}, p)
+        _append_progress_jsonl({"hostname": "b.com"}, p)
+        lineas = [l for l in p.read_text(encoding="utf-8").splitlines() if l.strip()]
+        assert len(lineas) == 2
+        hostnames = {_json.loads(l)["hostname"] for l in lineas}
+        assert hostnames == {"a.com", "b.com"}
+
+    def test_crea_directorio_padre_si_no_existe(self, tmp_path):
+        p = tmp_path / "subdir" / "progress.jsonl"
+        _append_progress_jsonl({"hostname": "x.com"}, p)
+        assert p.exists()
+
+
+# ============================================
+# _escribir_resultados_atomico
+# ============================================
+
+class TestEscribirResultadosAtomico:
+    def _lista_resultados(self):
+        prueba = _intento(connection_result=CONNECTION_ACCEPTED, grupo="X25519")
+        prueba["grupo"] = "X25519"
+        return [{"hostname": "a.com", "pruebas": [prueba]}]
+
+    def test_crea_json(self, tmp_path):
+        json_path = tmp_path / "resultados.json"
+        csv_path = tmp_path / "stats.csv"
+        _escribir_resultados_atomico(
+            self._lista_resultados(), ["X25519"], json_path, csv_path, __import__("time").time()
+        )
+        assert json_path.exists()
+
+    def test_json_contiene_resumen_y_datos(self, tmp_path):
+        import json as _json
+        json_path = tmp_path / "resultados.json"
+        csv_path = tmp_path / "stats.csv"
+        _escribir_resultados_atomico(
+            self._lista_resultados(), ["X25519"], json_path, csv_path, __import__("time").time()
+        )
+        with json_path.open(encoding="utf-8") as fh:
+            doc = _json.load(fh)
+        assert "resumen" in doc
+        assert "datos" in doc
+        assert doc["resumen"]["total_hostnames"] == 1
+
+    def test_crea_csv_estadisticas(self, tmp_path):
+        json_path = tmp_path / "resultados.json"
+        csv_path = tmp_path / "stats.csv"
+        _escribir_resultados_atomico(
+            self._lista_resultados(), ["X25519"], json_path, csv_path, __import__("time").time()
+        )
+        assert csv_path.exists()
+
+    def test_retorna_resumen_con_campos_esperados(self, tmp_path):
+        json_path = tmp_path / "resultados.json"
+        csv_path = tmp_path / "stats.csv"
+        resumen = _escribir_resultados_atomico(
+            self._lista_resultados(), ["X25519"], json_path, csv_path, __import__("time").time()
+        )
+        for campo in ("total_hostnames", "hosts_con_al_menos_un_exito",
+                      "total_pruebas", "pruebas_exitosas", "grupos_probados"):
+            assert campo in resumen
+
+    def test_lista_vacia_resumen_cero(self, tmp_path):
+        json_path = tmp_path / "resultados.json"
+        csv_path = tmp_path / "stats.csv"
+        resumen = _escribir_resultados_atomico(
+            [], ["X25519"], json_path, csv_path, __import__("time").time()
+        )
+        assert resumen["total_hostnames"] == 0
+        assert resumen["hosts_con_al_menos_un_exito"] == 0
+
+    def test_no_deja_archivo_tmp(self, tmp_path):
+        json_path = tmp_path / "resultados.json"
+        csv_path = tmp_path / "stats.csv"
+        _escribir_resultados_atomico(
+            self._lista_resultados(), ["X25519"], json_path, csv_path, __import__("time").time()
+        )
+        assert not (tmp_path / "resultados.tmp").exists()

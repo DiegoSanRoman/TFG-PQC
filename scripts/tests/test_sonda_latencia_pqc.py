@@ -19,6 +19,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+import json
+
 from sonda_latencia_pqc import (
     BSSL_CURVE_MAP,
     DEFAULT_CONCURRENCY,
@@ -32,6 +34,9 @@ from sonda_latencia_pqc import (
     exportar_csv,
     procesar_hostname,
     procesar_hostname_grupo,
+    _cargar_progreso_latencia_pqc,
+    _append_progress_latencia_pqc,
+    _exportar_csv_atomico_pqc,
 )
 
 _BSSL_FAKE = "/fake/bssl"
@@ -291,6 +296,22 @@ class TestConstruirParser:
         args = construir_parser().parse_args(["--tls-timeout", "20.0"])
         assert args.tls_timeout == 20.0
 
+    def test_no_resume_por_defecto_false(self):
+        args = construir_parser().parse_args([])
+        assert args.no_resume is False
+
+    def test_no_resume_flag(self):
+        args = construir_parser().parse_args(["--no-resume"])
+        assert args.no_resume is True
+
+    def test_checkpoint_interval_por_defecto(self):
+        args = construir_parser().parse_args([])
+        assert args.checkpoint_interval == 50
+
+    def test_checkpoint_interval_personalizado(self):
+        args = construir_parser().parse_args(["--checkpoint-interval", "100"])
+        assert args.checkpoint_interval == 100
+
 
 # ============================================
 # procesar_hostname_grupo (con mocks)
@@ -521,3 +542,192 @@ class TestProcesarHostname:
                 5.0, 10.0, 3, _BSSL_FAKE, _OQS_FAKE,
             ))
         assert resultados == []
+
+
+# ============================================
+# Helper
+# ============================================
+
+def _resultado_pqc_ejemplo(**kwargs) -> ResultadoLatenciaPQC:
+    defaults = dict(
+        hostname="example.com",
+        timestamp="2026-01-01T00:00:00+00:00",
+        grupo_pqc="X25519MLKEM768",
+        cliente_pqc="bssl",
+        ech_config_disponible=True,
+        ech_soportado_por_grupo=True,
+        conexion_ech_pqc_exitosa=True,
+        latencia_ech_pqc_media_ms=25.0,
+        latencia_ech_pqc_stddev_ms=1.0,
+        ech_aceptado_pqc=True,
+        cipher_ech_pqc="TLS_AES_128_GCM_SHA256",
+        error_ech_pqc=None,
+        conexion_sin_ech_pqc_exitosa=True,
+        latencia_sin_ech_pqc_media_ms=20.0,
+        latencia_sin_ech_pqc_stddev_ms=0.5,
+        cipher_sin_ech_pqc="TLS_AES_128_GCM_SHA256",
+        error_sin_ech_pqc=None,
+        delta_ech_pqc_ms=-5.0,
+        n_mediciones=3,
+        latencia_dns_ms=5.0,
+        outer_sni="cloudflare-ech.com",
+        dns_error=None,
+    )
+    defaults.update(kwargs)
+    return ResultadoLatenciaPQC(**defaults)
+
+
+# ============================================
+# _cargar_progreso_latencia_pqc
+# ============================================
+
+class TestCargarProgresoLatenciaPqc:
+    def test_archivo_inexistente_devuelve_vacios(self, tmp_path):
+        lista, completados = _cargar_progreso_latencia_pqc(tmp_path / "noexiste.jsonl")
+        assert lista == []
+        assert completados == set()
+
+    def test_carga_una_fila(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        r = _resultado_pqc_ejemplo(hostname="kali.org")
+        from dataclasses import asdict
+        p.write_text(json.dumps(asdict(r)) + "\n", encoding="utf-8")
+        lista, completados = _cargar_progreso_latencia_pqc(p)
+        assert len(lista) == 1
+        assert "kali.org" in completados
+
+    def test_multiples_filas_un_hostname(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        from dataclasses import asdict
+        r1 = _resultado_pqc_ejemplo(hostname="a.com", grupo_pqc="X25519MLKEM768")
+        r2 = _resultado_pqc_ejemplo(hostname="a.com", grupo_pqc="mlkem768")
+        p.write_text(
+            json.dumps(asdict(r1)) + "\n" + json.dumps(asdict(r2)) + "\n",
+            encoding="utf-8",
+        )
+        lista, completados = _cargar_progreso_latencia_pqc(p)
+        assert len(lista) == 2
+        assert completados == {"a.com"}
+
+    def test_dedup_hostname_primera_ocurrencia_gana(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        from dataclasses import asdict
+        r1 = _resultado_pqc_ejemplo(hostname="a.com", grupo_pqc="X25519MLKEM768")
+        r2 = _resultado_pqc_ejemplo(hostname="b.com", grupo_pqc="X25519MLKEM768")
+        lineas = json.dumps(asdict(r1)) + "\n" + json.dumps(asdict(r2)) + "\n"
+        p.write_text(lineas, encoding="utf-8")
+        lista, completados = _cargar_progreso_latencia_pqc(p)
+        assert completados == {"a.com", "b.com"}
+        assert len(lista) == 2
+
+    def test_linea_corrupta_ignorada(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        from dataclasses import asdict
+        r = _resultado_pqc_ejemplo(hostname="a.com")
+        p.write_text(
+            json.dumps(asdict(r)) + "\n"
+            "NO_ES_JSON\n"
+            + json.dumps(asdict(_resultado_pqc_ejemplo(hostname="b.com"))) + "\n",
+            encoding="utf-8",
+        )
+        lista, completados = _cargar_progreso_latencia_pqc(p)
+        assert completados == {"a.com", "b.com"}
+
+    def test_reconstruye_dataclass(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        from dataclasses import asdict
+        r = _resultado_pqc_ejemplo(hostname="test.org")
+        p.write_text(json.dumps(asdict(r)) + "\n", encoding="utf-8")
+        lista, _ = _cargar_progreso_latencia_pqc(p)
+        assert isinstance(lista[0], ResultadoLatenciaPQC)
+        assert lista[0].hostname == "test.org"
+
+
+# ============================================
+# _append_progress_latencia_pqc
+# ============================================
+
+class TestAppendProgressLatenciaPqc:
+    def test_crea_archivo_si_no_existe(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        _append_progress_latencia_pqc([_resultado_pqc_ejemplo()], p)
+        assert p.exists()
+
+    def test_escribe_todas_las_filas_del_hostname(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        filas = [
+            _resultado_pqc_ejemplo(hostname="a.com", grupo_pqc="X25519MLKEM768"),
+            _resultado_pqc_ejemplo(hostname="a.com", grupo_pqc="mlkem768"),
+        ]
+        _append_progress_latencia_pqc(filas, p)
+        lineas = [l for l in p.read_text(encoding="utf-8").splitlines() if l.strip()]
+        assert len(lineas) == 2
+        grupos = {json.loads(l)["grupo_pqc"] for l in lineas}
+        assert grupos == {"X25519MLKEM768", "mlkem768"}
+
+    def test_acumula_multiples_llamadas(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        _append_progress_latencia_pqc([_resultado_pqc_ejemplo(hostname="a.com")], p)
+        _append_progress_latencia_pqc([_resultado_pqc_ejemplo(hostname="b.com")], p)
+        lineas = [l for l in p.read_text(encoding="utf-8").splitlines() if l.strip()]
+        assert len(lineas) == 2
+
+    def test_crea_directorio_padre_si_no_existe(self, tmp_path):
+        p = tmp_path / "subdir" / "progress.jsonl"
+        _append_progress_latencia_pqc([_resultado_pqc_ejemplo()], p)
+        assert p.exists()
+
+    def test_contenido_es_json_valido(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        _append_progress_latencia_pqc(
+            [_resultado_pqc_ejemplo(hostname="kali.org", grupo_pqc="mlkem768")], p
+        )
+        linea = p.read_text(encoding="utf-8").strip()
+        d = json.loads(linea)
+        assert d["hostname"] == "kali.org"
+        assert d["grupo_pqc"] == "mlkem768"
+
+
+# ============================================
+# _exportar_csv_atomico_pqc
+# ============================================
+
+class TestExportarCsvAtomicoPqc:
+    def test_crea_archivo(self, tmp_path):
+        p = tmp_path / "out.csv"
+        _exportar_csv_atomico_pqc([_resultado_pqc_ejemplo()], p)
+        assert p.exists()
+
+    def test_no_deja_archivo_tmp(self, tmp_path):
+        p = tmp_path / "out.csv"
+        _exportar_csv_atomico_pqc([_resultado_pqc_ejemplo()], p)
+        assert not (tmp_path / "out.tmp").exists()
+
+    def test_contenido_correcto(self, tmp_path):
+        p = tmp_path / "out.csv"
+        _exportar_csv_atomico_pqc(
+            [_resultado_pqc_ejemplo(hostname="kali.org", grupo_pqc="mlkem768")], p
+        )
+        with p.open(newline="", encoding="utf-8") as fh:
+            row = next(csv.DictReader(fh))
+        assert row["hostname"] == "kali.org"
+        assert row["grupo_pqc"] == "mlkem768"
+
+    def test_lista_vacia_crea_archivo_con_cabeceras(self, tmp_path):
+        p = tmp_path / "out.csv"
+        _exportar_csv_atomico_pqc([], p)
+        assert p.exists()
+        with p.open(newline="", encoding="utf-8") as fh:
+            content = fh.read()
+        assert "hostname" in content
+
+    def test_multiples_filas(self, tmp_path):
+        p = tmp_path / "out.csv"
+        _exportar_csv_atomico_pqc(
+            [_resultado_pqc_ejemplo(hostname="a.com"),
+             _resultado_pqc_ejemplo(hostname="b.com")],
+            p,
+        )
+        with p.open(newline="", encoding="utf-8") as fh:
+            rows = list(csv.DictReader(fh))
+        assert len(rows) == 2

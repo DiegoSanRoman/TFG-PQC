@@ -19,6 +19,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+import json
+
 from sonda_latencia_ech import (
     DEFAULT_CONCURRENCY,
     DEFAULT_DNS_TIMEOUT,
@@ -33,6 +35,9 @@ from sonda_latencia_ech import (
     construir_parser,
     exportar_csv,
     procesar_hostname,
+    _cargar_progreso_latencia_ech,
+    _append_progress_latencia_ech,
+    _exportar_csv_atomico_ech,
 )
 
 
@@ -383,6 +388,22 @@ class TestConstruirParser:
         args = construir_parser().parse_args(["--seed", "42"])
         assert args.seed == 42
 
+    def test_no_resume_por_defecto_false(self):
+        args = construir_parser().parse_args([])
+        assert args.no_resume is False
+
+    def test_no_resume_flag(self):
+        args = construir_parser().parse_args(["--no-resume"])
+        assert args.no_resume is True
+
+    def test_checkpoint_interval_por_defecto(self):
+        args = construir_parser().parse_args([])
+        assert args.checkpoint_interval == 50
+
+    def test_checkpoint_interval_personalizado(self):
+        args = construir_parser().parse_args(["--checkpoint-interval", "100"])
+        assert args.checkpoint_interval == 100
+
 
 # ============================================
 # _run_cmd
@@ -598,3 +619,159 @@ class TestProcesarHostnameConEch:
         assert r.conexion_sin_ech_exitosa is False
         assert r.delta_medio_ms is None
         assert r.error_sin_ech == "TIMEOUT"
+
+
+# ============================================
+# _cargar_progreso_latencia_ech
+# ============================================
+
+def _resultado_ech_ejemplo(**kwargs) -> ResultadoLatenciaECH:
+    defaults = dict(
+        hostname="example.com",
+        timestamp="2026-01-01T00:00:00+00:00",
+        ech_config_disponible=True,
+        conexion_ech_exitosa=True,
+        conexion_sin_ech_exitosa=True,
+        ech_aceptado=True,
+        cipher_con_ech="TLS_AES_128_GCM_SHA256",
+        cipher_sin_ech="TLS_AES_128_GCM_SHA256",
+        latencia_dns_ms=5.0,
+        n_mediciones=3,
+        latencia_con_ech_media_ms=25.0,
+        latencia_con_ech_stddev_ms=1.5,
+        latencia_sin_ech_media_ms=20.0,
+        latencia_sin_ech_stddev_ms=0.8,
+        delta_medio_ms=-5.0,
+        cliente_tls="bssl",
+        outer_sni="cloudflare-ech.com",
+        error_ech=None,
+        error_sin_ech=None,
+        dns_error=None,
+        ip_pop=None,
+    )
+    defaults.update(kwargs)
+    return ResultadoLatenciaECH(**defaults)
+
+
+class TestCargarProgresoLatenciaEch:
+    def test_archivo_inexistente_devuelve_vacios(self, tmp_path):
+        lista, completados = _cargar_progreso_latencia_ech(tmp_path / "noexiste.jsonl")
+        assert lista == []
+        assert completados == set()
+
+    def test_carga_una_entrada(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        r = _resultado_ech_ejemplo(hostname="kali.org")
+        from dataclasses import asdict
+        p.write_text(json.dumps(asdict(r)) + "\n", encoding="utf-8")
+        lista, completados = _cargar_progreso_latencia_ech(p)
+        assert len(lista) == 1
+        assert "kali.org" in completados
+
+    def test_dedup_mismo_hostname(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        from dataclasses import asdict
+        r = _resultado_ech_ejemplo(hostname="a.com")
+        linea = json.dumps(asdict(r)) + "\n"
+        p.write_text(linea + linea, encoding="utf-8")
+        lista, completados = _cargar_progreso_latencia_ech(p)
+        assert len(lista) == 1
+        assert len(completados) == 1
+
+    def test_linea_corrupta_ignorada(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        from dataclasses import asdict
+        r1 = _resultado_ech_ejemplo(hostname="a.com")
+        r2 = _resultado_ech_ejemplo(hostname="b.com")
+        p.write_text(
+            json.dumps(asdict(r1)) + "\n"
+            "NO_ES_JSON\n"
+            + json.dumps(asdict(r2)) + "\n",
+            encoding="utf-8",
+        )
+        lista, completados = _cargar_progreso_latencia_ech(p)
+        assert len(lista) == 2
+        assert completados == {"a.com", "b.com"}
+
+    def test_reconstruye_dataclass(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        from dataclasses import asdict
+        r = _resultado_ech_ejemplo(hostname="test.org")
+        p.write_text(json.dumps(asdict(r)) + "\n", encoding="utf-8")
+        lista, _ = _cargar_progreso_latencia_ech(p)
+        assert isinstance(lista[0], ResultadoLatenciaECH)
+        assert lista[0].hostname == "test.org"
+
+
+# ============================================
+# _append_progress_latencia_ech
+# ============================================
+
+class TestAppendProgressLatenciaEch:
+    def test_crea_archivo_si_no_existe(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        _append_progress_latencia_ech(_resultado_ech_ejemplo(), p)
+        assert p.exists()
+
+    def test_contenido_es_json_valido(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        _append_progress_latencia_ech(_resultado_ech_ejemplo(hostname="kali.org"), p)
+        linea = p.read_text(encoding="utf-8").strip()
+        d = json.loads(linea)
+        assert d["hostname"] == "kali.org"
+
+    def test_acumula_multiples_entradas(self, tmp_path):
+        p = tmp_path / "progress.jsonl"
+        _append_progress_latencia_ech(_resultado_ech_ejemplo(hostname="a.com"), p)
+        _append_progress_latencia_ech(_resultado_ech_ejemplo(hostname="b.com"), p)
+        lineas = [l for l in p.read_text(encoding="utf-8").splitlines() if l.strip()]
+        assert len(lineas) == 2
+        hostnames = {json.loads(l)["hostname"] for l in lineas}
+        assert hostnames == {"a.com", "b.com"}
+
+    def test_crea_directorio_padre_si_no_existe(self, tmp_path):
+        p = tmp_path / "subdir" / "progress.jsonl"
+        _append_progress_latencia_ech(_resultado_ech_ejemplo(), p)
+        assert p.exists()
+
+
+# ============================================
+# _exportar_csv_atomico_ech
+# ============================================
+
+class TestExportarCsvAtomicoEch:
+    def test_crea_archivo(self, tmp_path):
+        p = tmp_path / "out.csv"
+        _exportar_csv_atomico_ech([_resultado_ech_ejemplo()], p)
+        assert p.exists()
+
+    def test_no_deja_archivo_tmp(self, tmp_path):
+        p = tmp_path / "out.csv"
+        _exportar_csv_atomico_ech([_resultado_ech_ejemplo()], p)
+        assert not (tmp_path / "out.tmp").exists()
+
+    def test_contenido_correcto(self, tmp_path):
+        p = tmp_path / "out.csv"
+        _exportar_csv_atomico_ech([_resultado_ech_ejemplo(hostname="kali.org")], p)
+        with p.open(newline="", encoding="utf-8") as fh:
+            row = next(csv.DictReader(fh))
+        assert row["hostname"] == "kali.org"
+
+    def test_lista_vacia_crea_archivo_con_cabeceras(self, tmp_path):
+        p = tmp_path / "out.csv"
+        _exportar_csv_atomico_ech([], p)
+        assert p.exists()
+        with p.open(newline="", encoding="utf-8") as fh:
+            content = fh.read()
+        assert "hostname" in content
+
+    def test_multiples_filas(self, tmp_path):
+        p = tmp_path / "out.csv"
+        _exportar_csv_atomico_ech(
+            [_resultado_ech_ejemplo(hostname="a.com"),
+             _resultado_ech_ejemplo(hostname="b.com")],
+            p,
+        )
+        with p.open(newline="", encoding="utf-8") as fh:
+            rows = list(csv.DictReader(fh))
+        assert len(rows) == 2
