@@ -14,7 +14,7 @@ fi
 PYTHON_BIN="python3"
 
 INPUT_CSV="data/majestic_million.csv"
-MAX_DOMINIOS="20000"
+MAX_DOMINIOS="500000"
 MAX_CONCURRENCY="40"
 TLS_CLIENT="auto"
 DNS_TIMEOUT="8"
@@ -30,7 +30,7 @@ Uso: ./ejecutar_sonda_ech.sh [opciones]
 
 Opciones:
   --input-csv RUTA          CSV de entrada (default: data/majestic_million.csv)
-  --max-dominios N          Máximo de dominios a procesar (default: 1000)
+  --max-dominios N          Máximo de dominios a procesar (default: 500000)
     --max-concurrency N       Concurrencia asyncio (default: 40)
   --tls-client MODO         auto|bssl|openssl (default: auto)
     --dns-timeout SEG         Timeout DNS en segundos (default: 8)

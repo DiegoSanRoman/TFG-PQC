@@ -8,30 +8,30 @@ híbridos y puros contra servidores HTTPS.
 from __future__ import annotations
 
 # Importaciones necesarias
-import subprocess                                           # Para ejecutar comandos del sistema
-import json                                                 # Para guardar resultados en JSON
-import os                                                   # Para operaciones del sistema
-import sys                                                  # Para manipular sys.path
-import time                                                 # Para medir tiempo de conexión
-import csv                                                  # Para leer y escribir archivos CSV
-import hashlib                                              # Para fingerprint SHA256 de certificados
-import statistics                                           # Para cálculos estadísticos
-import logging                                              # Para logging
-import argparse                                             # Para argumentos CLI
-import socket                                               # Para pre-check TCP
-import dns.resolver                                         # Para pre-check DNS con dnspython
-import dns.exception                                        # Para capturar excepciones de dnspython
-import re                                                   # Para parseo de salida
-import random                                               # Para aleatorizar orden de grupos
-import threading                                            # Para semáforo de procesos
-from cryptography import x509 as _x509_lib                  # Para parseo de certificados sin subprocess
-from cryptography.hazmat.primitives import serialization as _serialization  # Para codificar cert a DER
-from datetime import datetime, timezone                     # Para timestamps y zona horaria
-from pathlib import Path                                    # Para rutas
-from concurrent.futures import ThreadPoolExecutor, as_completed  # Para concurrencia
-from tqdm import tqdm                                       # Para barras de progreso
-from dataclasses import dataclass                               # Para ProbeResults
-from typing import List, Dict, Any, Optional                # Para type hints
+import subprocess
+import json
+import os
+import sys
+import time
+import csv
+import hashlib
+import statistics
+import logging
+import argparse
+import socket
+import dns.resolver
+import dns.exception
+import re
+import random
+import threading
+from cryptography import x509 as _x509_lib
+from cryptography.hazmat.primitives import serialization as _serialization
+from datetime import datetime, timezone
+from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from tqdm import tqdm
+from dataclasses import dataclass
+from typing import List, Dict, Any, Optional
 
 # Importar constantes y utilidades compartidas desde scripts/
 _SCRIPTS_DIR = Path(__file__).parent.parent
@@ -82,15 +82,15 @@ LOG_DEFECTO = RESULTADOS_DIR / "sonda_pqc.log"  # Archivo de log por defecto
 # ============================================
 
 def leer_hostnames_csv(ruta_csv: Path, longitud_max: int, domain_column: Optional[int] = None) -> List[str]:
-    '''
+    """
     Lee los hostnames desde un archivo CSV con autodetección de columna
     :param ruta_csv: Ruta al archivo CSV (Path object)
     :param longitud_max: Número máximo de hostnames a leer
     :param domain_column: Índice de columna explícito (None para autodetectar)
     :return: Lista de hostnames
-    '''
-    hostnames = []  # Lista para almacenar los hostnames
-    # Leer el archivo CSV
+    """
+    hostnames = []  
+    
     try:
         with ruta_csv.open('r', encoding='utf-8') as archivo:
             lector = csv.reader(archivo)
@@ -159,7 +159,7 @@ def leer_hostnames_csv(ruta_csv: Path, longitud_max: int, domain_column: Optiona
 
 
 def parse_trace_bytes(trace_output: str) -> Dict[str, Any]:  # noqa: C901
-    '''
+    """
     Parsea bytes de handshake TLS desde la salida de OpenSSL con -trace.
     :param trace_output: Salida de stderr + stdout de OpenSSL con -trace
                 :return: Dict con:
@@ -168,7 +168,7 @@ def parse_trace_bytes(trace_output: str) -> Dict[str, Any]:  # noqa: C901
                             posterior a ServerHello (p.ej. EncryptedExtensions/Certificate/CertificateVerify/Finished).
             - handshake_total_bytes_sent/handshake_total_bytes_received/handshake_total_overhead: métricas de handshake total reportadas por OpenSSL
             - measurement_method / measurement_method_total: calidad/fuente de medición
-    '''
+    """
     bytes_sent = 0
     bytes_received = 0
     measurement_method = "unknown"  # "traced", "partial", "unknown"
@@ -348,15 +348,15 @@ def sonda_pqc(  # noqa: C901
     # Habilitamos -trace para todas las conexiones incluyendo localhost
     # NOTA METODOLÓGICA: no se añade -verify_return_error ni se fuerza verificación
     # de cadena PKI. El objetivo es medir compatibilidad y latencia de negociación,
-    # no validar certificados. En producción, la verificación añadiría tiempo adicional.
+    # no validar certificados.
     cmd = [
-        openssl_bin,                                # Ruta al binario de OpenSSL personalizado con soporte PQC
-        "s_client",                                 # Modo cliente para probar conexiones TLS
-        "-connect", f"{base_hostname}:{puerto}",    # Host y puerto a conectar
-        "-servername", base_hostname,               # SNI para el hostname (importante para servidores con múltiples certificados)
-        "-trace",                                   # Habilitar trace para capturar detalles de bytes enviados/recibidos
-        "-provider", "oqsprovider",                 # Usar el provider OQS para soporte PQC
-        "-provider", "default"                      # Incluir el provider default para compatibilidad con grupos tradicionales
+        openssl_bin,                               
+        "s_client",                                
+        "-connect", f"{base_hostname}:{puerto}",    
+        "-servername", base_hostname,               
+        "-trace",                                   
+        "-provider", "oqsprovider",                 
+        "-provider", "default"                      
     ]
     
     # Si se especifica un grupo, forzamos TLS 1.3 y el grupo PQC
@@ -719,7 +719,7 @@ def sonda_pqc(  # noqa: C901
 
 
 def escanear_servidor_pqc(hostname: str, grupos: List[str], openssl_bin: str, proc_semaphore: threading.Semaphore, repeticiones: int = 3) -> Dict[str, Any]:
-    '''
+    """
     Escanea un servidor con múltiples grupos PQC y retorna los resultados
     :param hostname: Nombre del host a escanear
     :param grupos: Lista de grupos a probar
@@ -727,7 +727,7 @@ def escanear_servidor_pqc(hostname: str, grupos: List[str], openssl_bin: str, pr
     :param proc_semaphore: Semáforo para controlar procesos concurrentes
     :param repeticiones: Número de repeticiones por grupo (default: 3)
     :return: Diccionario con los resultados del escaneo
-    '''
+    """
     # Diccionario para almacenar resultados por hostname
     resultado_host = {
         "hostname": hostname,
@@ -759,12 +759,12 @@ def escanear_servidor_pqc(hostname: str, grupos: List[str], openssl_bin: str, pr
 
 
 def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupos: List[str]) -> List[Dict[str, Any]]:
-    '''
+    """
     Genera estadísticas agregadas por grupo de cifrado
     :param lista_resultados: Lista de resultados de todos los hosts
     :param grupos: Lista de grupos probados
     :return: Lista de diccionarios con estadísticas por grupo
-    '''
+    """
     # Agrupar resultados por grupo y calcular estadísticas
     estadisticas_grupos = []
     
@@ -849,7 +849,7 @@ def generar_estadisticas_por_grupo(lista_resultados: List[Dict[str, Any]], grupo
         for prueba in pruebas_grupo:
             cat = prueba.get("error_category")
             if cat:
-                error_categories[cat] = error_categories.get(cat, 0) + 1    # Contar cada categoría de error
+                error_categories[cat] = error_categories.get(cat, 0) + 1
         
         estadisticas_grupos.append({
             "grupo": label,
@@ -1204,15 +1204,15 @@ if __name__ == "__main__":
         "kyber768",             # 6. Puro Viejo
         # --- Variantes Híbridas (Para maximizar compatibilidad) ---
         "p256_kyber768",        # 7. Híbrido con curva P-256
-        "SecP256r1MLKEM768",    # 8. [NUEVO] Versión P-256 del estándar moderno (Nombre exacto de tu lista)
+        "SecP256r1MLKEM768",    # 8. Versión P-256 del estándar moderno (Nombre exacto de tu lista)
         # --- Variantes de Tamaño (Nivel 1 - Más rápidos) ---
-        "x25519_mlkem512",      # 9. [NUEVO] Híbrido Nivel 1 Moderno
-        "x25519_kyber512",      # 10. [NUEVO] Híbrido Nivel 1 Viejo (Cloudflare a veces usa este)
+        "x25519_mlkem512",      # 9. Híbrido Nivel 1 Moderno
+        "x25519_kyber512",      # 10. Híbrido Nivel 1 Viejo (Cloudflare a veces usa este)
         # --- Algoritmos Alternativos (valor experimental; NO seleccionados por NIST) ---
         "frodo640aes",          # 11. LWE genérico (FrodoKEM, muy conservador, extremadamente lento en TLS real)
         "bikel1",               # 12. Code-based Puro
-        "x25519_bikel1",        # 13. [NUEVO] Híbrido BIKE (Más probable que conecte que el puro)
-        "x25519_hqc128"         # 14. [NUEVO] Híbrido HQC (Code-based, muy robusto)
+        "x25519_bikel1",        # 13. Híbrido BIKE (Más probable que conecte que el puro)
+        "x25519_hqc128"         # 14. Híbrido HQC (Code-based, muy robusto)
     ]
 
     # Leer hostnames desde el archivo CSV
@@ -1260,9 +1260,8 @@ if __name__ == "__main__":
     # Semáforo para limitar procesos OpenSSL concurrentes
     proc_semaphore = threading.BoundedSemaphore(args.max_openssl_procs)
 
-    hosts_nuevos = 0  # Contador de hosts procesados en esta ejecución
+    hosts_nuevos = 0 
 
-    # Usamos ThreadPoolExecutor para concurrencia
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         # Lanzamos todas las tareas
         futuros = {executor.submit(escanear_servidor_pqc, host, grupos, args.openssl_bin, proc_semaphore, args.repeticiones): host for host in hostnames}

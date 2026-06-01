@@ -32,7 +32,7 @@ LOG_LEVEL="INFO"
 DNS_TIMEOUT="5"
 TLS_TIMEOUT="10"
 CONCURRENCY="10"
-MAX_HOSTNAMES="10000"
+MAX_HOSTNAMES="500000"
 REPETICIONES="30"
 
 show_help() {
@@ -47,8 +47,8 @@ Opciones:
   --dns-timeout SEG       Timeout DNS en segundos (default: 5)
   --tls-timeout SEG       Timeout TLS en segundos (default: 10)
   --concurrency N         Concurrencia asyncio (default: 10)
-  --max-hostnames N       Máximo de hostnames a procesar (default: 10000)
-  --repeticiones N        Mediciones por hostname para media/stddev (default: 3)
+  --max-hostnames N       Máximo de hostnames a procesar (default: 500000)
+  --repeticiones N        Mediciones por hostname para media/stddev (default: 30)
   -h, --help              Muestra esta ayuda
 EOF
 }

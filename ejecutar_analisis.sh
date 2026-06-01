@@ -20,6 +20,8 @@ fi
 SCRIPT_PATH="${PROJECT_DIR}/scripts/ml/analizar_resultados.py"
 
 # Valores por defecto para argumentos (permiten ejecutar sin argumentos para análisis rápido de resultados por defecto)
+# Se puede pasar el .jsonl para evitar carga completa del JSON en memoria:
+#   ./ejecutar_analisis.sh resultados/sonda_pqc_progress.jsonl imagenes
 INPUT_JSON="${1:-${PROJECT_DIR}/resultados/resultados_sonda_pqc.json}"
 OUTPUT_DIR="${2:-${PROJECT_DIR}/imagenes}"
 
@@ -58,9 +60,9 @@ else
 
     # Instalar dependencias si no están presentes
     echo "--- Verificando dependencias..."
-    pip install -q pandas numpy matplotlib seaborn scipy statsmodels dnspython cryptography 2>/dev/null || {     # -q silencia la salida de pip, y 2>/dev/null redirige errores a null para evitar ruido
+    pip install -q pandas numpy matplotlib seaborn scipy statsmodels dnspython cryptography ijson 2>/dev/null || {     # -q silencia la salida de pip, y 2>/dev/null redirige errores a null para evitar ruido
         echo "   --- Instalando paquetes requeridos..."
-        pip install pandas numpy matplotlib seaborn scipy statsmodels dnspython cryptography
+        pip install pandas numpy matplotlib seaborn scipy statsmodels dnspython cryptography ijson
     }
 fi
 

@@ -32,7 +32,6 @@ Salidas en `imagenes/`:
 """
 from __future__ import annotations
 
-import json
 import logging
 import sys
 from pathlib import Path
@@ -57,6 +56,8 @@ from sklearn.preprocessing import LabelEncoder
 _SCRIPTS_DIR = Path(__file__).resolve().parents[1]
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
+
+from utils import iterar_resultados_pqc  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -119,15 +120,15 @@ EXPERIMENTOS = {
 # ---------------------------------------------------------------------------
 
 def cargar_datos(json_path: Path) -> pd.DataFrame:
-    with json_path.open(encoding="utf-8") as f:
-        raw = json.load(f)
-
-    registros = raw["datos"] if isinstance(raw, dict) else raw
-
+    """
+    Carga solo las filas ACEPTADAS de los grupos viables desde el archivo de resultados.
+    Usa lectura en streaming para evitar cargar el JSON completo en memoria RAM.
+    Soporta .json (con ijson si está disponible) y .jsonl (línea a línea).
+    """
     filas = []
-    for entrada in registros:
+    for entrada in iterar_resultados_pqc(json_path):
         hostname = entrada["hostname"]
-        for prueba in entrada["pruebas"]:
+        for prueba in entrada.get("pruebas", []):
             if prueba["connection_result"] != "ACEPTADO":
                 continue
             if prueba["grupo"] not in GRUPOS_VIABLES:
@@ -225,6 +226,13 @@ def evaluar_experimento(
     Evalúa RandomForest y GradientBoosting con GroupKFold(hostname) sobre df_train.
     El LabelEncoder se recibe ya ajustado sobre todas las clases del dataset completo.
     Devuelve métricas de CV y el modelo ganador entrenado en el train set completo.
+
+    Nota sobre n_jobs en cross_validate:
+    Se usa n_jobs=1 (folds secuenciales) para evitar OOM con datasets grandes.
+    Con 185K muestras y GradientBoosting(200 estimators), ejecutar 5 folds en paralelo
+    (n_jobs=-1) requiere ~5x la RAM de un fold individual, lo que supera la memoria
+    disponible en WSL2 con archivos JSON grandes. RandomForest sigue usando n_jobs=-1
+    internamente para acelerar el entrenamiento de cada fold individual.
     """
     X      = df_train[features].values
     y_enc  = le.transform(df_train["grupo"].values)
@@ -243,12 +251,14 @@ def evaluar_experimento(
 
     resultados = {}
     for nombre, modelo in modelos.items():
+        # n_jobs=1: los folds se ejecutan secuencialmente para evitar OOM.
+        # El pico de RAM es el de un solo fold en lugar de n_splits folds simultáneos.
         cv = cross_validate(
             modelo, X, y_enc,
             groups=groups,
             cv=gkf,
             scoring=["accuracy", "f1_macro", "f1_weighted"],
-            n_jobs=-1,
+            n_jobs=1,
             return_estimator=False,
         )
         resultados[nombre] = {

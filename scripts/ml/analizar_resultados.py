@@ -12,9 +12,7 @@ NOTA METODOLÓGICA:
 """
 from __future__ import annotations
 
-# Importar librerías
 import argparse
-import json
 import logging
 import sys
 from pathlib import Path
@@ -35,7 +33,7 @@ from constants import (          # noqa: E402
     ERROR_TLS_TIMEOUT,
     ERROR_TLS_ALERT,
 )
-from utils import configurar_logging      # noqa: E402
+from utils import configurar_logging, iterar_resultados_pqc      # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -263,31 +261,23 @@ def seleccionar_grupos_y_cohorte_comun(host_group, grupos_candidatos, min_hostna
 def cargar_y_procesar(input_path: Path = RESULTADOS_PATH):
     """
     Carga datos y crea DataFrame filtrado y limpio.
-    Input: JSON con resultados de pruebas de conexión TLS.
+    Input: JSON o JSONL con resultados de pruebas de conexión TLS.
     Output: DataFrame completo y DataFrame solo con conexiones exitosas.
-        - Carga el JSON y extrae los datos relevantes.
-        - Crea un DataFrame con columnas para hostname, grupo, resultados de conexión, tiempos y bytes.
-        - Convierte columnas numéricas a tipo numérico, manejando errores.
-        - Filtra el DataFrame para obtener solo las conexiones exitosas (connection_result == "ACEPTADO").
-        - Muestra estadísticas básicas de los datos cargados.
+
+    Para archivos JSON grandes (>100 MB), se recomienda pasar el .jsonl equivalente
+    o instalar ijson para evitar cargar todo el archivo en RAM a la vez.
     """
     logger.info("Cargando datos desde %s", input_path)
 
-    # Cargar JSON
-    with input_path.open('r', encoding='utf-8') as f:
-        data = json.load(f)
-    
-    # Extraer datos y crear DataFrame
+    # Extraer datos en streaming sin cargar el JSON completo en memoria
     registros = []
-    for host_data in data['datos']:
+    for host_data in iterar_resultados_pqc(input_path):
         hostname = host_data['hostname']
-        for prueba in host_data['pruebas']:
-            # Compatibilidad: usar handshake_overhead si existe, sino usar response_size_bytes
+        for prueba in host_data.get('pruebas', []):
             overhead = prueba.get('handshake_overhead')
             if overhead is None:
                 overhead = prueba.get('response_size_bytes')
-            
-            registro = {
+            registros.append({
                 'hostname': hostname,
                 'grupo': prueba.get('grupo'),
                 'connection_result': prueba.get('connection_result'),
@@ -302,9 +292,8 @@ def cargar_y_procesar(input_path: Path = RESULTADOS_PATH):
                 'handshake_total_bytes_sent': prueba.get('handshake_total_bytes_sent'),
                 'handshake_total_bytes_received': prueba.get('handshake_total_bytes_received'),
                 'handshake_total_overhead': prueba.get('handshake_total_overhead'),
-            }
-            registros.append(registro)
-    
+            })
+
     # Crear DataFrame
     df = pd.DataFrame(registros)
     

@@ -380,14 +380,6 @@ class TestConstruirParser:
         args = construir_parser().parse_args(["--log-level", "DEBUG"])
         assert args.log_level == "DEBUG"
 
-    def test_seed_por_defecto_none(self):
-        args = construir_parser().parse_args([])
-        assert args.seed is None
-
-    def test_argumento_seed(self):
-        args = construir_parser().parse_args(["--seed", "42"])
-        assert args.seed == 42
-
     def test_no_resume_por_defecto_false(self):
         args = construir_parser().parse_args([])
         assert args.no_resume is False

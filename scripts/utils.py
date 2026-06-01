@@ -9,18 +9,71 @@ entre las distintas sondas del proyecto.
 """
 
 import hashlib
+import json
 import logging
 import re
 import socket
 import ssl
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Generator, List, Optional, Tuple
 
 from cryptography import x509
 from cryptography.hazmat.primitives.asymmetric import dsa, ec, rsa
 
 logger = logging.getLogger(__name__)
+
+
+# ============================================
+# LECTURA EN STREAMING DE RESULTADOS PQC
+# ============================================
+
+def iterar_resultados_pqc(input_path: Path) -> Generator[Dict[str, Any], None, None]:
+    """
+    Generador que itera sobre los objetos ``{hostname, pruebas}`` del archivo de resultados
+    sin cargar el archivo completo en memoria RAM.
+
+    Soporta dos formatos:
+    - **.jsonl** (preferido): una línea por hostname. Lectura línea a línea: O(1) de memoria.
+    - **.json**: intenta ``ijson`` para streaming; si no está instalado, carga con
+      ``json.load`` y emite una advertencia (puede consumir varios GB de RAM).
+
+    Para archivos JSON grandes (>50 MB) se recomienda pasar el ``.jsonl`` equivalente
+    o instalar ijson (``pip install ijson``).
+    """
+    sufijo = input_path.suffix.lower()
+
+    if sufijo == ".jsonl":
+        with input_path.open("r", encoding="utf-8") as f:
+            for linea in f:
+                linea = linea.strip()
+                if linea:
+                    yield json.loads(linea)
+        return
+
+    # Formato .json: intentar streaming con ijson
+    try:
+        import ijson  # type: ignore
+        logger.info("ijson disponible: usando lectura en streaming del JSON")
+        with input_path.open("rb") as f:
+            # use_float=True: ijson emite float de Python en lugar de decimal.Decimal.
+            # Sin esto, numpy/matplotlib fallan con "unsupported operand type: Decimal * float".
+            for host_data in ijson.items(f, "datos.item", use_float=True):
+                yield host_data
+        return
+    except ImportError:
+        logger.warning(
+            "ijson no instalado: cargando JSON completo en memoria. "
+            "Si el proceso muere (OOM), instala ijson ('pip install ijson') "
+            "o usa el archivo .jsonl como entrada."
+        )
+
+    # Fallback: carga completa en RAM
+    with input_path.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+    items = data if isinstance(data, list) else data["datos"]
+    for host_data in items:
+        yield host_data
 
 
 # ============================================

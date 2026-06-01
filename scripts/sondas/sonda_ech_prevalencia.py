@@ -192,21 +192,17 @@ def parse_ech_config_list(raw_ech: bytes) -> List[Dict[str, Any]]:
          En caso de datos malformados, lanza ValueError con descripción del problema.
          Esta función no asume que los datos son correctos y valida cada paso del parseo.
     """
-    # Validamos que la ECHConfigList tenga al menos 2 bytes para la longitud total, y luego iteramos sobre el blob de configs extrayendo cada una según su longitud declarada. Para cada ECHConfig extraída, llamamos a `_parse_ech_config_contents` para obtener los campos relevantes. Si en cualquier punto encontramos inconsistencias en las longitudes o datos malformados, lanzamos un ValueError con una descripción clara del problema.
     if len(raw_ech) < 2:
         raise ValueError("ECHConfigList sin longitud")
 
-    # Leemos la longitud total de la lista de configs, y luego iteramos sobre el blob de configs extrayendo cada una según su longitud declarada. Para cada ECHConfig extraída, llamamos a `_parse_ech_config_contents` para obtener los campos relevantes. Si en cualquier punto encontramos inconsistencias en las longitudes o datos malformados, lanzamos un ValueError con una descripción clara del problema.
     total_len = int.from_bytes(raw_ech[0:2], "big")
     if total_len > len(raw_ech) - 2:
         raise ValueError("Longitud ECHConfigList inconsistente")
 
-    # Iteramos sobre el blob de configs extrayendo cada una según su longitud declarada. Para cada ECHConfig extraída, llamamos a `_parse_ech_config_contents` para obtener los campos relevantes. Si en cualquier punto encontramos inconsistencias en las longitudes o datos malformados, lanzamos un ValueError con una descripción clara del problema.
     configs_blob = raw_ech[2:2 + total_len]
     index = 0
     parsed_configs: List[Dict[str, Any]] = []
 
-    #  Iteramos sobre el blob de configs extrayendo cada una según su longitud declarada. Para cada ECHConfig extraída, llamamos a `_parse_ech_config_contents` para obtener los campos relevantes. Si en cualquier punto encontramos inconsistencias en las longitudes o datos malformados, lanzamos un ValueError con una descripción clara del problema.
     while index < len(configs_blob):
         if index + 4 > len(configs_blob):
             raise ValueError("Cabecera ECHConfig incompleta")
@@ -223,15 +219,15 @@ def parse_ech_config_list(raw_ech: bytes) -> List[Dict[str, Any]]:
 
         parsed_configs.append(_parse_ech_config_contents(config_contents, version))
 
-    # Devolvemos la lista de configs parseadas, cada una con sus campos relevantes extraídos. Esta función maneja múltiples casos de datos malformados y asegura que solo se devuelvan configs válidas, lanzando errores descriptivos en caso de problemas.
+    # Devolvemos la lista de configs parseadas.
     return parsed_configs
 
 
 def clasificar_proveedor(outer_sni: Optional[str]) -> str:
     """
     Clasifica proveedor CDN/infra a partir de public_name (Outer SNI).
-        Input: valor de Outer SNI extraído de ECHConfig (p.ej. "cloudflare.com", "fastly.net", etc.) o None si no se pudo extraer.
-        Output: etiqueta de proveedor clasificada ("Cloudflare", "Fastly", "DEfO", "OTRO", o "DESCONOCIDO"). Esta función utiliza heurísticas simples basadas en la presencia de ciertas palabras clave en el Outer SNI para clasificar el proveedor, lo que puede ayudar a identificar patrones comunes de despliegue ECH asociados a ciertos proveedores de CDN o infraestructura, aunque no es infalible y se basa en suposiciones razonables sobre los nombres de host utilizados en las configuraciones ECH.
+        Input: valor de Outer SNI extraído de ECHConfig
+        Output: etiqueta de proveedor clasificada
     """
     if not outer_sni:
         return "DESCONOCIDO"
@@ -248,9 +244,8 @@ def clasificar_proveedor(outer_sni: Optional[str]) -> str:
 def detectar_padding(client_hello_len: Optional[int], provider: str) -> Tuple[bool, Optional[str]]:
     """
     Detecta tamaños de padding estandarizados observados en despliegues ECH.
-    Algunos proveedores usan tamaños de ClientHello específicos o rangos estrechos para facilitar la detección de ECH, lo que puede ser un indicador indirecto de su uso. Esta función identifica patrones comunes de padding basados en la longitud del ClientHello y el proveedor asociado, devolviendo si se detectó padding y una etiqueta descriptiva del perfil de padding identificado.
-        Input: longitud de ClientHello (si se pudo medir) y proveedor clasificado.
-        Output: tupla indicando si se detectó padding, y etiqueta del perfil de padding (p.ej. "PADDING_1925", "PADDING_RANGO_CLOUDFLARE", etc.) o None si no se detectó ningún patrón de padding conocido. Esta función ayuda a identificar casos donde el cliente TLS está usando un tamaño de ClientHello que coincide con patrones de padding conocidos asociados a despliegues ECH, lo que puede ser un indicador indirecto de su uso incluso si no se negocia ECH exitosamente.
+        Input: longitud de ClientHello y proveedor clasificado.
+        Output: tupla indicando si se detectó padding, y etiqueta del perfil de padding
     """
     # Detectamos tamaños de padding estandarizados observados en despliegues ECH. Algunos proveedores usan tamaños de ClientHello específicos o rangos estrechos para facilitar la detección de ECH, lo que puede ser un indicador indirecto de su uso. Identificamos patrones comunes de padding basados en la longitud del ClientHello y el proveedor asociado, devolviendo si se detectó padding y una etiqueta descriptiva del perfil de padding identificado.
     if client_hello_len is None:
@@ -297,7 +292,6 @@ def extraer_longitud_client_hello(output: str) -> Optional[int]:
 def detectar_handshake_completo(output: str, return_code: int) -> bool:
     """
     Detecta si el handshake TLS terminó correctamente (no solo conexión TCP).
-    Esto es importante para clasificar correctamente casos donde el handshake falla por razones no relacionadas con ECH, evitando clasificaciones erróneas de fallo de negociación ECH cuando en realidad el handshake ni siquiera se completó. Se buscan indicadores comunes en la salida textual que sugieran que el handshake TLS se completó exitosamente, como mensajes de verificación, protocolo negociado, o confirmación de handshake completo. Si el código de retorno indica un error general (no timeout), se asume que el handshake no se completó.
         Input: salida combinada de stdout/stderr del cliente TLS y código de retorno del proceso.
         Output: True si hay indicadores claros de que el handshake TLS se completó, False en caso contrario. Esta función ayuda a mejorar la precisión de la clasificación de resultados de negociación ECH al considerar el resultado general del handshake TLS, evitando clasificaciones erróneas en casos donde el handshake falla por razones no relacionadas con ECH.
     """
@@ -321,12 +315,7 @@ def detectar_handshake_completo(output: str, return_code: int) -> bool:
 
 def clasificar_estado_negociacion(output: str, return_code: int, client_mode: str) -> Tuple[str, bool, bool]:
     """
-    Clasifica el resultado de negociación TLS/ECH con reglas robustas.
-        - Si el cliente TLS no soporta ECH real (p.ej. OpenSSL), siempre se clasifica como "CLIENTE_SIN_SOPORTE_ECH" aunque el handshake TLS pueda ser exitoso, ya que el objetivo es medir ClientHello base sin negociar ECH real.
-        - Para clientes con soporte ECH real (p.ej. BoringSSL), se analizan indicadores claros de aceptación o rechazo de ECH en la salida textual, pero también se considera el resultado general del handshake TLS para clasificar correctamente casos donde el handshake falla por razones no relacionadas con ECH.
-        - Si no hay indicadores claros de ECH pero el handshake TLS se completa, se clasifica como "NEGOCIACION_TLS_OK_SIN_CONFIRMACION_ECH" para reflejar que aunque TLS funcionó, no se pudo confirmar si ECH fue negociado o no.
-            Input: salida combinada de stdout/stderr del cliente TLS, código de retorno del proceso, y tipo de cliente TLS usado.
-            Output: estado de negociación ECH clasificado, si TLS se conectó, y si el handshake se completó. Esta función maneja múltiples escenarios de salida y códigos de retorno para proporcionar una clasificación lo más precisa posible del resultado de la negociación ECH, considerando las limitaciones de cada cliente TLS.
+    Clasifica el resultado de negociación TLS/ECH.
     """
     # Primero, determinamos si el handshake TLS se completó correctamente usando indicadores comunes en la salida del cliente TLS. Esto nos da una base para clasificar el resultado de ECH, ya que un handshake fallido generalmente indica que no se negoció ECH exitosamente, aunque también puede fallar por otras razones. Luego, analizamos la salida textual para buscar indicadores específicos de aceptación o rechazo de ECH, pero siempre considerando el resultado general del handshake TLS para evitar clasificaciones erróneas.
     text = output.lower()
@@ -372,7 +361,7 @@ async def resolver_ips_ipv4(domain: str, port: int) -> List[str]:
     except Exception:
         return []
 
-    # Extraemos las IPs únicas de la información de direcciones. La función getaddrinfo puede devolver múltiples entradas para el mismo dominio, incluyendo duplicados o múltiples interfaces. Usamos un conjunto para asegurarnos de que solo obtenemos IPs únicas, y luego las devolvemos como una lista.
+    # Extraemos las IPs únicas
     ips: List[str] = []
     seen = set()
     for item in addr_info:
@@ -387,7 +376,7 @@ async def medir_clienthello_len_openssl(domain: str, port: int, timeout: float) 
     """
     Mide longitud de ClientHello con OpenSSL como fallback cuando bssl no la expone.
         Input: dominio, puerto, y timeout para la conexión TLS.
-        Output: longitud de ClientHello reportada por OpenSSL, o None si no se pudo medir. Esta función asume que OpenSSL está disponible y se puede ejecutar, pero maneja casos donde no lo está devolviendo None.    
+        Output: longitud de ClientHello reportada por OpenSSL, o None si no se pudo medir.    
     """
     openssl_path = shutil.which("openssl")
     if not openssl_path:
@@ -1039,10 +1028,10 @@ def exportar_json(
             "padding_detectado": sum(1 for r in resultados if r.padding_detected),
         },
         "provider_variability": provider_variability,
-        "results": [asdict(r) for r in resultados], # Convertimos cada resultado de dominio a diccionario para JSON, manteniendo todos los campos detallados.
+        "results": [asdict(r) for r in resultados],
     }
 
-    # Guardamos el JSON con indentación para legibilidad y sin escapar caracteres Unicode.
+    # Guardamos el JSON.
     with json_path.open("w", encoding="utf-8") as handle:
         json.dump(payload, handle, ensure_ascii=False, indent=2)
 
@@ -1061,7 +1050,7 @@ def imprimir_resumen_consola(resultados: List[DominioECHResultado]) -> None:
     clienthello_medido = sum(1 for row in resultados if row.client_hello_length is not None)
     padding_detectado = sum(1 for row in resultados if row.padding_detected)
 
-    # Imprimimos resumen formateado
+    # Imprimimos resumen 
     print("\n--- Resumen rápido de la sonda ECH ---")
     print(f"Dominios procesados:      {total}")
     print(f"Con HTTPS RR:             {con_https_rr}")
@@ -1095,7 +1084,7 @@ async def ejecutar_estudio(args: argparse.Namespace) -> int:
         Input: argumentos de configuración desde CLI.
         Output: archivos CSV y JSON con resultados, y resumen en consola.
     """
-    # Paso 1: Cargar dominios desde CSV
+    # Cargar dominios desde CSV
     domains_all = cargar_dominios_csv(Path(args.input_csv), max_dominios=args.max_dominios)
     if not domains_all:
         print("No se encontraron dominios válidos en el CSV de entrada.")
@@ -1109,7 +1098,7 @@ async def ejecutar_estudio(args: argparse.Namespace) -> int:
     # Cargar hostnames ECH existentes en memoria para dedup eficiente durante el escaneo
     hostnames_ech_existentes = _cargar_hostnames_ech_existentes(hostnames_ech_path)
 
-    # Paso 2: Cargar progreso previo y filtrar dominios ya completados
+    # Cargar progreso previo y filtrar dominios ya completados
     resultados_previos: List[DominioECHResultado] = []
     ya_completados: set = set()
     if not getattr(args, 'no_resume', False):
@@ -1127,11 +1116,11 @@ async def ejecutar_estudio(args: argparse.Namespace) -> int:
         imprimir_resumen_consola(resultados)
         return 0
 
-    # Paso 3: Configurar resolver DNS asíncrono y semáforo
+    # Configurar resolver DNS asíncrono y semáforo
     resolver = dns.asyncresolver.Resolver()
     semaphore = asyncio.Semaphore(args.max_concurrency)
 
-    # Paso 4: Lanzar tareas asíncronas solo para dominios pendientes
+    # Lanzar tareas asíncronas solo para dominios pendientes
     tasks = [
         procesar_dominio(
             domain=domain,
@@ -1145,7 +1134,7 @@ async def ejecutar_estudio(args: argparse.Namespace) -> int:
         for domain in domains
     ]
 
-    # Paso 5: Recopilar resultados con escritura incremental
+    # Recopilar resultados con escritura incremental
     checkpoint_interval = getattr(args, 'checkpoint_interval', 200)
     nuevos_procesados = 0
     total_tasks = len(tasks)
@@ -1197,7 +1186,7 @@ async def ejecutar_estudio(args: argparse.Namespace) -> int:
         if nuevos_procesados % checkpoint_interval == 0:
             _exportar_atomico_ech(resultados, args, json_path, csv_path)
 
-    # Paso 6: Exportación final (siempre se ejecuta)
+    #  Exportar los datos
     _exportar_atomico_ech(resultados, args, json_path, csv_path)
     imprimir_resumen_consola(resultados)
 

@@ -32,7 +32,7 @@ LOG_LEVEL="INFO"
 DNS_TIMEOUT="5"
 TLS_TIMEOUT="10"
 CONCURRENCY="5"
-MAX_HOSTNAMES="10000"
+MAX_HOSTNAMES="80000"
 REPETICIONES="30"
 OQS_BIN="/opt/openssl/bin/openssl"
 GRUPOS_PQC=""   # vacío = lista completa predefinida
@@ -55,7 +55,7 @@ Opciones:
   --dns-timeout SEG       Timeout DNS en segundos (default: 5)
   --tls-timeout SEG       Timeout TLS en segundos (default: 10)
   --concurrency N         Concurrencia asyncio (default: 5)
-  --max-hostnames N       Máximo de hostnames a procesar (default: 10000)
+  --max-hostnames N       Máximo de hostnames a procesar (default: 20000)
   --repeticiones N        Mediciones por combinación para media/stddev (default: 30)
   --oqs-bin RUTA          Binario OpenSSL OQS (default: /opt/openssl/bin/openssl)
   --grupos-pqc G1 G2 ...  Grupos PQC a probar (default: lista completa predefinida)

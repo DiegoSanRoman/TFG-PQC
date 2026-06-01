@@ -21,10 +21,13 @@ if [[ -z "${VIRTUAL_ENV:-}" ]]; then
     source "${VENV_DIR}/bin/activate"
 fi
 
-"$VENV_DIR/bin/pip" install -q scikit-learn 2>/dev/null || \
-    "$VENV_DIR/bin/pip" install scikit-learn
+"$VENV_DIR/bin/pip" install -q scikit-learn ijson 2>/dev/null || \
+    "$VENV_DIR/bin/pip" install scikit-learn ijson
 PYTHON_BIN="python3"
 
+# Se puede pasar el .jsonl para evitar cargar el JSON completo en RAM (recomendado para
+# archivos grandes):
+#   ./ejecutar_clasificacion_pqc.sh --input-json resultados/sonda_pqc_progress.jsonl
 INPUT_JSON="resultados/resultados_sonda_pqc.json"
 OUTPUT_DIR="imagenes"
 N_SPLITS="5"

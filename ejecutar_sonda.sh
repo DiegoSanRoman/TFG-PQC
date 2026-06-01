@@ -10,11 +10,11 @@ set -euo pipefail
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Valores por defecto
-MAX_HOSTNAMES="100"
+MAX_HOSTNAMES="145000"
 REPETICIONES="1"
 MAX_WORKERS="20"
 DOCKER_IMAGE="tfg-sonda"
-DATASET_CSV="prueba.csv"
+DATASET_CSV="majestic_million.csv"
 DATASET_BASENAME=""
 FORCE_REBUILD="0"
 IMAGE_HASH_FILE=""

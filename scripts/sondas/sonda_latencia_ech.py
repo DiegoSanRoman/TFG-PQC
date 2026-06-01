@@ -16,7 +16,6 @@ import csv
 import json
 import logging
 import random
-import socket
 import sys
 import tempfile
 import time
@@ -256,10 +255,10 @@ async def procesar_hostname(
         # Resolver IP del dominio para detectar cambios de PoP CDN entre mediciones
         ip_pop: Optional[str] = None
         try:
-            infos = socket.getaddrinfo(domain, None, type=socket.SOCK_STREAM)
-            if infos:
-                ip_pop = infos[0][4][0]
-        except OSError:
+            respuesta_a = await resolver.resolve(domain, 'A')
+            if respuesta_a:
+                ip_pop = str(respuesta_a[0])
+        except Exception:
             pass
 
         def _sin_ech_config(motivo: str) -> ResultadoLatenciaECH:
@@ -449,7 +448,6 @@ def _preflight() -> Optional[str]:
 
 async def ejecutar(args: argparse.Namespace) -> int:
     configurar_logging(Path(args.log_file), args.log_level)
-    random.seed(args.seed)
 
     bssl_path = _preflight()
     if not bssl_path:
@@ -537,8 +535,6 @@ def construir_parser() -> argparse.ArgumentParser:
     p.add_argument("--max-hostnames",  type=int,   default=DEFAULT_MAX_HOSTNAMES)
     p.add_argument("--repeticiones",   type=int,   default=DEFAULT_REPETICIONES,
                    help="Número de mediciones por hostname para calcular media/stddev (default: 3)")
-    p.add_argument("--seed",           type=int,   default=None,
-                   help="Semilla para random (reproducibilidad del orden ECH/noECH; None = no determinista)")
     p.add_argument("--no-resume",      action="store_true",
                    help="Ignora el progreso previo y comienza desde cero")
     p.add_argument("--checkpoint-interval", type=int, default=50, metavar="N",
