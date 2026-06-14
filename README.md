@@ -436,12 +436,13 @@ TFG-PQC/
 │   │   ├── analizar_resultados.py    # Análisis estadístico y visualización PQC
 │   │   └── clasificar_grupo_pqc.py   # Clasificación ML de grupo por side-channel
 │   └── tests/
-│       ├── test_sonda_pqc.py                 # 37+ tests del motor de escaneo
-│       ├── test_sonda_ech_prevalencia.py     # 30+ tests de la sonda de prevalencia ECH
-│       ├── test_sonda_latencia_ech.py        # 59 tests de la sonda de latencia ECH
-│       ├── test_sonda_latencia_pqc.py        # 52 tests de la sonda de latencia PQC
+│       ├── conftest.py                       # Fixtures compartidas
+│       ├── test_sonda_pqc.py                 # 72 tests del motor de escaneo
+│       ├── test_sonda_ech_prevalencia.py     # 102 tests de la sonda de prevalencia ECH
+│       ├── test_sonda_latencia_ech.py        # 77 tests de la sonda de latencia ECH
+│       ├── test_sonda_latencia_pqc.py        # 65 tests de la sonda de latencia PQC
 │       ├── test_clasificar_grupo_pqc.py      # 30 tests del clasificador ML
-│       └── test_utils.py                     # 15+ tests de utilidades
+│       └── test_utils.py                     # 29 tests de utilidades
 │
 ├── data/
 │   ├── prueba.csv                    # 7 dominios para pruebas rápidas
@@ -458,7 +459,9 @@ TFG-PQC/
 │   ├── resultados_latencia_pqc.csv
 │   ├── sonda_pqc.log
 │   ├── sonda_latencia_ech.log
-│   └── sonda_latencia_pqc.log
+│   ├── sonda_latencia_pqc.log
+│   ├── analizar_resultados.log
+│   └── *_progress.jsonl              # Estado de progreso para reanudación (ver sección "Reanudación")
 │
 └── imagenes/                         # Figuras generadas (generadas)
     ├── latencia_limpia.png
@@ -585,7 +588,6 @@ Campos del CSV de resultados:
 | `resultados/resultados_latencia_pqc.csv` | Una fila por `(hostname × grupo_pqc)` con todas las métricas |
 | `resultados/sonda_latencia_pqc.log` | Log de ejecución |
 | `imagenes/latencia_pqc_ech_vs_sin_ech.png` | Gráfica comparativa por grupo PQC (generada automáticamente) |
-| `imagenes/latencia_pqc_vs_clasico.png` | Comparativa de latencia PQC vs X25519 clásico |
 
 Campos del CSV de resultados (una fila por hostname × grupo):
 
@@ -616,6 +618,25 @@ Campos del CSV de resultados (una fila por hostname × grupo):
 | `imagenes/clasificacion_experimentos_comparativa.png` | Accuracy y F1 de los 3 experimentos para ambos modelos |
 | `imagenes/clasificacion_confusion_mejor.png` | Matriz de confusión del mejor modelo evaluada en el test set |
 | `imagenes/clasificacion_importancia_features.png` | Importancia relativa de cada feature en el mejor modelo |
+| `imagenes/clasificacion_informe_por_clase.csv` | Precisión, recall y F1 por clase del mejor modelo (formato CSV) |
+| `imagenes/clasificacion_informe_por_clase.txt` | Informe legible de `classification_report` por clase |
+
+---
+
+## Reanudación incremental
+
+Las cuatro sondas (`sonda_pqc_final.py`, `sonda_ech_prevalencia.py`, `sonda_latencia_ech.py`, `sonda_latencia_pqc.py`) escriben su progreso de forma incremental en un fichero `*_progress.jsonl` junto al CSV/JSON de salida. Cada línea es una fila JSON con los resultados ya consolidados de un hostname (o, en la sonda de latencia PQC, del par hostname × grupo). El CSV final se reescribe de forma atómica tras cada hostname.
+
+Si la sonda se interrumpe (Ctrl+C, caída de red, kill del proceso), basta con relanzarla con los mismos argumentos: al arrancar carga el `.jsonl` existente, omite los hostnames ya completados y sigue por donde quedó. Para forzar una ejecución limpia, borrar manualmente el `.jsonl` y el CSV/JSON correspondientes antes de relanzar.
+
+Ficheros generados por sonda:
+
+| Sonda | Progreso | Salida final |
+| --- | --- | --- |
+| `sonda_pqc_final.py` | `resultados/sonda_pqc_progress.jsonl` | `resultados/resultados_sonda_pqc.json` |
+| `sonda_ech_prevalencia.py` | `resultados/resultados_ech_prevalencia_progress.jsonl` | `resultados/resultados_ech_prevalencia.{csv,json}` |
+| `sonda_latencia_ech.py` | `resultados/resultados_latencia_ech_progress.jsonl` | `resultados/resultados_latencia_ech.csv` |
+| `sonda_latencia_pqc.py` | `resultados/resultados_latencia_pqc_progress.jsonl` | `resultados/resultados_latencia_pqc.csv` |
 
 ---
 
@@ -632,10 +653,10 @@ pytest -v scripts/tests/
 La suite cubre:
 
 - **`test_utils.py`** — Validación de hostnames, configuración de logging, construcción del esquema de resultados
-- **`test_sonda_pqc.py`** — Parseo de `-trace`, detección de cifrados débiles/PFS, estadísticas por grupo, exportación CSV, clases `TLSOutputParser` y `PQCProbe`
-- **`test_sonda_ech_prevalencia.py`** — Lógica completa de la sonda de prevalencia ECH
-- **`test_sonda_latencia_ech.py`** — 59 tests de la sonda de latencia ECH: parseo de salida bssl (`_parsear_bssl`), extracción de errores, cálculo de media/stddev (`_agregar`), dataclass `ResultadoLatenciaECH`, exportación CSV, parser de argumentos CLI, `_run_cmd` con subprocesos reales, y pipeline `procesar_hostname` con mocks de DNS y TLS
-- **`test_sonda_latencia_pqc.py`** — 52 tests de la sonda de latencia PQC: mediciones bssl y OQS (`_una_medicion_bssl`, `_una_medicion_oqs`), lógica de selección de backend, dataclass `ResultadoLatenciaPQC`, exportación CSV, parser de argumentos CLI, y pipeline `procesar_hostname_grupo` con mocks de DNS y TLS
+- **`test_sonda_pqc.py`** — Parseo de `-trace`, detección de cifrados débiles/PFS, estadísticas por grupo, exportación CSV, clases `TLSOutputParser` y `PQCProbe`, y funciones de progreso incremental
+- **`test_sonda_ech_prevalencia.py`** — Lógica completa de la sonda de prevalencia ECH, incluyendo escritura incremental y reanudación por hostname
+- **`test_sonda_latencia_ech.py`** — 77 tests de la sonda de latencia ECH: parseo de salida bssl (`_parsear_bssl`), extracción de errores, cálculo de media/stddev (`_agregar`), dataclass `ResultadoLatenciaECH`, exportación CSV, parser de argumentos CLI, `_run_cmd` con subprocesos reales, pipeline `procesar_hostname` con mocks de DNS y TLS, y funciones de progreso incremental (`_cargar_progreso_latencia_ech`, `_append_progress_latencia_ech`, `_exportar_csv_atomico_ech`)
+- **`test_sonda_latencia_pqc.py`** — 65 tests de la sonda de latencia PQC: mediciones bssl y OQS (`_una_medicion_bssl`, `_una_medicion_oqs`), lógica de selección de backend, dataclass `ResultadoLatenciaPQC`, exportación CSV, parser de argumentos CLI, pipeline `procesar_hostname_grupo` con mocks de DNS y TLS, y funciones de progreso incremental (`_cargar_progreso_latencia_pqc`, `_append_progress_latencia_pqc`, `_exportar_csv_atomico_pqc`)
 - **`test_clasificar_grupo_pqc.py`** — 30 tests del clasificador ML: constantes (`GRUPOS_VIABLES`, `EXPERIMENTOS`, `LABEL_MAP`), carga y filtrado del JSON (`cargar_datos`), split sin leakage por hostname (`split_train_test`), estructura y métricas de `evaluar_experimento`, y smoke tests de las 4 gráficas de salida
 
 ---
